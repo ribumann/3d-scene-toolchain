@@ -64,6 +64,9 @@ primitive geometry; no resemblance or physical accuracy score is implied.
   At a 390-pixel viewport, the page had no horizontal document overflow.
 - Azure tests cover identity, resource-group, quota, SSH and duration guards using
   mocks. There has been no authenticated Azure deployment or cost allocation.
+- GitHub CPU CI also passed both the web job and the Python/Blender job:
+  https://github.com/ribumann/3d-scene-toolchain/actions/runs/42899375347
+  This includes the three procedural cases on a hosted CPU runner, not GPU work.
 
 ## Remaining acceptance work
 

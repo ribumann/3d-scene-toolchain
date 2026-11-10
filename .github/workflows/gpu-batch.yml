@@ -53,9 +53,10 @@ jobs:
       SCENE_DETECTOR_REVISION: ${{ vars.SCENE_DETECTOR_REVISION }}
       SCENE_SEGMENTER_REVISION: ${{ vars.SCENE_SEGMENTER_REVISION }}
       CASES: ${{ inputs.cases }}
-      SCENE_DATA_DIR: ${{ runner.temp }}/scene-data
       ATTN_BACKEND: sdpa
     steps:
+      - name: Configure isolated job storage
+        run: echo "SCENE_DATA_DIR=$RUNNER_TEMP/scene-data" >> "$GITHUB_ENV"
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
