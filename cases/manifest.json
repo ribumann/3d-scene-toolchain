@@ -1,0 +1,85 @@
+[
+  {
+    "id": "P01",
+    "title": "Grocery aisles",
+    "input_type": "prompt",
+    "summary": "An editable illustrative store with six departments, checkout and a shopper route.",
+    "prompt": "A grocery store with distinct produce, bakery, dairy, pantry, frozen-food and household aisles. Include parallel shelf bays, endcaps, checkout counters and a clear main cross-aisle. Keep departments selectable and show an illustrative shopping route.",
+    "status": "ready"
+  },
+  {
+    "id": "P02",
+    "title": "Semiconductor assembly",
+    "input_type": "prompt",
+    "summary": "Illustrative semiconductor packaging and test stations, not a certified wafer-fab layout.",
+    "prompt": "An illustrative semiconductor packaging and test assembly line: wafer loading, die attach, wire bonding, encapsulation, singulation, electrical testing and packaged output, with buffers and a clear material route. This is an explanatory scene, not an engineering specification.",
+    "status": "ready"
+  },
+  {
+    "id": "P03",
+    "title": "Zoo habitats",
+    "input_type": "prompt",
+    "summary": "Selectable habitats, vegetation, an entrance and a visitor circuit.",
+    "prompt": "A small zoo with an entrance plaza, savanna habitat, aviary, woodland habitat, aquatic habitat, visitor paths and planting. Show safe separation of visitors and enclosures. Animals are simple illustrative static assets, with an animated visitor route rather than biological simulation.",
+    "status": "ready"
+  },
+  {
+    "id": "I01",
+    "title": "Mineral-process flowsheet",
+    "input_type": "diagram",
+    "source_filename": "images (1).jpg",
+    "summary": "Extract equipment labels and process topology; physical placement remains inferred."
+  },
+  {
+    "id": "I02",
+    "title": "Outdoor processing plant",
+    "input_type": "photo",
+    "source_filename": "images.jpg",
+    "summary": "Identify visible buildings, conveyors, access road and terrain without claiming hidden dimensions."
+  },
+  {
+    "id": "I03",
+    "title": "Vessel room",
+    "input_type": "photo",
+    "source_filename": "production-process-rna-therapies-schweizerhalle-switzerland-3.jpg",
+    "summary": "Segment vessels and equipment around the central aisle. Actual process connections remain unknown."
+  },
+  {
+    "id": "I04",
+    "title": "Assembly station diagram",
+    "input_type": "diagram",
+    "source_filename": "images.png",
+    "summary": "Preserve station sequences and buffers; propose and review directional connections."
+  },
+  {
+    "id": "I05",
+    "title": "Japanese factory plan",
+    "input_type": "plan",
+    "source_filename": "l01_02_04_01_img01.jpg",
+    "summary": "Review footprints and original OCR labels; scale and heights are assumptions."
+  },
+  {
+    "id": "G01",
+    "title": "Generated grocery reference",
+    "input_type": "generated",
+    "source_filename": "generated-grocery.png",
+    "summary": "Upload a separately generated reference and compare its extracted layout with P01.",
+    "prompt": "Create a single coherent architectural reference image of a grocery-store interior, viewed at elevated three-quarter angle. Show six distinct parallel departments: produce, bakery, dairy, pantry, frozen food and household goods, with endcaps, checkout counters and a continuous unobstructed central cross-aisle. Realistic object proportions, diffuse daylight, clearly separated shelf units, no people, no readable signage, no collage. This is an illustrative design, not an existing facility."
+  },
+  {
+    "id": "G02",
+    "title": "Generated semiconductor reference",
+    "input_type": "generated",
+    "source_filename": "generated-semiconductor.png",
+    "summary": "Upload a separately generated line reference; inspect equipment masks and occlusion.",
+    "prompt": "Create a single coherent architectural reference image of an illustrative semiconductor packaging and test assembly line, elevated three-quarter interior view. Show seven distinct equipment stations in sequence for wafer loading, die attach, wire bonding, encapsulation, singulation, electrical test and packaged output. Include small buffer areas, a clear transport aisle and clean-room-style white and stainless surfaces. No workers, no readable signage, no impossible overlapping equipment, no collage. This is an explanatory layout, not a certified process or real wafer fabrication plant."
+  },
+  {
+    "id": "G03",
+    "title": "Generated zoo reference",
+    "input_type": "generated",
+    "source_filename": "generated-zoo.png",
+    "summary": "Upload a generated zoo reference; inspect paths, enclosures and vegetation.",
+    "prompt": "Create a single coherent elevated three-quarter architectural reference image of a small illustrative zoo. Include an entrance plaza, savanna habitat, aviary, woodland enclosure and aquatic habitat arranged around a continuous looping visitor path. Clearly distinguish safe visitor routes from fenced habitats; show planting and a few small static animals. Diffuse daylight, visible enclosure boundaries, no readable labels, no people, no collage. This is a conceptual design rather than a real zoo."
+  }
+]

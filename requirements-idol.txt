@@ -1,0 +1,2 @@
+# Install only in the GPU environment. Gated encoder terms/access are separate.
+git+https://github.com/speridlabs/idol-sdk.git@8db700349a5570aac390e4780fa32e3eed6b587a
