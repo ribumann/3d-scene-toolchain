@@ -149,6 +149,11 @@ remain separate evidence, not a public performance or device certification.
 The original Storage account remains provisioned but network-disabled and
 unused; it is not the viewer host. That initial public-origin verification
 predates the reference-preview UI; each new deployment needs a separate check.
+The eight-reference update subsequently passed CPU/Blender and web/deployment in
+[43006759156](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43006759156),
+source `c7b4507acc2f340634daba29289f3389231433b6`. Updated public-origin checking
+was blocked in this cloud workspace by DNS/client policy, not by a failed
+deployment; the coordinating operator must verify it separately.
 See [`infra/azure/static-demo.md`](../infra/azure/static-demo.md) for the artifact
 boundary, exact target and opt-in deployment controls.
 

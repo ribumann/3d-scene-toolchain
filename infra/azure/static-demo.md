@@ -56,6 +56,21 @@ verification, not a public-device/performance certification. This initial public
 check predates the reference-preview UI; do not treat it as verification of a
 later preview deployment.
 
+The eight-reference update was published successfully by CPU workflow
+[43006759156](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43006759156),
+source `c7b4507acc2f340634daba29289f3389231433b6`. Both CPU/Blender checks and the
+web build/deployment passed. Artifact `13849271102` is
+`static-demo-c7b4507acc2f340634daba29289f3389231433b6`, with upload digest
+`sha256:1ed465a30aa7d17d2572953ff36e45a7c23ea71476c704fa6ba3db49105d96a5`.
+An independent download verified the exact public file boundary and all eight
+preview files byte-for-byte against the authorized repository assets.
+Local browser checks decoded all eight actual previews at desktop/mobile sizes,
+with correct provenance, no image-case 3D canvas, no `/api` requests or mutation
+controls, and a working image-error/reload state. The cloud workspace could not
+repeat the public-origin check: DNS failed and browser navigation was explicitly
+blocked by its client policy. No bypass was attempted; updated public-origin
+verification remains the coordinating operator's separate check.
+
 ## Build and inspect
 
 Requirements: Python 3.11+, Node 22.12+ (see package engine constraints), npm.
