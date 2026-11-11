@@ -168,6 +168,12 @@ all-eight archive transfer. No images, masks, PLY, logs or assembled scene are
 published; the public reference demo and normal local API are unchanged.
 See the [private batch operator guide](../infra/azure/README.md) for dispatch,
 checkpoint paths, retry behavior and bounded execution.
+The user subsequently approved published WebP previews as explicit batch inputs,
+with originals retained for final comparison. The I02 batch now supports that
+choice using an authorized-asset checksum check, separate preview checkpoints
+and `user-approved-public-webp-preview` / `not_original_bytes=true` provenance.
+This does not relabel previews as original bytes or generalize the batch to
+other cases; no actual preview-input multi-object result is established here.
 
 ## Remaining acceptance work
 

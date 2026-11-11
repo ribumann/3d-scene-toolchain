@@ -69,7 +69,7 @@ def snapshot_extraction(folder):
     return files
 
 
-def extraction_for(directory, output, state, report):
+def extraction_for(directory, output, state, report, public_preview=None):
     receipt = state.get("extraction")
     if receipt is None:
         attempts = state.setdefault("extraction_attempts", [])
@@ -78,9 +78,14 @@ def extraction_for(directory, output, state, report):
         write_json(output / "batch.json", state)
         destination = private_path(output, attempt["directory"])
         destination.mkdir(parents=True)
+        arguments = [
+            "/home/scene/scene-vision-venv/bin/python", str(ROOT / "scripts/private_gpu_smoke.py"),
+            "extract", "--all-objects", "--data-dir", str(directory), "--output", str(destination),
+        ]
+        if public_preview is not None:
+            arguments += ["--public-preview", str(public_preview)]
         run_stage(
-            ["/home/scene/scene-vision-venv/bin/python", str(ROOT / "scripts/private_gpu_smoke.py"),
-             "extract", "--all-objects", "--data-dir", str(directory), "--output", str(destination)],
+            arguments,
             destination / "extract-private.log", 1200, attempt["timing"],
         )
         folder = destination / "extraction"
@@ -119,7 +124,7 @@ def validated_attempt(output, crop, attempt):
     return {"directory": folder, "metadata": metadata}
 
 
-def assemble_scene(scene, plan, validated, source_sha256, asset_root):
+def assemble_scene(scene, plan, validated, source_sha256, asset_root, input_provenance=None):
     assembled = scene.model_copy(deep=True)
     assembled.nodes, assembled.assets = [], []
     assembled.description += (
@@ -149,6 +154,7 @@ def assemble_scene(scene, plan, validated, source_sha256, asset_root):
                     "crop_sha256": parent["crop_sha256"], "crop": parent["crop"],
                     "bbox_pixels": parent["bbox_pixels"], "duplicate_of": group["node_id"] if node.id != group["node_id"] else None,
                     "layout": "inferred-image-plane-not-metric",
+                    **({"input_provenance": input_provenance} if input_provenance else {}),
                 },
             ))
     included = {node.id for node in assembled.nodes}
@@ -159,7 +165,10 @@ def assemble_scene(scene, plan, validated, source_sha256, asset_root):
 def checkpoint_scene(directory, output, state, scene, plan, validated):
     state["scene_path"] = None
     if validated:
-        assembled = assemble_scene(scene, plan, validated, state["contract"]["source_sha256"], directory / "assets")
+        assembled = assemble_scene(
+            scene, plan, validated, state["contract"]["source_sha256"], directory / "assets",
+            state["contract"].get("input_provenance"),
+        )
         revision = state.get("assembly_revision", 0) + 1
         folder = private_path(output, "scenes")
         folder.mkdir(exist_ok=True)
@@ -237,9 +246,9 @@ def reconstruct_objects(directory, output, state, report, scene, folder, plan):
     report["failure_reason"] = None if report["status"] == "succeeded" else "one_or_more_objects_failed"
 
 
-def run_batch(directory):
+def run_batch(directory, public_preview=None):
     directory = Path(directory).absolute()
-    output = directory / "assets/I02/object-batch"
+    output = directory / ("assets/I02/object-batch-public-preview" if public_preview is not None else "assets/I02/object-batch")
     state, lock = None, None
     started = time.monotonic()
     report = {
@@ -255,7 +264,25 @@ def run_batch(directory):
         pins = {name: os.environ.get(name, "") for name in PIN_NAMES}
         if any(not re.fullmatch(r"[0-9a-f]{40}", value) for value in pins.values()):
             raise SmokeError("missing_immutable_model_pin")
-        source, _ = load_source(directory)
+        input_provenance = None
+        if public_preview is not None:
+            public_preview = Path(public_preview).absolute()
+            authorized = ROOT / "apps/web/public/references/I02.webp"
+            if public_preview.is_symlink() or digest(public_preview) != digest(authorized):
+                raise SmokeError("public_preview_does_not_match_authorized_asset")
+            source, _ = load_source(directory, public_preview)
+            input_provenance = {
+                "source_kind": "user-approved-public-webp-preview",
+                "sha256": source["sha256"], "bytes": public_preview.stat().st_size,
+                "url": "https://red-wave-0c7bb6c0f.4.azurestaticapps.net/references/I02.webp",
+                "not_original_bytes": True,
+            }
+            from PIL import Image
+            with Image.open(public_preview) as image:
+                input_provenance["dimensions"] = [image.width, image.height]
+            report.update(input_provenance)
+        else:
+            source, _ = load_source(directory)
         contract = {
             "version": 1, "case_id": "I02", "source_kind": "private-original",
             "source_sha256": source["sha256"], "preview_sha256": digest(Path(source["preview_path"])),
@@ -266,6 +293,8 @@ def run_batch(directory):
             "crop_contract": "approved-non-person-rgba-min32-alpha256-v1",
             "detector_max_objects": None,
         }
+        if input_provenance is not None:
+            contract.update(source_kind=input_provenance["source_kind"], input_provenance=input_provenance)
         if directory.is_symlink():
             raise SmokeError("unsafe_private_data_root")
         private_path(directory, "assets/I02/object-batch")
@@ -290,7 +319,7 @@ def run_batch(directory):
         write_json(manifest, state)
         report["stage"] = "extraction"
         write_json(output / "safe-status.json", report)
-        scene, folder, plan = extraction_for(directory, output, state, report)
+        scene, folder, plan = extraction_for(directory, output, state, report, public_preview)
         report["stage"] = "objects"
         reconstruct_objects(directory, output, state, report, scene, folder, plan)
         report["stage"] = "complete"
@@ -332,11 +361,12 @@ def main():
     os.umask(0o077)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", type=Path, required=True)
+    parser.add_argument("--public-preview", type=Path, help="Explicit authorized I02 WebP input, never original bytes.")
     args = parser.parse_args()
     def interrupt(signum, frame):
         raise SystemExit(128 + signum)
     signal.signal(signal.SIGTERM, interrupt)
-    return run_batch(args.data_dir)
+    return run_batch(args.data_dir, args.public_preview)
 
 
 if __name__ == "__main__":

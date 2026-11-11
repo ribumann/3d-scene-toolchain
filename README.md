@@ -214,6 +214,12 @@ transfer is not a prerequisite. Outputs and assembled scene snapshots stay
 private, with inferred image-plane layout, not metric truth. This route is
 implemented but has **not yet completed an actual multi-object GPU run**.
 Setup, output/checkpoint paths and retry semantics are in the Azure guide.
+The user also approved `-f smoke_source=public-preview` for faster input intake,
+retaining originals for final comparison. This explicitly uses the staged,
+authorized I02 WebP and records `user-approved-public-webp-preview` provenance,
+actual SHA/dimensions and `not_original_bytes=true` in a separate checkpoint
+tree. It never overwrites original Store records or silently falls back.
+Other-case batch generalization remains pending; diagrams use the diagram path.
 
 Pin full **40-character commit SHAs** in the worker environment:
 

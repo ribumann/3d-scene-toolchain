@@ -141,5 +141,11 @@ jobs:
         if: inputs.object_batch
         run: |
           umask 077
+          args=()
+          case "$SMOKE_SOURCE" in
+            private-original) ;;
+            public-preview) args+=(--public-preview "/home/scene/scene-private-data/approved-public-previews/I02.webp") ;;
+            *) echo "Unsupported batch source." >&2; exit 1 ;;
+          esac
           /home/scene/scene-worker-venv/bin/python -m scripts.private_gpu_batch \
-            --data-dir /home/scene/scene-private-data
+            --data-dir /home/scene/scene-private-data "${args[@]}"

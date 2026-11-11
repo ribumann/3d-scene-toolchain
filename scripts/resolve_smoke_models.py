@@ -75,8 +75,8 @@ def main():
     ):
         print("HF readiness failed: configure the isolated SCENE_GPU_RUNNER label.", file=sys.stderr)
         return 1
-    if os.environ.get("I02_OBJECT_BATCH") == "true" and os.environ.get("SMOKE_SOURCE") != "private-original":
-        print("I02 batch readiness failed: choose private-original; no GPU work queued.", file=sys.stderr)
+    if os.environ.get("I02_OBJECT_BATCH") == "true" and os.environ.get("SMOKE_SOURCE") not in ("private-original", "public-preview"):
+        print("I02 batch readiness failed: choose private-original or explicitly approved public-preview; no GPU work queued.", file=sys.stderr)
         return 1
     try:
         with tempfile.TemporaryDirectory(prefix="scene-model-gates-") as cache:

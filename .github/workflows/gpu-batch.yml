@@ -14,7 +14,7 @@ on:
           - gpu
           - batch
       smoke_source:
-        description: "Private smoke input only; a public-preview run records the actual WebP hash, not an original-image claim"
+        description: "Explicit smoke/batch input; public-preview records authorized WebP provenance, never original bytes"
         default: private-original
         required: false
         type: choice

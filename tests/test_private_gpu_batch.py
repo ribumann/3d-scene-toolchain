@@ -17,7 +17,7 @@ from scene_pipeline.gaussians import validate_ply
 from scene_pipeline.models import Evidence, Node, Scene, Source
 from scene_pipeline.store import Store
 from scripts.private_gpu_batch import make_plan, run_batch
-from scripts.private_gpu_smoke import PIN_NAMES, SDK_REVISION, SmokeError, load_source
+from scripts.private_gpu_smoke import PIN_NAMES, ROOT, SDK_REVISION, SmokeError, load_source
 from scripts.resolve_smoke_models import I02_BATCH_REVISIONS, MODELS, resolve_models
 
 
@@ -95,7 +95,8 @@ class PrivateBatchTests(unittest.TestCase):
             self.calls.append("extract")
             root = Path(arguments[arguments.index("--data-dir") + 1])
             destination = Path(arguments[arguments.index("--output") + 1])
-            self.extraction(destination / "extraction", load_source(root)[0])
+            preview = Path(arguments[arguments.index("--public-preview") + 1]) if "--public-preview" in arguments else None
+            self.extraction(destination / "extraction", load_source(root, preview)[0])
             return
         crop = Path(arguments[arguments.index("--image") + 1])
         destination = Path(arguments[arguments.index("--out") + 1])
@@ -111,12 +112,12 @@ class PrivateBatchTests(unittest.TestCase):
             self.interrupt_after_write.remove(crop.stem)
             raise KeyboardInterrupt
 
-    def run_private(self, root):
+    def run_private(self, root, public_preview=None):
         stdout = io.StringIO()
         with patch.dict(os.environ, self.environment), patch(
             "scripts.private_gpu_batch.run_stage", side_effect=self.stage,
         ), redirect_stdout(stdout):
-            code = run_batch(root)
+            code = run_batch(root, public_preview)
         self.assertNotIn("PRIVATE_TEST_TOKEN", stdout.getvalue())
         self.assertNotIn("Sensitive private", stdout.getvalue())
         return code, json.loads(stdout.getvalue())
@@ -299,6 +300,43 @@ class PrivateBatchTests(unittest.TestCase):
             self.assertEqual(report["failure_reason"], "no_valid_non_person_segmented_crop")
             self.assertEqual(self.calls, ["extract"])
             self.assertIsNone(self.manifest(root)[1]["scene_path"])
+
+    def test_explicit_preview_needs_no_original_store_and_records_real_webp_provenance(self):
+        self.categories = ["tree"]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            preview = root / "I02.webp"
+            original_bytes = (ROOT / "apps/web/public/references/I02.webp").read_bytes()
+            preview.write_bytes(original_bytes)
+            code, report = self.run_private(root, preview)
+            self.assertEqual(code, 0)
+            self.assertEqual(report["source_kind"], "user-approved-public-webp-preview")
+            self.assertTrue(report["not_original_bytes"])
+            self.assertEqual(report["sha256"], hashlib.sha256(original_bytes).hexdigest())
+            output = root / "assets/I02/object-batch-public-preview"
+            state = json.loads((output / "batch.json").read_text())
+            self.assertEqual(state["contract"]["source_kind"], report["source_kind"])
+            scene = Scene.model_validate_json((output / state["scene_path"]).read_text())
+            provenance = scene.assets[0].provenance["input_provenance"]
+            self.assertEqual(provenance["sha256"], report["sha256"])
+            self.assertTrue(provenance["not_original_bytes"])
+            self.assertEqual(provenance["dimensions"], [715, 429])
+            self.assertFalse((root / "scene.sqlite3").exists())
+            self.assertFalse((root / "assets/I02/object-batch").exists())
+            self.calls.clear()
+            self.assertEqual(self.run_private(root, preview)[0], 0)
+            self.assertFalse(self.calls)
+
+    def test_unapproved_preview_bytes_fail_before_extraction(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            preview = root / "I02.webp"
+            Image.new("RGB", (64, 64), "red").save(preview, format="WEBP")
+            code, report = self.run_private(root, preview)
+            self.assertEqual(code, 1)
+            self.assertEqual(report["failure_reason"], "public_preview_does_not_match_authorized_asset")
+            self.assertFalse(self.calls)
+            self.assertFalse((root / "assets").exists())
 
 
 class PinnedBatchReadinessTests(unittest.TestCase):

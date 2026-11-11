@@ -237,7 +237,8 @@ gh workflow run gpu-batch.yml --repo ribumann/3d-scene-toolchain \
 This registered-parent route still allocates exactly **one self-hosted job**.
 CPU readiness verifies the five exact model revisions observed in successful
 smoke `43011155168`, not floating `main`; the pins are recorded in
-`scripts/resolve_smoke_models.py`. It rejects public-preview input for this batch.
+`scripts/resolve_smoke_models.py`. Inputs must be explicitly selected as
+`private-original` or user-approved `public-preview`; there is no silent fallback.
 The job keeps its existing CUDA/import/SDK checks and job-scoped HF token.
 No packages are installed on the GPU worker by the workflow.
 
@@ -263,6 +264,33 @@ coverage or geometric-quality acceptance.
 
 Private output root:
 `/home/scene/scene-private-data/assets/I02/object-batch/`.
+The original-input command above remains unchanged. The user also explicitly
+approved using published WebP previews now, retaining originals for final
+comparison. To choose that input:
+
+```sh
+gh workflow run gpu-batch.yml --repo ribumann/3d-scene-toolchain \
+  --ref copilot/hybrid-scene-toolchain -f smoke_mode=batch \
+  -f smoke_source=public-preview
+```
+
+The operator stages `approved-public-previews/I02.webp` under the private data
+root. The batch independently requires a byte-for-byte SHA match with the
+authorized committed I02 WebP, validates its WebP format, and records
+`source_kind=user-approved-public-webp-preview`, SHA, bytes, decoded dimensions,
+public URL and `not_original_bytes=true` in the input contract, safe report and
+assembled asset provenance. It never writes original Store records or claims
+that compressed preview bytes are originals. Its separate output root is
+`assets/I02/object-batch-public-preview/`, preventing reuse/mixing with an
+original-input batch. No original Store intake is required for this route.
+
+All eight authorized previews may be staged privately with an operator
+`intake-report.json`; seven retain their original dimensions, while I03 was
+resized from 2000 x 1333 to 1600 x 1066. All are compressed WebPs. This first
+batch implementation still targets **I02 only**; other photo/generated cases
+can adopt the explicit provenance route later. Diagrams/plans retain their
+diagram pipeline. Full-original transfer and final comparison remain separate.
+
 `batch.json` is an atomic checkpoint binding original/preview SHA, five pins,
 SDK, settings and a hashed extraction snapshot. It retains the full parent/crop
 plan, rejection list, isolated extraction/object attempts and current
