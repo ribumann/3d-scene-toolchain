@@ -3,6 +3,15 @@ name: Trusted GPU benchmark
 on:
   workflow_dispatch:
     inputs:
+      smoke_mode:
+        description: "off preserves the procedural benchmark; readiness checks HF access only; gpu runs the private one-object smoke"
+        default: "off"
+        required: false
+        type: choice
+        options:
+          - "off"
+          - readiness
+          - gpu
       cases:
         description: "Space-separated prompt case IDs (P01 P02 P03). Image uploads remain private until separate access is configured."
         default: "P01 P02 P03"
@@ -21,7 +30,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  private-smoke:
+    if: github.event_name == 'workflow_dispatch' && (inputs.smoke_mode == 'readiness' || inputs.smoke_mode == 'gpu')
+    uses: ./.github/workflows/gpu-smoke.yml
+    with:
+      run_gpu: ${{ inputs.smoke_mode == 'gpu' }}
+    secrets:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
   readiness:
+    if: inputs.smoke_mode == 'off' || inputs.smoke_mode == ''
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -65,7 +82,7 @@ jobs:
           PY
   infer:
     needs: readiness
-    if: vars.SCENE_GPU_RUNNER != ''
+    if: (inputs.smoke_mode == 'off' || inputs.smoke_mode == '') && vars.SCENE_GPU_RUNNER != ''
     runs-on: ${{ vars.SCENE_GPU_RUNNER }}
     timeout-minutes: 90
     environment: scene-gpu

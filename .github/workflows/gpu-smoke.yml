@@ -1,20 +1,19 @@
 name: Private one-object GPU smoke
 
 on:
-  workflow_dispatch:
+  workflow_call:
     inputs:
       run_gpu:
         description: "After CPU gated-access checks, run one private I02 reconstruction on the prepared worker"
         type: boolean
         default: false
         required: false
+    secrets:
+      HF_TOKEN:
+        required: true
 
 permissions:
   contents: read
-
-concurrency:
-  group: scene-gpu-benchmark
-  cancel-in-progress: false
 
 jobs:
   readiness:
