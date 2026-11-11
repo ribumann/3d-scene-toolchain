@@ -1,5 +1,16 @@
 import type { Scene, SceneAsset, SceneEdge, SceneNode, Vec3 } from "../../../packages/scene/types";
 
+export function caseFromQuery(search: string, knownIds: readonly string[]): { caseId: string; error?: string } {
+  const requested = new URLSearchParams(search).getAll("case");
+  const fallback = knownIds[0] ?? "";
+  if (!requested.length) return { caseId: fallback };
+  if (requested.length === 1 && knownIds.includes(requested[0])) return { caseId: requested[0] };
+  return {
+    caseId: fallback,
+    error: `Invalid or unavailable case link. ${fallback ? `Showing ${fallback} instead.` : "No cases are available."}`,
+  };
+}
+
 export function updateNode(scene: Scene, id: string, update: Partial<SceneNode>): Scene {
   return { ...scene, nodes: scene.nodes.map(node => node.id === id ? { ...node, ...update } : node) };
 }

@@ -201,6 +201,11 @@ reference-only/failed cases, shows partial/unfinished counts, and keeps referenc
 comparisons. Actual appearances have **no geometry substitute** while loading or
 on failure; loading/errors are explicit. Layout/depth/scale remain inferred.
 The default P01-P03 demos and local editable API behavior are unchanged.
+After deploying this viewer, share one-to-one source links with `/?case=I01` or
+`/?case=I02` (also valid for known not-run/processing references). Case-button
+selection updates the read-only URL without reloading. Unknown, empty or duplicate
+`case` parameters show an explicit fallback error; no query preserves the normal
+P01 default. The editable local workbench does not consume/change case URLs.
 
 Local checks using explicitly **synthetic test PLYs** traversed all eight statuses,
 loaded object appearances (including `Loaded 1/1` with WebGL2 context intact),

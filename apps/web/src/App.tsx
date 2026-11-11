@@ -1,7 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import type { Case, Job, Scene, SceneNode, Vec3 } from "../../../packages/scene/types";
 import { api, ApiError, readOnly, type PilotStatus } from "./api";
-import { updateNode } from "./model";
+import { caseFromQuery, updateNode } from "./model";
 import { parseSceneImport } from "./interchange";
 const Viewport = lazy(() => import("./Viewport"));
 
@@ -58,7 +58,13 @@ export default function App() {
     let active = true;
     if (readOnly) api.pilots().then(data => { if (active) setPilotStatuses(data); })
       .catch(err => { if (active) setError(`Pilot status unavailable: ${message(err)}`); });
-    api.cases().then(data => { if (active) { setCases(data); setCaseId(previous => previous || data[0]?.id || ""); } })
+    api.cases().then(data => {
+      if (active) {
+        const selection = readOnly ? caseFromQuery(window.location.search, data.map(item => item.id)) : { caseId: data[0]?.id || "" };
+        setCases(data); setCaseId(previous => previous || selection.caseId);
+        if ("error" in selection && selection.error) setError(selection.error);
+      }
+    })
       .catch(err => { if (active) setError(`Could not load cases: ${message(err)}`); });
     return () => { active = false; };
   }, []);
@@ -99,6 +105,11 @@ export default function App() {
   const switchCase = (id: string) => {
     if (id === caseId || busy) return;
     if (dirty && !window.confirm("Discard unsaved scene edits and switch cases?")) return;
+    if (readOnly) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("case", id);
+      window.history.replaceState(window.history.state, "", url);
+    }
     setDirty(false); setError(""); setNotice(""); setCaseId(id);
   };
   const reload = () => {

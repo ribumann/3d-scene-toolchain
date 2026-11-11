@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pointOnRoute, routePoints, splatFit, updateNode, visibleNodes } from "./model";
+import { caseFromQuery, pointOnRoute, routePoints, splatFit, updateNode, visibleNodes } from "./model";
 import type { Scene } from "../../../packages/scene/types";
 
 const scene: Scene = {
@@ -10,6 +10,19 @@ const scene: Scene = {
     evidence: { origin: "assumed", confidence: 0.5, reviewed: false, note: "" } }],
 };
 describe("scene view model", () => {
+  it("selects only catalog-known case links and keeps the normal default without a query", () => {
+    const ids = ["P01", "I01", "I02", "I03"];
+    expect(caseFromQuery("?case=I02", ids)).toEqual({ caseId: "I02" });
+    expect(caseFromQuery("?case=I03", ids)).toEqual({ caseId: "I03" });
+    expect(caseFromQuery("?other=value", ids)).toEqual({ caseId: "P01" });
+  });
+  it("reports invalid or ambiguous case links rather than silently selecting the wrong scene", () => {
+    for (const search of ["?case=unknown", "?case=", "?case=../P01", "?case=I02&case=I01"]) {
+      expect(caseFromQuery(search, ["P01", "I01", "I02"])).toEqual({
+        caseId: "P01", error: "Invalid or unavailable case link. Showing P01 instead.",
+      });
+    }
+  });
   it("updates immutably without changing the revision", () => {
     const changed = updateNode(scene, "a", { position: [2, 0, 0] });
     expect(changed.revision).toBe(3);
