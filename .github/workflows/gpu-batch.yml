@@ -27,7 +27,21 @@ jobs:
     env:
       RUNNER_LABEL: ${{ vars.SCENE_GPU_RUNNER }}
       CASES: ${{ inputs.cases }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN || vars.HF_TOKEN }}
+      SCENE_IDOL_MODEL_REVISION: ${{ vars.SCENE_IDOL_MODEL_REVISION }}
+      SCENE_DINOV3_REVISION: ${{ vars.SCENE_DINOV3_REVISION }}
+      SCENE_FLUX2_REVISION: ${{ vars.SCENE_FLUX2_REVISION }}
+      SCENE_DETECTOR_REVISION: ${{ vars.SCENE_DETECTOR_REVISION }}
+      SCENE_SEGMENTER_REVISION: ${{ vars.SCENE_SEGMENTER_REVISION }}
     steps:
+      - name: Mask Hugging Face token
+        run: |
+          python - <<'PY'
+          import os
+          token = os.environ.get("HF_TOKEN", "")
+          if token:
+              print("::add-mask::" + token.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"))
+          PY
       - name: Validate configured runner and fixed case list before GPU allocation
         run: |
           python - <<'PY'
@@ -35,9 +49,19 @@ jobs:
           label = os.environ.get("RUNNER_LABEL", "")
           if not label:
               raise SystemExit("Set SCENE_GPU_RUNNER to an actual configured GPU runner label. No GPU job was queued.")
+          if not os.environ.get("HF_TOKEN"):
+              raise SystemExit("Set HF_TOKEN as an Actions secret or a masked repository Actions variable. No GPU job was queued.")
           cases = os.environ["CASES"].split()
           if not cases or len(cases) != len(set(cases)) or any(c not in ("P01", "P02", "P03") for c in cases):
               raise SystemExit("Only unique P01/P02/P03 procedural cases are permitted in this public-repository workflow.")
+          names = ("SCENE_IDOL_MODEL_REVISION", "SCENE_DINOV3_REVISION", "SCENE_FLUX2_REVISION")
+          for name in names:
+              value = os.environ.get(name, "")
+              if len(value) != 40 or any(char not in "0123456789abcdef" for char in value):
+                  raise SystemExit(f"Configure {name} as a full lowercase 40-character model commit. No GPU job was queued.")
+          if any(not os.environ.get(name) for name in ("SCENE_DETECTOR_REVISION", "SCENE_SEGMENTER_REVISION")):
+              raise SystemExit("Configure exact Grounding DINO and SAM2 commit revisions before image-case GPU jobs.")
+          print("GPU label, token, model pins and requested cases are configured; no credential values were printed.")
           PY
   infer:
     needs: readiness
@@ -46,7 +70,7 @@ jobs:
     timeout-minutes: 90
     environment: scene-gpu
     env:
-      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN || vars.HF_TOKEN }}
       SCENE_IDOL_MODEL_REVISION: ${{ vars.SCENE_IDOL_MODEL_REVISION }}
       SCENE_DINOV3_REVISION: ${{ vars.SCENE_DINOV3_REVISION }}
       SCENE_FLUX2_REVISION: ${{ vars.SCENE_FLUX2_REVISION }}
