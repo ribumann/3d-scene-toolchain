@@ -10,10 +10,11 @@ exports. Eleven case slots are implemented. All eight image references
 (I01-I05 originals and G01-G03 AI-generated images) were supplied by the user and
 ingested privately by the coordinating operator. The user authorized eight
 metadata-stripped public WebP previews; full originals remain private.
-Actual image reconstruction/Idol GPU inference has not yet been verified.
-An operator-deployed Italy North Spot T4 now has verified driver/hardware access,
-not verified model execution. This is not a calibrated or telemetry-connected
-digital twin.
+Actual Idol GPU inference succeeded privately for **one segmented tree object
+from I02**, producing 32,768 validated Gaussians on the Italy North Spot T4 in
+[run 43011155168](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43011155168).
+This is not a full plant/room reconstruction, an all-eight image benchmark or a
+calibrated or telemetry-connected digital twin. No inference output is public.
 
 ## Start locally
 
@@ -234,8 +235,11 @@ batch generation and metric calibration are future improvements.
   and subscription must be authenticated/configured first.
 
 The coordinating operator deployed an explicitly approved Italy North Spot T4
-without auto-shutdown and verified real `nvidia-smi`; PyTorch/model inference
-remains unrun. See the Azure guide for the observed status and source-template
+without auto-shutdown and verified real `nvidia-smi`, CUDA kernels and one private
+I02 tree-object Idol reconstruction. Full archive intake on that VM remains
+incomplete; I02 was transferred and checksum-verified separately, while all eight
+originals remain valid in the operator's local runtime.
+See the Azure guide for the observed status and source-template
 limitations. Do not queue against a guessed GPU runner or reuse another project's
 cloud identities/resources. GPU artifact upload is opt-in and limited to the
 procedural benchmark; uploaded source images are excluded.

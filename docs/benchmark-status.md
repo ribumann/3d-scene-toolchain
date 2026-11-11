@@ -2,8 +2,9 @@
 
 This records the development milestone, not full acceptance of the eleven-case
 toolchain. All eight I01-I05/G01-G03 references are privately ingested on the
-operator's host. Eight authorized public WebP previews are packaged separately;
-verified model reconstruction remains pending.
+operator's host. Eight authorized public WebP previews are packaged separately.
+One private I02 tree-object Idol smoke succeeded; full-scene reconstruction and
+the eleven-case full pipeline benchmark remain pending.
 
 ## Original CPU batch (before private image intake)
 
@@ -71,6 +72,11 @@ cloud checkout or public build. The user explicitly authorized publication of
 eight metadata-stripped WebP previews (~2.13 MiB total), committed separately at
 `ed50316`. This intake/publication is not extraction, reconstruction or actual
 Idol inference. No derived output publication is implied.
+At the successful smoke, full archive intake on the GPU VM was still incomplete
+(large-transfer chunks 00-07 present). I02 had been separately transferred,
+checksum-verified and completely ingested there; this does not establish that
+the other seven originals are ready on that worker. All eight remain valid in
+the operator's local runtime.
 
 ## Additional checks
 
@@ -108,10 +114,43 @@ The operator prepared separate Python 3.12 vision/Idol environments and verified
 their imports and CUDA availability. CPU readiness
 [43004864760](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43004864760)
 actually downloaded the required gated configs and resolved five immutable model
-pins; no HF token failure was observed. Actual CUDA kernels/model reconstruction
-and Idol inference remain unverified. The source deployment defaults were not
+pins; no HF token failure was observed. Subsequent smoke checks verified actual
+CUDA kernels, and the one-object execution below succeeded. The source deployment
+defaults were not
 changed; this worker used an operator-only Spot/no-shutdown variant after policy
 and schedule-region blockers. See the [GPU operator guide](../infra/azure/README.md).
+
+## Successful private one-object GPU smoke (2026-11-11)
+
+The coordinating operator confirmed success in
+[run 43011155168](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43011155168).
+Both checked-out-source imports, CUDA kernel checks and the exact Idol SDK pin
+passed. The vision environment used torch `2.15.0+cu132` and torchvision
+`0.29.2+cu132`; the operator also verified actual CUDA NMS and SAM2 fast image
+processing after repairing the missing torchvision dependency.
+
+| Result | Verified value |
+|---|---|
+| Input / provenance / mode | I02 outdoor plant / `private-original` / `real` |
+| Objects detected | 11 |
+| Selected crop | `object-000`, category `tree`, 2,925 foreground pixels |
+| Rejected crops | 1, `invalid_crop_format_or_size` |
+| Validated output | Exactly 32,768 Gaussians |
+| Generation settings | 50 steps, seed 42 |
+| Final status | `stage=complete`, `status=succeeded`, `failure_reason=null` |
+| Extraction | 16.229 seconds; sampled peak device memory 1,059 MiB |
+| Idol | 326.585 seconds; sampled peak device memory 9,295 MiB |
+
+Memory was sampled every two seconds at device level; these are not exact
+allocator or instantaneous per-process peaks. Actual weight execution confirms
+required HF access beyond the earlier config downloads; no token problem was
+reported.
+
+This reconstructs **one tree object**, not the outdoor plant, a room, a digital
+twin or all eight image cases. PLY validation establishes the output contract,
+not geometric fidelity or human quality acceptance. The original, segmentation
+crops, PLY and raw logs remain private on the VM. The eight public reference
+previews are unchanged; no inferred object or scene has been published.
 
 ## Remaining acceptance work
 
@@ -166,8 +205,9 @@ boundary, exact target and opt-in deployment controls.
 
 Use the privately ingested eight originals on the authorized operator host;
 no additional image generation is needed. Confirm per-worker
-private input access and use the readiness job's immutable model revisions. Run
-one actual Idol object first, then all eleven full pipeline cases. Review masks,
+private input access and use the readiness job's immutable model revisions.
+The one-object smoke is complete; full VM intake and all eleven full pipeline
+cases remain pending. Review masks,
 labels, graph directions/loops, footprint layout and source-linked uncertainty.
 
 Directional diagram topology, translations and precise photo depth are currently

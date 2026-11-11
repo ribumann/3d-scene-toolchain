@@ -21,8 +21,9 @@ running power state and actual `nvidia-smi` output:
 | NVIDIA driver | `615.71.10` |
 | Auto-shutdown | None, explicitly approved by the user |
 
-This verifies infrastructure and the installed driver, **not PyTorch/CUDA model
-execution or Idol inference**. The extension initially left an active/partial
+That infrastructure snapshot alone does not prove model execution; the separate
+successful private one-object smoke is recorded below. The extension initially
+left an active/partial
 package installation; standard apt lock waiting and dependency repair completed
 it without killing package processes or bypassing locks.
 
@@ -149,9 +150,32 @@ in both environments. Checksum-verified private I02 intake also succeeded.
 Extraction failed after 24.339 seconds because the vision environment lacked
 torchvision, required by `Sam2ImageProcessorFast`. This was a missing dependency,
 not a model permission failure or successful reconstruction. The vision extra
-now declares that dependency; the operator must install and verify it on the
-worker, preserve the failed private output and re-register the consumed
-ephemeral runner before retrying. No inference success is implied.
+now declares that dependency. The operator installed torch `2.15.0+cu132` with
+torchvision `0.29.2+cu132` in the vision environment only, verified CUDA NMS with
+synchronization and SAM2 fast processing of a real PIL input, preserved the
+failed output privately at `smoke-failures/run-43010122800`, and re-registered
+the consumed ephemeral runner.
+
+The subsequent private smoke
+[43011155168](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43011155168)
+**succeeded**: checksum-verified I02 `private-original`, `mode=real`, 11 detected
+objects, selected `object-000` (`tree`, 2,925 foreground pixels), one rejected
+`invalid_crop_format_or_size`, exactly 32,768 validated Gaussians, 50 steps and
+seed 42. Final status was `stage=complete`, `status=succeeded`,
+`failure_reason=null`; both CUDA/import checks and the SDK pin passed.
+Extraction took 16.229 seconds with a sampled device peak of 1,059 MiB; Idol
+took 326.585 seconds with 9,295 MiB. Sampling interval was two seconds, not an
+exact allocator peak. Actual weights executed successfully, establishing HF
+access beyond the readiness configs.
+
+This is **one tree object**, not a full plant/room/digital-twin reconstruction or
+an all-eight benchmark. The I02 original, segmentation crops, PLY and logs remain
+private on the VM; no smoke media was published and the public previews are unchanged.
+Full archive intake on the VM remains incomplete (chunks 00-07 present); I02
+was complete through a separate checksum-verified transfer. All eight originals
+are valid in the operator's local runtime. See
+[`docs/benchmark-status.md`](../../docs/benchmark-status.md) for the result and
+remaining acceptance limits.
 
 Once readiness and VM setup are confirmed:
 
@@ -193,9 +217,10 @@ certified instantaneous per-process peak. Child processes have bounded stage
 timeouts and are stopped on interruption. Spot eviction can still interrupt
 work; checkpointing and cleanup remain the operator's responsibility.
 
-The unchanged source template's deployment path and actual GPU inference remain
-unverified. The Spot infrastructure snapshot above does not validate that
-template or model compatibility; local tests cover guard behavior only.
+The unchanged source template's deployment path remains unverified. Successful
+one-object inference on the operator's Spot variant does not validate that
+template, every model/input combination or full-scene quality; local guard tests
+are separate from the actual execution evidence above.
 
 ## Cleanup
 
