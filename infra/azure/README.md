@@ -120,7 +120,12 @@ The operator must prepare the existing GPU VM before requesting GPU mode:
 - An isolated, trusted ephemeral repository runner with its unique label in
   `SCENE_GPU_RUNNER`; no assumed hosted GPU runner.
 - `/home/scene/scene-vision-venv`: Python 3.12, base project plus `.[vision]`,
-  including working CUDA PyTorch, Grounding DINO and SAM2 imports.
+  including CUDA-matched PyTorch/torchvision, Grounding DINO and SAM2. Install
+  torch/torchvision builds from the same PyTorch wheel index, letting torchvision's
+  package requirements enforce compatible torch versions. Verify a real CUDA
+  torchvision operation (such as `torchvision.ops.nms`) and
+  `Sam2Processor.from_pretrained` at the resolved segmenter revision; successful
+  imports and basic torch CUDA arithmetic alone do not prove processor readiness.
 - `/home/scene/scene-worker-venv`: Python 3.12, base project (`-e .`) plus the
   exact Git-pinned `requirements-idol.txt`, with working CUDA PyTorch/Idol imports.
 - Private data root `/home/scene/scene-private-data`, owned by `scene`, mode 0700,
@@ -137,6 +142,16 @@ requirements in one environment is not supported; do not loosen the vision cap
 or downgrade model quality to make a smoke appear successful. The old full-batch
 workflow still has its original combined installation path and is not certified
 against this dependency conflict.
+
+Private smoke [43010122800](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43010122800)
+passed gated readiness, checked-out imports, the SDK pin and actual CUDA kernels
+in both environments. Checksum-verified private I02 intake also succeeded.
+Extraction failed after 24.339 seconds because the vision environment lacked
+torchvision, required by `Sam2ImageProcessorFast`. This was a missing dependency,
+not a model permission failure or successful reconstruction. The vision extra
+now declares that dependency; the operator must install and verify it on the
+worker, preserve the failed private output and re-register the consumed
+ephemeral runner before retrying. No inference success is implied.
 
 Once readiness and VM setup are confirmed:
 

@@ -186,6 +186,9 @@ license and Idol's Apache-2.0 SDK license.
 Prepare separate CUDA-capable Python 3.12 environments for `.[vision]` extraction
 and base-project + `requirements-idol.txt` inference. Their current Hugging Face
 hub major requirements conflict; do not combine them or loosen the vision cap.
+The vision extra includes torchvision for SAM2's fast image processor. Use
+CUDA-matched torch/torchvision builds from the same PyTorch wheel index; verify
+a CUDA torchvision operation and SAM2 processor loading, not just imports.
 The dedicated one-object smoke uses the prepared fixed worker environments
 described in [`infra/azure/README.md`](infra/azure/README.md), not this cloud
 development host. `smoke_mode=readiness` checks real gated-config access on CPU
