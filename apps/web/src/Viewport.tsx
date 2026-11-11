@@ -203,7 +203,7 @@ export default function Viewport(props: Props) {
   const onError = useMemo(() => (message: string) => setErrors(previous => previous.includes(message) ? previous : [...previous, message]), []);
   useEffect(() => { setErrors([]); }, [props.scene.id, props.mode]);
   return <div className="canvas-wrap">
-    <CanvasBoundary key={props.scene.id}><Canvas gl={{ antialias: false }} camera={{ position: [18, 18, 18], fov: 45 }}>
+    <CanvasBoundary key={props.scene.id}><Canvas style={{ position: "absolute", inset: 0 }} gl={{ antialias: false }} camera={{ position: [18, 18, 18], fov: 45 }}>
       <Suspense fallback={null}><SceneContent key={`${props.scene.id}-${props.mode}`} {...props} onError={onError} labelElements={labelElements} /></Suspense>
     </Canvas></CanvasBoundary>
     <div className="scene-label-overlay" aria-hidden="true">{props.labels && visibleNodes(props.scene, props.isolated).map(node =>

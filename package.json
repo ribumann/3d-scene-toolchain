@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --config apps/web/vite.config.ts",
     "build": "tsc --noEmit && vite build --config apps/web/vite.config.ts",
+    "build:demo": "python3 scripts/build_static_demo.py && tsc --noEmit && vite build --config apps/web/vite.config.ts --mode demo",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

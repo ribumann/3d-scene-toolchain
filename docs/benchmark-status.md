@@ -70,6 +70,28 @@ primitive geometry; no resemblance or physical accuracy score is implied.
 
 ## Remaining acceptance work
 
+### Read-only static viewer preparation
+
+A separate `npm run build:demo` artifact now packages only public deterministic
+templates for P01-P03, with 28, 28 and 49 semantic objects respectively. The eight
+image-input cases remain explicitly unavailable. No runtime store, original
+image, Blender export or Gaussian inference result is included.
+
+Local Chromium/WebGL2 checks loaded and rendered all three JSON scenes and
+exercised object selection/isolation, camera controls, labels, route pause/play
+and JSON export. All eight missing-input states were checked. No `/api` requests
+or mutation controls were present. The 390-pixel layout had no horizontal
+document overflow; the browser pass also corrected canvas sizing within the
+mobile viewport. Python snapshot tests, frontend tests and both local/demo
+production builds passed. These checks do not certify fidelity or frame rate.
+
+Azure Storage resources were reported prepared by the coordinating operator,
+but public upload and public-origin rendering are not verified by this local
+check. See [`infra/azure/static-demo.md`](../infra/azure/static-demo.md) for the
+artifact boundary, intended resources and operator publication prerequisites.
+
+### Full pipeline
+
 Obtain the original five files and the three generated references. Confirm the
 intended GPU backend, gated encoder access and immutable model revisions. Run
 one actual Idol object first, then all eleven full pipeline cases. Review masks,

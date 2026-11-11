@@ -27,6 +27,7 @@ p { line-height: 1.5; }
 .save-state, .muted { color: #607789; font-size: 12px; line-height: 1.5; }
 .global-message { display: flex; align-items: center; justify-content: space-between; background: #e5f2f7; border-bottom: 1px solid #b7d6e5; padding: 8px 20px; color: #214e69; }
 .global-message.error { background: #fff0ef; border-color: #ecc4c0; color: #8c342d; }
+.demo-banner { padding: 12px 20px; color: #214e69; background: #e5f2f7; border-bottom: 1px solid #b7d6e5; line-height: 1.5; }
 .global-message button { border: 0; background: transparent; padding: 0 4px; font-size: 19px; }
 .workspace { flex: 1; display: grid; grid-template-columns: 235px minmax(400px, 1fr) 310px; min-height: 0; }
 .library, .inspector { background: #fff; min-width: 0; }

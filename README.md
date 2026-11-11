@@ -41,6 +41,32 @@ authentication, tenant isolation, quotas and a hardened asset storage policy.
 `SCENE_WEB_ORIGIN` allows an explicitly configured frontend origin; no wildcard
 cross-origin mutation permission is granted.
 
+## Public read-only demo build
+
+The separate static build needs no backend, Blender or inference GPU:
+
+```sh
+python3 -m venv .venv
+.venv/bin/pip install -e .
+npm ci
+. .venv/bin/activate
+npm run build:demo
+python3 -m http.server 4173 --bind 127.0.0.1 --directory apps/web/dist-demo
+```
+
+Open `http://127.0.0.1:4173`. This is the existing workbench in explicitly
+read-only demo mode: browse three deterministic procedural scenes, select and
+isolate objects, inspect evidence, change camera/labels, play illustrative routes
+and download JSON. Eight image-input slots remain visibly unavailable.
+Uploads, imports, scene edits, job execution and all `/api` requests are disabled.
+The published geometry is compiled directly from the public templates; it does
+not include private runtime data, Blender exports, image reconstruction, splats
+or actual Idol results. `npm run build` remains the normal editable local build.
+
+Publish only `apps/web/dist-demo/`, not the repository or `.scene-data/`.
+Azure static website preparation and deployment commands are in
+[`infra/azure/static-demo.md`](infra/azure/static-demo.md).
+
 Runtime metadata and private media live under ignored `.scene-data/`; set
 `SCENE_DATA_DIR` to use another directory. Source files are never committed
 automatically. They may also appear in derived crops/renders: review publication

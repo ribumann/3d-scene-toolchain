@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import type { Case, Job, Scene, SceneNode, Vec3 } from "../../../packages/scene/types";
-import { api, ApiError } from "./api";
+import { api, ApiError, readOnly } from "./api";
 import { updateNode } from "./model";
 import { parseSceneImport } from "./interchange";
 const Viewport = lazy(() => import("./Viewport"));
@@ -36,7 +36,7 @@ export default function App() {
   const jsonInput = useRef<HTMLInputElement>(null);
 
   const currentCase = cases.find(item => item.id === caseId);
-  const canUpload = !!currentCase && currentCase.input_type !== "prompt";
+  const canUpload = !readOnly && !!currentCase && currentCase.input_type !== "prompt";
   const currentNode = scene?.nodes.find(node => node.id === selected);
   const currentJobs = jobs.filter(job => job.case_id === caseId);
 
@@ -62,6 +62,7 @@ export default function App() {
     return () => media.removeEventListener("change", changed);
   }, []);
   useEffect(() => {
+    if (readOnly) return;
     let active = true;
     async function loadJobs() {
       try { const data = await api.jobs(); if (active) { setJobs(data); setJobsError(""); } }
@@ -98,11 +99,11 @@ export default function App() {
     setDirty(false); setError(""); setRefresh(value => value + 1);
   };
   const edit = (update: Partial<SceneNode>) => {
-    if (!scene || !selected || busy) return;
+    if (readOnly || !scene || !selected || busy) return;
     setScene(updateNode(scene, selected, update)); setDirty(true); setNotice("");
   };
   const save = async () => {
-    if (!scene || !dirty || busy) return;
+    if (readOnly || !scene || !dirty || busy) return;
     setBusy(true); setError(""); setNotice("");
     try { const saved = await api.save(caseId, scene); setScene(saved); setDirty(false); setNotice(`Saved revision ${saved.revision}.`); }
     catch (err) { setError(err instanceof ApiError && err.status === 409 ? `Revision conflict: ${message(err)}. Your edits are still here; reload to discard them and fetch the latest scene.` : `Save failed: ${message(err)}. Your edits are still here.`); }
@@ -117,7 +118,7 @@ export default function App() {
     setNotice(dirty ? "Exported JSON includes unsaved edits." : "Scene JSON exported.");
   };
   const importScene = async (file: File) => {
-    if (busy || !currentCase) return;
+    if (readOnly || busy || !currentCase) return;
     if (dirty && !window.confirm("Import and save a replacement scene, discarding unsaved edits?")) return;
     setBusy(true); setError(""); setNotice("");
     try {
@@ -150,13 +151,14 @@ export default function App() {
     finally { setBusy(false); if (fileInput.current) fileInput.current.value = ""; }
   };
   const start = async (stage: string) => {
-    if (busy) return;
+    if (readOnly || busy) return;
     setBusy(true); setError("");
     try { const job = await api.start(caseId, stage); setJobs(previous => [job, ...previous.filter(item => item.id !== job.id)]); setNotice(`${stage} job ${job.status}.`); }
     catch (err) { setError(`Could not start ${stage}: ${message(err)}`); }
     finally { setBusy(false); }
   };
   const cancel = async (id: string) => {
+    if (readOnly) return;
     setBusy(true); setError("");
     try { const job = await api.cancel(id); setJobs(previous => previous.map(item => item.id === job.id ? job : item)); }
     catch (err) { setError(`Could not cancel job: ${message(err)}`); }
@@ -169,8 +171,9 @@ export default function App() {
     <header className="topbar">
       <div className="brand"><span className="brand-mark" aria-hidden="true">◈</span><div><strong>Scene Workbench</strong><span>Digital twin preparation</span></div></div>
       <div className="header-context"><span>WORKSPACE</span><strong>{currentCase ? `${currentCase.id} / ${currentCase.title}` : "Case library"}</strong></div>
-      <div className="header-actions"><span className="save-state" aria-live="polite">{dirty ? "Unsaved edits" : scene ? `Revision ${scene.revision}` : "No scene loaded"}</span><button className="primary" onClick={save} disabled={!dirty || busy}>Save changes</button></div>
+      <div className="header-actions"><span className="save-state" aria-live="polite">{dirty ? "Unsaved edits" : scene ? `Revision ${scene.revision}` : "No scene loaded"}</span>{readOnly ? <strong className="tag">Read-only demo</strong> : <button className="primary" onClick={save} disabled={!dirty || busy}>Save changes</button>}</div>
     </header>
+    {readOnly && <div className="demo-banner"><strong>Public read-only demo.</strong> Explore three procedural scenes, select objects and inspect evidence. No uploads, saved edits, backend or GPU inference. Eight image inputs are unavailable; layouts are illustrative, not live digital twins.</div>}
     {(error || notice) && <div className={error ? "global-message error" : "global-message"} role={error ? "alert" : "status"}><span>{error || notice}</span><button aria-label="Dismiss message" onClick={() => { setError(""); setNotice(""); }}>×</button></div>}
     <div className="workspace">
       <aside className="library" aria-label="Case navigation">
@@ -189,12 +192,12 @@ export default function App() {
       <main className="main-work">
         <div className="scene-title"><div><div className="breadcrumb">Cases <span>/</span> {currentCase?.id || "—"} <span>/</span> Scene</div><h1>{currentCase?.title || "Select a case"}</h1><p>{currentCase?.summary || "Choose a case to inspect its scene and source."}</p></div>
           <div className="scene-actions"><button onClick={exportScene} disabled={!scene || busy}>Export JSON</button>
-            <input ref={jsonInput} className="visually-hidden" type="file" accept=".json,application/json" aria-label="Import scene JSON file" onChange={event => { const file = event.target.files?.[0]; if (file) void importScene(file); }} />
-            <button onClick={() => jsonInput.current?.click()} disabled={!caseId || loading || busy || currentCase?.status === "awaiting_input"}>Import JSON</button>
+            {!readOnly && <><input ref={jsonInput} className="visually-hidden" type="file" accept=".json,application/json" aria-label="Import scene JSON file" onChange={event => { const file = event.target.files?.[0]; if (file) void importScene(file); }} />
+            <button onClick={() => jsonInput.current?.click()} disabled={!caseId || loading || busy || currentCase?.status === "awaiting_input"}>Import JSON</button></>}
             <button onClick={reload} disabled={!caseId || loading || busy}>Reload scene</button></div>
         </div>
         <section className="viewport-panel" aria-label="3D scene">
-          <div className="viewport-toolbar"><div className="segmented" aria-label="Display mode"><button aria-pressed={mode === "geometry"} onClick={() => setMode("geometry")}>Geometry</button><button aria-pressed={mode === "splat"} onClick={() => setMode("splat")}>Splat</button></div>
+          <div className="viewport-toolbar"><div className="segmented" aria-label="Display mode"><button aria-pressed={mode === "geometry"} onClick={() => setMode("geometry")}>Geometry</button><button aria-pressed={mode === "splat"} onClick={() => setMode("splat")} disabled={readOnly} title={readOnly ? "No GPU-generated splats are included in this demo." : undefined}>Splat</button></div>
             <div className="toolbar-spacer" /><button onClick={() => setView("orbit")} disabled={!scene}>Orbit</button><button onClick={() => setView("top")} disabled={!scene}>Top</button><button onClick={() => setView("reset")} disabled={!scene}>Reset view</button><span className="divider" /><label className="check"><input type="checkbox" checked={labels} onChange={event => setLabels(event.target.checked)} /> Labels</label>
           </div>
           {scene ? <Suspense fallback={<div className="empty-viewport">Loading 3D viewport…</div>}><Viewport scene={scene} selected={selected} onSelect={select} mode={mode} isolated={isolated} labels={labels} playing={playing} speed={speed} cameraView={cameraView} /></Suspense> :
@@ -207,7 +210,7 @@ export default function App() {
         <section className="inspector-section"><div className="section-heading"><h2>Source</h2><span className="tag">{currentCase?.input_type || "—"}</span></div>
           {currentCase?.source_url && !sourceError ? <img className="source-image" src={`${currentCase.source_url}${currentCase.source_url.includes("?") ? "&" : "?"}v=${refresh}`} alt={`Source for ${currentCase.title}`} onError={() => setSourceError(true)} /> :
             <div className="source-placeholder">{currentCase?.input_type === "prompt" ? "Prompt-based scenario" : sourceError ? "Source image could not be loaded." : "Source image not supplied"}</div>}
-          <p className="source-copy">{currentCase?.prompt || currentCase?.source_filename || (currentCase?.input_type === "prompt" ? currentCase.summary : "Upload the original image to connect source evidence.")}</p>
+          <p className="source-copy">{currentCase?.prompt || currentCase?.source_filename || (currentCase?.input_type === "prompt" ? currentCase.summary : readOnly ? "The original image is not included in this public demo. Uploads and extraction are available only in the local workbench." : "Upload the original image to connect source evidence.")}</p>
           {sourceMetadata && <details className="source-copy"><summary>Source metadata for JSON import</summary><p>{sourceMetadata.filename}</p><p>SHA-256: {sourceMetadata.sha256}</p><p>Include this exact hash in scene.sources. Import saves immediately; export first to keep a local copy. Nodes and routes can be corrected in JSON while preserving semantic IDs.</p></details>}
           {metadataError && <p className="inline-error">{metadataError}</p>}
           {canUpload && <><input ref={fileInput} type="file" accept="image/*" className="visually-hidden" onChange={event => { const file = event.target.files?.[0]; if (file) void upload(file); }} aria-label="Source image file" />
@@ -218,15 +221,15 @@ export default function App() {
         </section>
         <section className="inspector-section"><div className="section-heading"><h2>Object details</h2>{currentNode && <span className="tag">{currentNode.evidence.origin}</span>}</div>
           {currentNode ? <><h3 className="object-title">{currentNode.label}</h3><p className="object-id">{currentNode.id}</p>
-            <label className="field-label" htmlFor="object-label">Label</label><input id="object-label" className="text-field" type="text" value={currentNode.label} disabled={busy} onChange={event => edit({ label: event.target.value })} />
-            <div className="object-actions"><button onClick={() => edit({ visible: !currentNode.visible })} disabled={busy}>{currentNode.visible ? "Hide" : "Show"}</button><button onClick={() => setIsolated(isolated === currentNode.id ? null : currentNode.id)} aria-pressed={isolated === currentNode.id}>{isolated === currentNode.id ? "Show all" : "Isolate"}</button></div>
+            <label className="field-label" htmlFor="object-label">Label</label><input id="object-label" className="text-field" type="text" value={currentNode.label} readOnly={readOnly} disabled={busy} onChange={event => edit({ label: event.target.value })} />
+            <div className="object-actions">{!readOnly && <button onClick={() => edit({ visible: !currentNode.visible })} disabled={busy}>{currentNode.visible ? "Hide" : "Show"}</button>}<button onClick={() => setIsolated(isolated === currentNode.id ? null : currentNode.id)} aria-pressed={isolated === currentNode.id}>{isolated === currentNode.id ? "Show all" : "Isolate"}</button></div>
             {isolated && !currentNode.visible && <p className="muted">This isolated object is hidden. Show it to see it in the viewport.</p>}
-            <label className="field-label">Position <span>meters · Y up</span></label><div className="position-fields">{(["X", "Y", "Z"] as const).map((axis, index) => <label key={axis}>{axis}<input type="number" step="0.1" value={currentNode.position[index]} disabled={busy} onChange={event => { const value = event.currentTarget.valueAsNumber; if (Number.isFinite(value)) { const position = [...currentNode.position] as Vec3; position[index] = value; edit({ position }); } }} /></label>)}</div>
+            <label className="field-label">Position <span>meters · Y up</span></label><div className="position-fields">{(["X", "Y", "Z"] as const).map((axis, index) => <label key={axis}>{axis}<input type="number" step="0.1" value={currentNode.position[index]} readOnly={readOnly} disabled={busy} onChange={event => { const value = event.currentTarget.valueAsNumber; if (Number.isFinite(value)) { const position = [...currentNode.position] as Vec3; position[index] = value; edit({ position }); } }} /></label>)}</div>
             <dl className="evidence"><div><dt>Evidence</dt><dd>{currentNode.evidence.origin}</dd></div><div><dt>Confidence</dt><dd>{Math.round(currentNode.evidence.confidence * 100)}%</dd></div><div><dt>Source ID</dt><dd>{currentNode.evidence.source_id || "Not linked"}</dd></div></dl><p className="evidence-note">{currentNode.evidence.note || "No evidence note provided."}</p>
-            <label className="check review-check"><input type="checkbox" checked={currentNode.evidence.reviewed} disabled={busy} onChange={event => edit({ evidence: { ...currentNode.evidence, reviewed: event.target.checked } })} /> Evidence reviewed by me</label>
+            <label className="check review-check"><input type="checkbox" checked={currentNode.evidence.reviewed} disabled={readOnly || busy} onChange={event => edit({ evidence: { ...currentNode.evidence, reviewed: event.target.checked } })} /> {readOnly ? "Evidence reviewed" : "Evidence reviewed by me"}</label>
           </> : <p className="muted">Select an object in the list or viewport to inspect its evidence and position.</p>}
         </section>
-        <section className="inspector-section"><div className="section-heading"><h2>Pipeline jobs</h2></div><p className="muted">Run a stage on this case. Tool and model access may be required.</p><div className="job-actions"><button onClick={() => void start("extract")} disabled={!caseId || busy}>Extract</button><button onClick={() => void start("blender")} disabled={!caseId || busy}>Blender</button><button onClick={() => void start("idol")} disabled={!caseId || busy}>Idol</button></div>
+        <section className="inspector-section"><div className="section-heading"><h2>Pipeline jobs</h2></div>{readOnly ? <p className="muted">Unavailable in the public demo. These scenes use deterministic template geometry, not image reconstruction, Blender exports or Idol results. Run the local workbench to author scenes and execute pipeline stages.</p> : <><p className="muted">Run a stage on this case. Tool and model access may be required.</p><div className="job-actions"><button onClick={() => void start("extract")} disabled={!caseId || busy}>Extract</button><button onClick={() => void start("blender")} disabled={!caseId || busy}>Blender</button><button onClick={() => void start("idol")} disabled={!caseId || busy}>Idol</button></div></>}
           {jobsError && <p className="inline-error" role="status">{jobsError}</p>}
           {!currentJobs.length && <p className="muted">No jobs for this case.</p>}
           {currentJobs.map(job => <div className="job" key={job.id}><div><strong>{job.stages.join(" → ")}</strong><span className={`job-status ${job.status}`}>{job.status}</span></div><small>{job.id}</small>{job.error && <p className="inline-error">{job.error}</p>}{activeJob(job) && <button onClick={() => void cancel(job.id)} disabled={busy}>Cancel</button>}</div>)}

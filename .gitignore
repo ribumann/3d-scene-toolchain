@@ -16,3 +16,5 @@ coverage/
 *.glb
 *.spz
 .DS_Store
+apps/web/public-demo/
+apps/web/dist-demo/
