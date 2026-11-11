@@ -66,10 +66,16 @@ An independent download verified the exact public file boundary and all eight
 preview files byte-for-byte against the authorized repository assets.
 Local browser checks decoded all eight actual previews at desktop/mobile sizes,
 with correct provenance, no image-case 3D canvas, no `/api` requests or mutation
-controls, and a working image-error/reload state. The cloud workspace could not
-repeat the public-origin check: DNS failed and browser navigation was explicitly
-blocked by its client policy. No bypass was attempted; updated public-origin
-verification remains the coordinating operator's separate check.
+controls, and a working image-error/reload state. This cloud workspace could not
+repeat the public-origin check because of DNS/client policy; no bypass was
+attempted. The coordinating operator subsequently verified the updated public
+origin in Browser on 2026-11-11: all eight `/references/{ID}.webp` URLs returned
+HTTP 200 with `image/webp` and decoded at the expected dimensions; `/api/cases`
+returned 404. Selecting G03 showed the correct AI-generated provenance,
+original-kept-private copy, no reconstructed 3D scene and zero objects.
+P01 still visibly rendered 28 objects before switching. These are public-origin
+observations, separate from the local desktop/mobile checks and not evidence of
+image reconstruction or actual Idol inference.
 
 ## Build and inspect
 

@@ -49,9 +49,10 @@ cross-origin mutation permission is granted.
 
 [Open the public read-only demo](https://red-wave-0c7bb6c0f.4.azurestaticapps.net/).
 The operator verified all three WebGL2 scenes on the real HTTPS origin. It has
-no API backend or actual Idol inference results. The current source build adds
-the eight authorized previews with explicit original-vs-AI-generated provenance;
-the original public-origin verification covered the three procedural scenes.
+no API backend or actual Idol inference results. The eight authorized previews
+are deployed with explicit original-vs-AI-generated provenance. The operator
+separately verified all eight public preview URLs and image decoding, G03's
+reference-only state, P01's 28 rendered objects and the absent API (404).
 
 The separate static build needs no backend, Blender or inference GPU:
 

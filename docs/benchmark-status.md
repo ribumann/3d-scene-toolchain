@@ -151,9 +151,14 @@ unused; it is not the viewer host. That initial public-origin verification
 predates the reference-preview UI; each new deployment needs a separate check.
 The eight-reference update subsequently passed CPU/Blender and web/deployment in
 [43006759156](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43006759156),
-source `c7b4507acc2f340634daba29289f3389231433b6`. Updated public-origin checking
-was blocked in this cloud workspace by DNS/client policy, not by a failed
-deployment; the coordinating operator must verify it separately.
+source `c7b4507acc2f340634daba29289f3389231433b6`. Although this cloud workspace
+was blocked by DNS/client policy, the coordinating operator subsequently verified
+the updated public origin in Browser on 2026-11-11. All eight preview URLs
+returned HTTP 200 `image/webp` and decoded at expected dimensions; `/api/cases`
+returned 404. Selected G03 showed AI-generated provenance, original-kept-private
+copy, no reconstructed scene and zero objects. P01 still visibly rendered
+28 objects before switching. This verifies reference publication and the
+existing procedural viewer, not image reconstruction or Idol inference.
 See [`infra/azure/static-demo.md`](../infra/azure/static-demo.md) for the artifact
 boundary, exact target and opt-in deployment controls.
 
