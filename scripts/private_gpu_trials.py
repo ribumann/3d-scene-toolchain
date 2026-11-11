@@ -266,7 +266,7 @@ def run_trial(directory, manifest_path, trial, variant):
                 raise SmokeError("trial_HF_TOKEN_missing")
             source_path(directory, trial)
             contract = {"trial": trial.model_dump(mode="json"), "variant": variant, "settings": SETTINGS}
-            checkpoint = output / "trial.json"
+            checkpoint = private_path(output, "trial.json")
             state = json.loads(checkpoint.read_text()) if checkpoint.exists() else {
                 "contract": contract, "extraction": None, "objects": {}, "extraction_attempts": [],
             }

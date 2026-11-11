@@ -15,7 +15,7 @@ from scene_pipeline.models import Case
 from scripts.package_pilots import APPROVED_PINS
 from scripts.private_gpu_batch import digest, write_json
 from scripts.private_gpu_smoke import SmokeError
-from scripts.private_gpu_trials import SETTINGS, crop_plan, generation_key, run_trial
+from scripts.private_gpu_trials import SETTINGS, crop_plan, generation_key, run_trial, stage_sources
 from scripts.trial_contracts import Trial, TrialManifest
 import tests.test_private_gpu_batch as fixtures
 
@@ -159,3 +159,23 @@ class TrialTests(unittest.TestCase):
             ]
             with self.assertRaisesRegex(ValueError, "explicit reusable asset"):
                 Trial.model_validate(data)
+
+    def test_staging_rejects_wrong_hash_redirect_and_oversize_without_partial_publication(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            manifest = self.prepare(root)
+            source = root / "approved-trials/T01.png"
+            original = source.read_bytes()
+            source.unlink()
+            for content, url, reason in (
+                (b"incorrect", self.trial.source.url, "checksum_mismatch"),
+                (original, "https://example.com/redirect.png", "redirect_refused"),
+                (b"x" * (12 * 1024 * 1024 + 1), self.trial.source.url, "exceeds_12mib"),
+            ):
+                response = io.BytesIO(content)
+                response.geturl = lambda: url
+                with patch("scripts.private_gpu_trials.urllib.request.urlopen", return_value=response):
+                    with self.assertRaisesRegex(SmokeError, reason):
+                        stage_sources(root, manifest)
+                self.assertFalse(source.exists())
+                self.assertFalse((source.parent / "T01.png.partial").exists())

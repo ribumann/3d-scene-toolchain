@@ -77,6 +77,19 @@ describe("API contract", () => {
       await demo.cases();
       await expect(demo.scene("I02")).rejects.toMatchObject({ status: 422 });
     });
+    it("loads only approved trial variants with isolated static appearance paths", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockImplementation((path: string) => Promise.resolve(new Response(JSON.stringify(
+        path.endsWith("cases.json") ? [{ id: "T01-baseline", status: "ready" }, { id: "T01-optimized", status: "awaiting_input" }] :
+          path.endsWith("trials.json") ? [{ trial_id: "T01", variant: "optimized", status: "not_run", scene: null }] :
+            { case_id: "T01-baseline", assets: [{ uri: "/api/assets/trials/T01/baseline/object-000.ply" }] },
+      )))));
+      const demo = createApi(true);
+      await demo.cases();
+      await expect(demo.scene("T01-baseline")).resolves.toMatchObject({ assets: [{ uri: "/trial-assets/T01/baseline/object-000.ply" }] });
+      await expect(demo.scene("T01-optimized")).rejects.toMatchObject({ status: 409 });
+      await expect(demo.trials()).resolves.toMatchObject([{ status: "not_run" }]);
+      expect(vi.mocked(fetch).mock.calls.every(([path]) => !String(path).startsWith("/api/"))).toBe(true);
+    });
   });
   it("reports non-JSON HTTP failures", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("unavailable", { status: 503, statusText: "Unavailable" })));

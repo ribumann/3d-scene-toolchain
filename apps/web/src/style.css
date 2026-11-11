@@ -97,6 +97,14 @@ select, input[type="number"] { color: #253f52; background: #fff; border: 1px sol
 .reference-figure a { color: #165f9e; text-underline-offset: 3px; }
 .pilot-status { padding: 14px; background: #fff; border: 1px solid #c7d7e1; color: #29455a; }
 .pilot-status p { margin-top: 6px; max-width: 75ch; }
+.trial-panel .section-heading { flex-wrap: wrap; gap: 10px; }
+.trial-panel .segmented { flex-wrap: wrap; }
+.trial-panel details { margin-top: 12px; overflow-wrap: anywhere; }
+.trial-panel summary { cursor: pointer; color: #165f9e; }
+.trial-panel summary:focus-visible { outline: 2px solid #1767b5; outline-offset: 2px; }
+.trial-measurements { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 14px 0; }
+.trial-measurements dt { color: #526d80; font-size: 12px; }
+.trial-measurements dd { margin: 4px 0 0; font-weight: 600; }
 .reference-link { color: #165f9e; text-underline-offset: 3px; }
 .reference-link:focus-visible { outline: 2px solid #1767b5; outline-offset: 2px; }
 .wide { width: 100%; }

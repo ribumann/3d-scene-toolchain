@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import type { Case, Job, Scene, SceneNode, Vec3 } from "../../../packages/scene/types";
-import { api, ApiError, readOnly, type PilotStatus } from "./api";
+import { api, ApiError, readOnly, type PilotStatus, type TrialStatus } from "./api";
+import TrialPanel from "./TrialPanel";
 import { caseFromQuery, updateNode } from "./model";
 import { parseSceneImport } from "./interchange";
 const Viewport = lazy(() => import("./Viewport"));
@@ -11,6 +12,7 @@ const activeJob = (job: Job) => job.status === "queued" || job.status === "runni
 export default function App() {
   const [cases, setCases] = useState<Case[]>([]);
   const [pilotStatuses, setPilotStatuses] = useState<PilotStatus[]>([]);
+  const [trialStatuses, setTrialStatuses] = useState<TrialStatus[]>([]);
   const [caseId, setCaseId] = useState("");
   const [scene, setScene] = useState<Scene | null>(null);
   const [sceneError, setSceneError] = useState("");
@@ -38,7 +40,8 @@ export default function App() {
 
   const currentCase = cases.find(item => item.id === caseId);
   const publicReference = readOnly && currentCase?.input_type !== "prompt" && !!currentCase?.source_url;
-  const referenceProvenance = currentCase?.input_type === "generated" ? "AI-generated reference" : "Original reference";
+  const trial = trialStatuses.find(item => `${item.trial_id}-${item.variant}` === caseId);
+  const referenceProvenance = trial ? "Synthetic photographic input" : currentCase?.input_type === "generated" ? "AI-generated reference" : "Original reference";
   const pilot = pilotStatuses.find(item => item.case_id === caseId);
   const hasPublishedSplats = readOnly && !!scene?.assets.some(asset => asset.kind === "ply");
   const canUpload = !readOnly && !!currentCase && currentCase.input_type !== "prompt";
@@ -58,6 +61,8 @@ export default function App() {
     let active = true;
     if (readOnly) api.pilots().then(data => { if (active) setPilotStatuses(data); })
       .catch(err => { if (active) setError(`Pilot status unavailable: ${message(err)}`); });
+    if (readOnly) api.trials().then(data => { if (active) setTrialStatuses(data); })
+      .catch(err => { if (active) setError(`Trial status unavailable: ${message(err)}`); });
     api.cases().then(data => {
       if (active) {
         const selection = readOnly ? caseFromQuery(window.location.search, data.map(item => item.id)) : { caseId: data[0]?.id || "" };
@@ -197,12 +202,12 @@ export default function App() {
       <aside className="library" aria-label="Case navigation">
         <div className="panel-heading"><div><h2>Cases</h2><p>Scene library</p></div><span className="count">{cases.length}</span></div>
         {!cases.length && <p className="muted inset">{error ? "Case library unavailable." : "Loading cases…"}</p>}
-        {(["prompt", "reference", "generated"] as const).map(group => {
-          const items = cases.filter(item => group === "prompt" ? item.input_type === "prompt" : group === "generated" ? item.input_type === "generated" : !["prompt", "generated"].includes(item.input_type));
+        {(["prompt", "reference", "generated", "trials"] as const).map(group => {
+          const items = cases.filter(item => group === "trials" ? /^T0[1-3]-/.test(item.id) : /^T0[1-3]-/.test(item.id) ? false : group === "prompt" ? item.input_type === "prompt" : group === "generated" ? item.input_type === "generated" : !["prompt", "generated"].includes(item.input_type));
           if (!items.length) return null;
-          return <div className="case-group" key={group}><h3>{group === "prompt" ? "Prompt scenarios" : group === "reference" ? readOnly ? "Original references" : "Reference inputs" : readOnly ? "AI-generated references" : "Generated inputs"}</h3>
+          return <div className="case-group" key={group}><h3>{group === "trials" ? "Trials" : group === "prompt" ? "Prompt scenarios" : group === "reference" ? readOnly ? "Original references" : "Reference inputs" : readOnly ? "AI-generated references" : "Generated inputs"}</h3>
             {items.map(item => <button key={item.id} className={`case-item ${caseId === item.id ? "active" : ""}`} onClick={() => switchCase(item.id)} disabled={busy} aria-current={caseId === item.id ? "page" : undefined}>
-              <span className="case-id">{item.id}</span><span className="case-name">{item.title}<small>{readOnly && item.source_url ? pilotStatuses.find(p => p.case_id === item.id)?.status || "Reference only" : item.status === "awaiting_input" ? "Awaiting input" : item.input_type}</small></span><span className={`status-dot ${item.status}`} aria-hidden="true" />
+              <span className="case-id">{item.id}</span><span className="case-name">{item.title}<small>{readOnly && item.source_url ? pilotStatuses.find(p => p.case_id === item.id)?.status || trialStatuses.find(t => `${t.trial_id}-${t.variant}` === item.id)?.status || "Reference only" : item.status === "awaiting_input" ? "Awaiting input" : item.input_type}</small></span><span className={`status-dot ${item.status}`} aria-hidden="true" />
             </button>)}
           </div>;
         })}
@@ -214,6 +219,7 @@ export default function App() {
             <button onClick={() => jsonInput.current?.click()} disabled={!caseId || loading || busy || currentCase?.status === "awaiting_input"}>Import JSON</button></>}
             <button onClick={reload} disabled={!caseId || loading || busy}>{publicReference ? "Reload reference" : "Reload scene"}</button></div>
         </div>
+        {trial && <TrialPanel trial={trial} onVariant={switchCase} />}
         {pilot && <div className="pilot-status" role="status"><strong>{pilot.status === "proposals" ? "Unreviewed diagram/plan proposals" : pilot.status === "partial" ? "Partial object reconstruction" : pilot.status === "succeeded" ? "Validated object outputs" : pilot.status === "processing" ? "Processing at publication snapshot" : pilot.status === "failed" ? "Pilot processing failed" : "Pilot not run"}</strong>
           <p>{pilot.status === "processing" ? "This source was active or had an unfinished running checkpoint. Its in-progress objects are not published; another snapshot is needed after it stops." : pilot.status === "proposals" ? `${pilot.objects} inferred region boxes; no Idol appearance or recovered process topology.` : `${pilot.objects} published object appearances; ${pilot.failed_objects} failed or unfinished distinct crops. Not a complete facility reconstruction.`} Compressed WebP input, not original bytes. Placement and scale are inferred.</p></div>}
         <section className="viewport-panel" aria-label={publicReference ? "Reference preview" : "3D scene"}>
@@ -225,7 +231,7 @@ export default function App() {
               <div className="reference-heading"><h2>{referenceProvenance}</h2><p>{pilot?.scene ? sceneError || "Loading published pilot view…" : "No reconstructed 3D scene is published for this reference."}</p></div>
               {sourceError ? <div className="source-placeholder" role="alert">Reference preview could not be loaded. Use Reload reference to try again.</div> :
                 <figure className="reference-figure"><img key={currentCase.id} src={`${currentCase.source_url}?v=${refresh}`} alt={`${referenceProvenance} for ${currentCase.title}, public WebP preview`} onError={() => setSourceError(true)} />
-                  <figcaption>Metadata-stripped public WebP preview. Full original kept private. <a href={currentCase.source_url ?? undefined} target="_blank" rel="noreferrer">Open reference preview (new tab)</a></figcaption>
+                  <figcaption>{trial ? "Approved generated PNG test input, not a real-site photograph." : "Metadata-stripped public WebP preview. Full original kept private."} <a href={currentCase.source_url ?? undefined} target="_blank" rel="noreferrer">Open reference preview (new tab)</a></figcaption>
                 </figure>}
             </div> :
             <div className="empty-viewport"><div className="empty-symbol" aria-hidden="true">◇</div><h2>{loading ? "Loading scene…" : "Scene not available"}</h2><p>{loading ? "Fetching the current case." : sceneError || "Select a case to begin."}</p>{!loading && canUpload && currentCase?.status === "awaiting_input" && <button onClick={() => fileInput.current?.click()} disabled={busy}>Choose source image</button>}</div>}
@@ -237,7 +243,7 @@ export default function App() {
         <section className="inspector-section"><div className="section-heading"><h2>Source</h2><span className="tag">{currentCase?.input_type || "—"}</span></div>
           {currentCase?.source_url && !sourceError ? <img className="source-image" src={`${currentCase.source_url}${currentCase.source_url.includes("?") ? "&" : "?"}v=${refresh}`} alt={`Source for ${currentCase.title}`} onError={() => setSourceError(true)} /> :
             <div className="source-placeholder">{currentCase?.input_type === "prompt" ? "Prompt-based scenario" : sourceError ? "Source image could not be loaded." : "Source image not supplied"}</div>}
-          <p className="source-copy">{publicReference ? `${referenceProvenance} supplied by the user. Public WebP preview, not original bytes or an inferred 3D result.` : currentCase?.prompt || currentCase?.source_filename || (currentCase?.input_type === "prompt" ? currentCase.summary : readOnly ? "No public reference preview is available for this case." : "Upload the original image to connect source evidence.")}</p>
+          <p className="source-copy">{trial ? `${trial.definition.source.generator}. Synthetic photographic input, not an actual site photograph. Source and manual layout are separate from generated appearance.` : publicReference ? `${referenceProvenance} supplied by the user. Public WebP preview, not original bytes or an inferred 3D result.` : currentCase?.prompt || currentCase?.source_filename || (currentCase?.input_type === "prompt" ? currentCase.summary : readOnly ? "No public reference preview is available for this case." : "Upload the original image to connect source evidence.")}</p>
           {publicReference && currentCase?.source_url && <a className="reference-link" href={currentCase.source_url} target="_blank" rel="noreferrer">Open reference comparison (new tab)</a>}
           {sourceMetadata && <details className="source-copy"><summary>Source metadata for JSON import</summary><p>{sourceMetadata.filename}</p><p>SHA-256: {sourceMetadata.sha256}</p><p>Include this exact hash in scene.sources. Import saves immediately; export first to keep a local copy. Nodes and routes can be corrected in JSON while preserving semantic IDs.</p></details>}
           {metadataError && <p className="inline-error">{metadataError}</p>}

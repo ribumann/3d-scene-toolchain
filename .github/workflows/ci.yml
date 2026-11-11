@@ -15,6 +15,11 @@ on:
         required: false
         default: ""
         type: string
+      trial_run_id:
+        description: "Optional approved trial-publication run; additive only with pilot_run_id=43079293375"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -66,34 +71,44 @@ jobs:
       - run: npm run build
       - run: npm test -- --run
       - name: Download explicitly selected approved pilot package
-        if: github.event_name == 'workflow_dispatch' && inputs.pilot_run_id != ''
+        if: github.event_name == 'workflow_dispatch' && (inputs.pilot_run_id != '' || inputs.trial_run_id != '')
         env:
           GH_TOKEN: ${{ github.token }}
           PILOT_RUN_ID: ${{ inputs.pilot_run_id }}
+          TRIAL_RUN_ID: ${{ inputs.trial_run_id }}
         run: |
           python - <<'PY'
           import json, os, re, subprocess
           from pathlib import Path
           from scripts.package_pilots import validate_package
-          run_id = os.environ["PILOT_RUN_ID"]
-          if not re.fullmatch(r"[0-9]+", run_id):
-              raise SystemExit("pilot_run_id must be an explicit numeric Actions run ID.")
+          from scripts.package_trials import validate_trial_package
+          if os.environ["TRIAL_RUN_ID"] and os.environ["PILOT_RUN_ID"] != "43079293375":
+              raise SystemExit("Trial publication must retain approved final pilot_run_id=43079293375.")
           repository = os.environ["GITHUB_REPOSITORY"]
-          run = json.loads(subprocess.check_output(
-              ["gh", "api", f"repos/{repository}/actions/runs/{run_id}"], text=True))
           workflow = json.loads(subprocess.check_output(
               ["gh", "api", f"repos/{repository}/actions/workflows/gpu-batch.yml"], text=True))
           expected_path = ".github/workflows/gpu-batch.yml"
-          if (run["status"] != "completed" or run["head_branch"] != os.environ["GITHUB_REF_NAME"]
-              or run["path"] != expected_path or workflow["path"] != expected_path
-              or run["workflow_id"] != workflow["id"]):
-              raise SystemExit("Select a completed trusted GPU workflow on this same branch.")
-          destination = Path(os.environ["RUNNER_TEMP"]) / ("pilot-publication-" + run_id)
-          subprocess.run(["gh", "run", "download", run_id, "--repo", repository,
-                          "--name", "pilot-publication-" + run_id, "--dir", str(destination)], check=True)
-          validate_package(destination)
-          with open(os.environ["GITHUB_ENV"], "a") as stream:
-              stream.write("SCENE_PILOT_PUBLIC_PACKAGE=" + str(destination) + "\n")
+          for variable, prefix, output, validate in (
+              ("PILOT_RUN_ID", "pilot-publication-", "SCENE_PILOT_PUBLIC_PACKAGE", validate_package),
+              ("TRIAL_RUN_ID", "trial-publication-", "SCENE_TRIAL_PUBLIC_PACKAGE", validate_trial_package),
+          ):
+              run_id = os.environ[variable]
+              if not run_id:
+                  continue
+              if not re.fullmatch(r"[0-9]+", run_id):
+                  raise SystemExit(variable + " must be an explicit numeric Actions run ID.")
+              run = json.loads(subprocess.check_output(
+                  ["gh", "api", f"repos/{repository}/actions/runs/{run_id}"], text=True))
+              if (run["status"] != "completed" or run["head_branch"] != os.environ["GITHUB_REF_NAME"]
+                  or run["path"] != expected_path or workflow["path"] != expected_path
+                  or run["workflow_id"] != workflow["id"]):
+                  raise SystemExit("Select a completed trusted GPU workflow on this same branch.")
+              destination = Path(os.environ["RUNNER_TEMP"]) / (prefix + run_id)
+              subprocess.run(["gh", "run", "download", run_id, "--repo", repository,
+                              "--name", prefix + run_id, "--dir", str(destination)], check=True)
+              validate(destination)
+              with open(os.environ["GITHUB_ENV"], "a") as stream:
+                  stream.write(output + "=" + str(destination) + "\n")
           PY
       - run: npm run build:demo
       - name: Publish public read-only demo build

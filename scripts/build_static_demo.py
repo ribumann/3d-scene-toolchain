@@ -13,15 +13,23 @@ REFERENCE_IDS = ("I01", "I02", "I03", "I04", "I05", "G01", "G02", "G03")
 REFERENCE_SOURCE = ROOT / "apps/web/public/references"
 
 
-def build_demo(public: Path, pilot_package: Path | None = None):
+def build_demo(public: Path, pilot_package: Path | None = None, trial_package: Path | None = None):
     from scripts.package_pilots import validate_package
 
     pilots = validate_package(pilot_package) if pilot_package is not None else None
+    trials = None
+    if trial_package is not None:
+        if pilots is None or any(item["scene"] is None for item in pilots["cases"]):
+            raise ValueError("Trial publication requires the complete approved eight-source pilot package")
+        from scripts.package_trials import validate_trial_package
+        trials = validate_trial_package(trial_package)
+    trial_entries = trials[0]["trials"] if trials else []
+    trial_ids = {f"{entry['trial_id']}-{entry['variant']}" for entry in trial_entries if entry["scene"]}
     entries = {item["case_id"]: item for item in pilots["cases"]} if pilots else {}
     destination, references = public / "demo", public / "references"
     for directory, allowed in (
-        (public, {"demo", "references"} | ({"pilot-assets"} if pilots else set())),
-        (destination, {"cases.json", "P01.json", "P02.json", "P03.json", "pilots.json"} | ({*(f"{case}.json" for case, item in entries.items() if item["scene"])} if pilots else set())),
+        (public, {"demo", "references"} | ({"pilot-assets"} if pilots else set()) | ({"trial-assets", "trial-references"} if trials else set())),
+        (destination, {"cases.json", "P01.json", "P02.json", "P03.json", "pilots.json", "trials.json"} | {f"{case}.json" for case in trial_ids} | ({*(f"{case}.json" for case, item in entries.items() if item["scene"])} if pilots else set())),
         (references, {f"{identifier}.webp" for identifier in REFERENCE_IDS}),
     ):
         if directory.is_symlink() or (directory.exists() and not directory.is_dir()):
@@ -38,6 +46,13 @@ def build_demo(public: Path, pilot_package: Path | None = None):
         for path in (public / "pilot-assets").rglob("*"):
             if path.is_symlink() or (path.is_file() and path.relative_to(public / "pilot-assets").as_posix() not in expected):
                 raise ValueError("Unexpected public pilot asset output")
+    for dirname, prefix in (("trial-assets", "assets/"), ("trial-references", "references/")):
+        directory = public / dirname
+        expected = {name.removeprefix(prefix) for name in trials[0]["files"] if name.startswith(prefix)} if trials else set()
+        if directory.exists():
+            for path in directory.rglob("*"):
+                if path.is_symlink() or (path.is_file() and path.relative_to(directory).as_posix() not in expected):
+                    raise ValueError("Unexpected public trial output")
     for identifier in REFERENCE_IDS:
         source = REFERENCE_SOURCE / f"{identifier}.webp"
         if REFERENCE_SOURCE.is_symlink() or source.is_symlink() or not source.is_file():
@@ -65,12 +80,25 @@ def build_demo(public: Path, pilot_package: Path | None = None):
         if case.id in ("P01", "P02", "P03"):
             scene = compile_prompt(case)
             (destination / f"{case.id}.json").write_text(scene.model_dump_json(indent=2) + "\n")
+    if trials:
+        for trial in trials[1].trials:
+            for entry in (item for item in trial_entries if item["trial_id"] == trial.id):
+                cases.append(Case(
+                    id=f"{trial.id}-{entry['variant']}", title=f"{trial.title} / {entry['variant']}",
+                    input_type="generated", summary="Synthetic photographic trial; supervised comparison, not accuracy certification.",
+                    status="ready" if entry["scene"] else "awaiting_input", source_filename=trial.source.filename,
+                    source_url=f"/trial-references/{trial.source.filename}",
+                ))
     (destination / "cases.json").write_text(
         json.dumps([case.model_dump() for case in cases], indent=2) + "\n"
     )
     for identifier in REFERENCE_IDS:
         shutil.copyfile(REFERENCE_SOURCE / f"{identifier}.webp", references / f"{identifier}.webp")
     (destination / "pilots.json").write_text(json.dumps(pilots["cases"] if pilots else [], indent=2) + "\n")
+    (destination / "trials.json").write_text(json.dumps([
+        {**entry, "definition": next(trial.model_dump(mode="json") for trial in trials[1].trials if trial.id == entry["trial_id"])}
+        for entry in trial_entries
+    ], indent=2) + "\n")
     if pilots:
         # Publish only validated package paths, never its parent/private runtime.
         for name in pilots["files"]:
@@ -80,8 +108,21 @@ def build_demo(public: Path, pilot_package: Path | None = None):
                 target = destination / Path(name).name
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(pilot_package / name, target)
+    if trials:
+        for name in trials[0]["files"]:
+            if name.startswith("assets/"):
+                target = public / "trial-assets" / name.removeprefix("assets/")
+            elif name.startswith("references/"):
+                target = public / "trial-references" / Path(name).name
+            elif name.startswith("scenes/"):
+                target = destination / Path(name).name
+            else:
+                continue
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(trial_package / name, target)
 
 
 if __name__ == "__main__":
     package = os.environ.get("SCENE_PILOT_PUBLIC_PACKAGE")
-    build_demo(ROOT / "apps/web/public-demo", Path(package) if package else None)
+    trials = os.environ.get("SCENE_TRIAL_PUBLIC_PACKAGE")
+    build_demo(ROOT / "apps/web/public-demo", Path(package) if package else None, Path(trials) if trials else None)

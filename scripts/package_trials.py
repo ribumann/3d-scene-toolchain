@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import math
 import re
 import shutil
 import tempfile
@@ -12,7 +13,7 @@ from scene_pipeline.models import Scene
 from scripts.package_pilots import pinned_environment, public_ply
 from scripts.private_gpu_batch import digest, private_path, snapshot_extraction, write_json
 from scripts.private_gpu_smoke import ROOT, SmokeError
-from scripts.private_gpu_trials import SETTINGS, assemble, checked_result, crop_plan, source_path
+from scripts.private_gpu_trials import SETTINGS, assemble, checked_result, crop_plan, generation_key, source_path
 from scripts.trial_contracts import VARIANTS, TrialManifest, load_manifest
 
 APPROVED_MANIFEST = ROOT / "cases/trials.json"
@@ -26,17 +27,27 @@ SUMMARY_FIELDS = {
 
 
 def safe_report(report):
-    if set(report) - SUMMARY_FIELDS or report["status"] not in STATUSES:
+    required = SUMMARY_FIELDS - {"objects_succeeded", "objects_failed", "published_instances"}
+    if not required <= set(report) <= SUMMARY_FIELDS or report["status"] not in STATUSES:
         raise SmokeError("invalid_trial_public_report")
+    if report["trial_id"] not in ("T01", "T02", "T03") or report["variant"] not in VARIANTS or report["supervision"] not in ("manual-reviewed-boxes", "detector-proposals"):
+        raise SmokeError("invalid_trial_public_report")
+    for field in ("expected_objects", "detected_objects", "usable_crops", "cache_hits", "cache_misses", "resumed", "independent_generations", "objects_succeeded", "objects_failed", "published_instances"):
+        if field in report and (type(report[field]) is not int or not 0 <= report[field] <= 10000):
+            raise SmokeError("unsafe_trial_count")
+    if type(report["seconds_this_run"]) not in (int, float) or not math.isfinite(report["seconds_this_run"]) or report["seconds_this_run"] < 0:
+        raise SmokeError("unsafe_trial_measurement")
     for record in report.get("objects", []) + report.get("rejected", []):
         if set(record) - {"node_id", "status", "timing", "failure_reason", "reason", "duplicate_of", "resume_rejected"}:
             raise SmokeError("unexpected_trial_object_report")
         for field in ("failure_reason", "reason", "resume_rejected", "node_id", "duplicate_of"):
             if field in record and not re.fullmatch(r"[a-zA-Z0-9_.-]{1,120}", record[field]):
                 raise SmokeError("unsafe_trial_failure_diagnostic")
+        if "status" in record and record["status"] not in ("running", "succeeded", "failed", "resumed", "cache_hit"):
+            raise SmokeError("unsafe_trial_object_status")
         if "timing" in record and (
             set(record["timing"]) - {"seconds", "peak_device_memory_mib_sampled", "sample_interval_seconds"}
-            or any(not isinstance(value, (int, float)) or value < 0 for value in record["timing"].values())
+            or any(type(value) not in (int, float) or not math.isfinite(value) or value < 0 for value in record["timing"].values())
         ):
             raise SmokeError("unsafe_trial_measurement")
     if report.get("failure_reason") is not None and not re.fullmatch(r"[a-zA-Z0-9_.-]{1,120}", report["failure_reason"]):
@@ -45,7 +56,10 @@ def safe_report(report):
 
 
 def package_trials(directory, destination, manifest_path=APPROVED_MANIFEST, approve=False):
-    import fcntl
+    try:
+        import fcntl
+    except ImportError:
+        raise SmokeError("trial_export_requires_POSIX_flock") from None
 
     if not approve:
         raise SmokeError("explicit_trial_publication_approval_required")
@@ -68,7 +82,8 @@ def package_trials(directory, destination, manifest_path=APPROVED_MANIFEST, appr
                 entry = {"trial_id": trial.id, "variant": variant, "status": "not_run", "scene": None, "report": None}
                 package["trials"].append(entry)
                 output = private_path(directory, f"trials/{trial.id}/{variant}")
-                if not (output / "trial.json").exists():
+                checkpoint = private_path(output, "trial.json")
+                if not checkpoint.exists():
                     continue
                 with private_path(output, ".lock").open("rb") as lock:
                     try:
@@ -76,7 +91,7 @@ def package_trials(directory, destination, manifest_path=APPROVED_MANIFEST, appr
                     except BlockingIOError:
                         entry["status"] = "processing"
                         continue
-                    state = json.loads((output / "trial.json").read_text())
+                    state = json.loads(checkpoint.read_text())
                     if state["status"] == "running":
                         entry["status"] = "processing"
                         continue
@@ -152,21 +167,31 @@ def validate_trial_package(directory, manifest_path=None):
         allowed.add(relative)
     for entry in package["trials"]:
         case, variant = entry["trial_id"], entry["variant"]
+        trial = next(item for item in approved.trials if item.id == case)
         if set(entry) != {"trial_id", "variant", "status", "scene", "report"} or entry["status"] not in STATUSES:
             raise SmokeError("unsafe_trial_entry")
+        if (entry["report"] is None) != (entry["status"] in ("not_run", "processing")):
+            raise SmokeError("invalid_trial_report_status")
         if entry["report"] is not None:
             report = safe_report(entry["report"])
-            trial = next(item for item in approved.trials if item.id == case)
-            if report["settings"] != SETTINGS or report["source_sha256"] != trial.source.sha256 or report["status"] != entry["status"]:
+            if (report["settings"] != SETTINGS or report["source_sha256"] != trial.source.sha256
+                or report["status"] != entry["status"] or report["trial_id"] != case or report["variant"] != variant
+                or report["expected_objects"] != sum(item.count for item in trial.expected_inventory)):
                 raise SmokeError("invalid_trial_report_provenance")
         if entry["scene"] is None:
+            if entry["status"] in ("succeeded", "partial"):
+                raise SmokeError("completed_trial_scene_missing")
             continue
         if entry["status"] not in ("succeeded", "partial") or entry["scene"] != f"scenes/{case}-{variant}.json":
             raise SmokeError("invalid_trial_scene_status")
         allowed.add(entry["scene"])
         scene = Scene.model_validate_json(private_path(directory, entry["scene"]).read_text())
-        if scene.case_id != f"{case}-{variant}" or not scene.nodes or scene.edges:
+        if (scene.case_id != f"{case}-{variant}" or not scene.nodes or scene.edges
+            or len(scene.assets) != len(scene.nodes) or any(not node.asset_id for node in scene.nodes)
+            or len(scene.nodes) != report.get("published_instances")):
             raise SmokeError("invalid_trial_scene_identity")
+        if not scene.sources or any(source.filename != trial.source.filename or source.sha256 != trial.source.sha256 for source in scene.sources):
+            raise SmokeError("invalid_trial_scene_source")
         for asset in scene.assets:
             parent = asset.provenance["parent_node_id"]
             if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,95}", parent):
@@ -177,7 +202,31 @@ def validate_trial_package(directory, manifest_path=None):
             validated = validate_ply(private_path(directory, relative))
             if validated["gaussian_count"] != 32768 or asset.sha256 != validated["sha256"]:
                 raise SmokeError("invalid_trial_gaussians")
+            provenance = asset.provenance
+            expected_fields = {
+                *validated, "model", "mode", "steps", "seed", "model_pins", "sdk_revision",
+                "trial_id", "variant", "parent_node_id", "crop_sha256", "source_sha256",
+                "bbox_pixels", "cache_key", "reused", "reusable_asset_id", "instance", "layout",
+            }
+            if (set(provenance) != expected_fields
+                or any(provenance[key] != value for key, value in validated.items())
+                or provenance["trial_id"] != case or provenance["variant"] != variant
+                or provenance["source_sha256"] != trial.source.sha256
+                or provenance["model_pins"] != SETTINGS["model_pins"]
+                or provenance["sdk_revision"] != SETTINGS["sdk_revision"]
+                or provenance["model"] != "speridlabs/idol" or provenance["mode"] != "real"
+                or provenance["steps"] != 50 or provenance["seed"] != 42
+                or not re.fullmatch(r"[a-f0-9]{64}", provenance["crop_sha256"])
+                or provenance["cache_key"] != generation_key(provenance["crop_sha256"])
+                or provenance["layout"] != trial.layout_kind
+                or type(provenance["reused"]) is not bool or type(provenance["instance"]) is not bool
+                or len(provenance["bbox_pixels"]) != 4
+                or any(type(value) is not int or value < 0 for value in provenance["bbox_pixels"])
+                or provenance["reusable_asset_id"] not in {None, *(item.reusable_asset_id for item in trial.reviewed_objects)}):
+                raise SmokeError("invalid_trial_asset_provenance")
             allowed.add(relative)
+        if len({asset.provenance["parent_node_id"] for asset in scene.assets}) != report.get("objects_succeeded"):
+            raise SmokeError("invalid_trial_success_count")
     actual = set()
     for path in directory.rglob("*"):
         if path.is_symlink():

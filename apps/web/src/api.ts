@@ -33,6 +33,27 @@ export type PilotStatus = {
   layout: "inferred-not-metric";
   scene: string | null;
 };
+export type TrialStatus = {
+  trial_id: "T01" | "T02" | "T03";
+  variant: "baseline" | "optimized";
+  status: "not_run" | "processing" | "failed" | "partial" | "succeeded" | "interrupted";
+  scene: string | null;
+  report: {
+    expected_objects: number; detected_objects: number; usable_crops: number;
+    objects_succeeded?: number; objects_failed?: number; published_instances?: number;
+    cache_hits: number; cache_misses: number; resumed: number; independent_generations: number;
+    seconds_this_run: number; supervision: string; failure_reason: string | null;
+    rejected: { node_id: string; reason: string; duplicate_of?: string }[];
+    objects: { node_id: string; status: string; failure_reason?: string; timing: { seconds?: number } }[];
+    settings: { count: number; steps: number; seed: number; model_pins: Record<string, string>; sdk_revision: string };
+  } | null;
+  definition: {
+    title: string;
+    source: { kind: string; generator: string; prompt: string; sha256: string };
+    expected_inventory: { identity: string; category: string; count: number }[];
+    layout_kind: string;
+  };
+};
 
 export function createApi(staticDemo = false) {
   const publishedScenes = new Set(["P01", "P02", "P03"]);
@@ -46,11 +67,12 @@ export function createApi(staticDemo = false) {
     cases: async () => {
       const cases = await call<Case[]>(staticDemo ? "/demo/cases.json" : "/api/cases");
       if (staticDemo) for (const item of cases) {
-        if (/^(I0[1-5]|G0[1-3])$/.test(item.id) && item.status === "ready") publishedScenes.add(item.id);
+        if (/^(I0[1-5]|G0[1-3]|T0[1-3]-(baseline|optimized))$/.test(item.id) && item.status === "ready") publishedScenes.add(item.id);
       }
       return cases;
     },
     pilots: () => staticDemo ? call<PilotStatus[]>("/demo/pilots.json") : Promise.resolve<PilotStatus[]>([]),
+    trials: () => staticDemo ? call<TrialStatus[]>("/demo/trials.json") : Promise.resolve<TrialStatus[]>([]),
     scene: async (id: string) => {
       if (staticDemo && !publishedScenes.has(id)) {
         return Promise.reject(new ApiError(409, "Reference preview only: no reconstructed 3D scene is published for this case. P01-P03 are separate procedural examples, not reconstructions of the references."));
@@ -59,10 +81,14 @@ export function createApi(staticDemo = false) {
       if (staticDemo) {
         if (scene.case_id !== id) throw new ApiError(422, "Published scene identity does not match the selected case.");
         return { ...scene, assets: scene.assets.map(asset => {
-          if (!/^\/api\/assets\/pilot\/(I0[1-5]|G0[1-3])\/[A-Za-z0-9_.-]+\.ply$/.test(asset.uri)) {
+          const trial = /^T0[1-3]-(baseline|optimized)$/.test(id);
+          const match = trial
+            ? new RegExp(`^/api/assets/trials/${id.slice(0, 3)}/${id.slice(4)}/[A-Za-z0-9_.-]+\\.ply$`).test(asset.uri)
+            : /^\/api\/assets\/pilot\/(I0[1-5]|G0[1-3])\/[A-Za-z0-9_.-]+\.ply$/.test(asset.uri);
+          if (!match) {
             throw new ApiError(422, "Published scene has an unapproved asset path.");
           }
-          return { ...asset, uri: asset.uri.replace("/api/assets/", "/pilot-assets/") };
+          return { ...asset, uri: trial ? asset.uri.replace("/api/assets/trials/", "/trial-assets/") : asset.uri.replace("/api/assets/", "/pilot-assets/") };
         }) };
       }
       return scene;

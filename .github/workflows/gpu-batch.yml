@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       smoke_mode:
-        description: "off: benchmark; readiness: HF checks; gpu: smoke; batch: pilot processing; package: approved export only"
+        description: "off/readiness/gpu/batch: existing pilots; package: pilot export; trials: photographic comparison; trial-package: trial export"
         default: "off"
         required: false
         type: choice
@@ -25,7 +25,7 @@ on:
           - private-original
           - public-preview
       pilot_cases:
-        description: "Batch only: unique image case IDs, e.g. I01 I02 I03 I04 I05 G01 G02 G03; default preserves I02"
+        description: "Batch: I01-I05/G01-G03; trials: explicit T01 T02 T03 selection. Default preserves I02."
         default: "I02"
         type: string
         required: false
@@ -98,7 +98,7 @@ jobs:
           import os, re
           trial = os.environ["TRIAL_PACKAGE"] == "true"
           if (os.environ["APPROVE_TRIALS"] if trial else os.environ["APPROVE"]) != "true" or (not trial and os.environ["SOURCE"] != "public-preview"):
-              raise SystemExit("Package mode requires publish_pilots=true and smoke_source=public-preview.")
+              raise SystemExit("Trial export requires publish_trials=true." if trial else "Package mode requires publish_pilots=true and smoke_source=public-preview.")
           label = os.environ["PUBLISH_RUNNER"]
           if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,99}", label) or label == os.environ["GPU_RUNNER"]:
               raise SystemExit("Configure SCENE_PUBLISH_RUNNER as a distinct CPU publisher label and isolated work directory.")

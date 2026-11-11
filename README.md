@@ -93,6 +93,12 @@ case-inventory verification. This does not establish every case's browser
 rendering or visual accuracy.
 See the [approved export/build route](infra/azure/static-demo.md#approved-derived-pilot-packages).
 
+Opt-in [photographic trials](docs/trials.md) compare detector/SAM2 extraction with
+explicitly supervised reviewed-box/SAM2 extraction and exact validated asset reuse.
+Their generated inputs and outputs remain separate from the frozen pilot;
+additive trial publication requires its unchanged approved final package.
+Preparation is not evidence of reconstruction quality or a measured speedup.
+
 Publish only `apps/web/dist-demo/`, not the repository or `.scene-data/`.
 Azure static website preparation and deployment commands are in
 [`infra/azure/static-demo.md`](infra/azure/static-demo.md).

@@ -13,7 +13,37 @@ and failures still require explicit review. No persons or private reference imag
 inputs. Synthetic photographic inputs, manually authored semantics/layout and generated
 3D appearances are distinct evidence.
 
-## Early backend execution
+## Protected sequential workflow
+
+The committed `cases/trials.json` is the approved primary photographic manifest,
+semantically identical to immutable input manifest
+[`6ebc4cc.../manifest.json`](https://raw.githubusercontent.com/ribumann/3d-scene-toolchain/6ebc4ccc49a0db48c9cfa6c3cbf038ae67db6dde/experiments/overnight-20261111/manifest.json)
+(upstream byte SHA256 `793c0057baaae75363c663839bfda910e9c67f79b1b2c30de41ba5a9d8eb4cb2`).
+The three PNGs decode to **1448 x 1086**, independently checked rather than assumed.
+T01 targets one pump assembly; T02 targets one pump, tank and control cabinet;
+T03 targets two separate pump assemblies. T03 has no reusable-asset assertion.
+
+An authorized operator can dispatch the existing registered workflow:
+
+```sh
+gh workflow run gpu-batch.yml --repo ribumann/3d-scene-toolchain \
+  --ref copilot/hybrid-scene-toolchain \
+  -f smoke_mode=trials -f smoke_source=public-preview \
+  -f 'pilot_cases=T01 T02 T03' -f trial_variants=both
+```
+
+For the first small run set `pilot_cases=T01`. `trial_variants` also accepts
+`baseline` or `optimized`; redispatch resumes the selected matching checkpoints.
+The trial route uses the committed photographic manifest, not the pilot source
+selector or baseline Store. All selected variants run sequentially in the existing
+single-GPU concurrency group, with a 360-minute bound. Existing
+`SCENE_GPU_RUNNER`, the protected Actions `HF_TOKEN` secret and both prepared
+interpreters/model caches are required. No operator token extraction or new
+model/service provisioning is needed. The workflow stages only immutable same-repo
+PNG URLs, checks SHA256, rejects redirects, caps each download at 12 MiB and checks
+PNG decoding and a 20-million-pixel ceiling before atomic placement.
+
+## Direct backend execution
 
 Use the **current checkout**, the existing two prepared interpreters, and stage
 approved generated PNGs at
@@ -90,7 +120,64 @@ or fidelity scores. Timings are actual observations only; no unmeasured speedup
 is promised. Layout, scale and depth remain inferred or explicitly authored
 relative assumptions, not recovered metric truth.
 
-Publication/UI integration is a separate additive milestone: the existing
-approved pilot package must remain present, and no private crops/logs/tokens may
-enter a portable trial package. Backend preparation alone does not publish inputs
-or prove actual trial inference.
+## Derived-only export and additive public build
+
+Publication is a separate explicit opt-in, using the existing isolated CPU
+publisher (`SCENE_PUBLISH_RUNNER`, distinct from the GPU runner/work directory):
+
+```sh
+gh workflow run gpu-batch.yml --repo ribumann/3d-scene-toolchain \
+  --ref copilot/hybrid-scene-toolchain \
+  -f smoke_mode=trial-package -f publish_trials=true
+```
+
+The CPU route has no model token or CUDA visibility. It locks each variant,
+skips active checkpoints as `processing` with no scene, and revalidates stopped
+extraction receipts, actual output hashes/provenance and 32,768-Gaussian PLYs.
+No private root is uploaded. Only the dedicated new
+`$RUNNER_TEMP/trial-publication-$GITHUB_RUN_ID/` directory becomes artifact
+`trial-publication-<runID>`, retained seven days:
+
+| Path | Content |
+|---|---|
+| `trials.json` | Exact T01-T03 baseline/optimized inventory, safe counts/status/timing and declared file hashes |
+| `trial-manifest.json` | Exact approved generated-input provenance, prompts, target inventory, reviewed boxes and authored relative layout |
+| `references/T0N.png` | Only the explicitly approved, hash-bound generated photographic PNGs |
+| `scenes/T0N-<variant>.json` | Completed validated appearances only, with inferred/authored placement provenance |
+| `assets/T0N/<variant>/<object>.ply` | Validated appearances with stripped header comments |
+
+No crops/masks, raw logs, source-runtime paths or tokens are allowed. Failures are
+safe error codes, never copied exception logs. A failed/interrupted/no-output
+variant remains visible without substitute geometry. Read-only validation/build
+is portable; private export requires Linux/POSIX flock.
+
+After review, build additively with the **unchanged approved final pilot package
+43079293375**, never an empty default baseline:
+
+```sh
+gh workflow run ci.yml --repo ribumann/3d-scene-toolchain \
+  --ref copilot/hybrid-scene-toolchain \
+  -f pilot_run_id=43079293375 -f trial_run_id=TRIAL_PACKAGE_RUN_ID -f deploy=false
+```
+
+Both runs must be completed trusted `gpu-batch.yml` runs on this branch;
+workflow path/registered ID and exact artifact names are checked through REST.
+All package files/hashes and committed source authorization are revalidated.
+The trial CI path refuses a missing or different pilot run ID. The static builder
+also rejects trials without a complete eight-source pilot package.
+
+For approved packages already downloaded locally:
+
+```sh
+SCENE_PILOT_PUBLIC_PACKAGE=/path/to/approved-pilot-package \
+SCENE_TRIAL_PUBLIC_PACKAGE=/path/to/approved-trial-package npm run build:demo
+```
+
+Only `apps/web/dist-demo/` is publishable. Trial PLYs/references use isolated
+`/trial-assets/` and `/trial-references/` paths; the original eight views/files
+remain intact. The compact Trials section exposes both methods, expected versus
+actual counts, rejections/failures, timing, exact reuse/resume, pins and source
+provenance. Direct links use `?case=T01-baseline` or `?case=T01-optimized`
+(similarly T02/T03), including honest pending/processing states. Neither the
+normal default build nor a source commit proves trial inference or deploys results.
+Do not deploy the default reference-only build over the approved public baseline.

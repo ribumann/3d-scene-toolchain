@@ -82,6 +82,11 @@ image reconstruction or actual Idol inference.
 
 ## Build and inspect
 
+For the opt-in generated photographic Trials section, use the
+[separate additive package/build instructions](../../docs/trials.md#derived-only-export-and-additive-public-build).
+Trial ingestion requires the retained final pilot artifact `43079293375`;
+it must not replace the original eight views with a default reference-only build.
+
 Requirements: Python 3.11+, Node 22.12+ (see package engine constraints), npm.
 Neither Blender nor CUDA is needed to build or host this demo. The visiting
 browser needs WebGL2; view controls do not require a cloud GPU.
