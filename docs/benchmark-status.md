@@ -63,10 +63,24 @@ primitive geometry; no resemblance or physical accuracy score is implied.
   A browser label edit persisted as the next revision with the original node ID.
   At a 390-pixel viewport, the page had no horizontal document overflow.
 - Azure tests cover identity, resource-group, quota, SSH and duration guards using
-  mocks. There has been no authenticated Azure deployment or cost allocation.
+  mocks. The subsequent authenticated infrastructure check below is separate
+  from those tests and from actual inference.
 - GitHub CPU CI also passed both the web job and the Python/Blender job:
   https://github.com/ribumann/3d-scene-toolchain/actions/runs/42899375347
   This includes the three procedural cases on a hosted CPU runner, not GPU work.
+
+## Verified GPU infrastructure (2026-11-11)
+
+The coordinating operator reported a running `Standard_NC4as_T4_v3` Spot VM in
+Italy North, in the dedicated `scene-twin-poc-1111` group. Real `nvidia-smi`
+reported Tesla T4, 16,384 MiB and driver `615.71.10` after package installation
+completed. The user explicitly approved no auto-shutdown. Spot eviction remains
+possible despite activity; the operator must checkpoint work and manage cleanup.
+
+This confirms VM/hardware/driver readiness only. PyTorch/CUDA model execution
+and actual Idol inference remain unrun. The source deployment defaults were not
+changed; this worker used an operator-only Spot/no-shutdown variant after policy
+and schedule-region blockers. See the [GPU operator guide](../infra/azure/README.md).
 
 ## Remaining acceptance work
 
@@ -85,10 +99,13 @@ document overflow; the browser pass also corrected canvas sizing within the
 mobile viewport. Python snapshot tests, frontend tests and both local/demo
 production builds passed. These checks do not certify fidelity or frame rate.
 
-Azure Storage resources were reported prepared by the coordinating operator,
-but public upload and public-origin rendering are not verified by this local
-check. See [`infra/azure/static-demo.md`](../infra/azure/static-demo.md) for the
-artifact boundary, intended resources and operator publication prerequisites.
+Enforced Storage network policy blocked the original publication target. A
+dedicated Free Azure Static Web App was created instead; CPU workflow
+[43000921576](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43000921576)
+successfully uploaded only the read-only build, with no API/Functions.
+Public-origin browser rendering is not verified by that deployment result.
+See [`infra/azure/static-demo.md`](../infra/azure/static-demo.md) for the artifact
+boundary, exact target and opt-in deployment controls.
 
 ### Full pipeline
 

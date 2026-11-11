@@ -35,7 +35,11 @@ never uploaded source images, tokens, runtime stores or a repository archive.
 Do not expose the unauthenticated local API. The operator configured the
 repository secret `AZURE_STATIC_WEB_APPS_API_TOKEN_SCENE_POC` for this exact app;
 its value must never be copied into source, logs, frontend configuration or chat.
-Resource creation and workflow configuration do not prove public rendering.
+CPU workflow run
+[43000921576](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43000921576)
+completed the upload successfully and reported this exact public hostname,
+with Oryx skipped and no API/Functions created. Public-origin browser rendering
+still requires the operator's separate verification.
 
 ## Build and inspect
 
@@ -91,7 +95,7 @@ Deployment is disabled by default. Pushes, pull requests and manual runs with
 `deploy=true` additionally invokes the official `Azure/static-web-apps-deploy@v1`
 action, using only the dedicated app's repository secret. It uploads
 `apps/web/dist-demo` directly with `skip_app_build=true`, empty output location
-and no API location/build. It does not publish the ordinary editable frontend,
+and no API location (therefore no API build). It does not publish the ordinary editable frontend,
 create Azure resources or request GPU/model access.
 
 The operator must verify the exact target and current authorization before
@@ -113,10 +117,9 @@ gh workflow run ci.yml --repo ribumann/3d-scene-toolchain \
   --ref copilot/hybrid-scene-toolchain -f deploy=true
 ```
 
-The workflow sets the continuation branch as the app's production branch so
-this explicit run targets the main public hostname, not a preview environment.
-Check the deployment step's real outcome; a successful artifact upload alone is
-not a successful site deployment.
+Check the deployment step's real outcome and reported hostname: the verified
+upload targeted the main public hostname, not a preview environment.
+A successful artifact upload alone is not a successful site deployment.
 
 The build is root-only and does not need SPA route fallbacks. Leave unknown
 paths, especially `/api/...`, as errors rather than mapping them to `index.html`.

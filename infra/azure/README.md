@@ -1,9 +1,44 @@
 # Italy North GPU worker
 
-This is an **operator-run deployment path**, not a claim that a VM is already
-running. The project session has no Azure identity or tenant subscription
-credentials. Authorization to deploy is recorded; authentication is still needed.
+This is an **operator-run deployment path**. The source template retains its
+original bounded, scheduled-shutdown defaults; the explicitly approved running
+PoC below used an operator-only Spot/no-shutdown template variant.
 Existing `llmserving` credentials/resources are not copied or modified.
+
+## Verified PoC infrastructure (2026-11-11)
+
+The authenticated coordinating operator confirmed ARM deployment success,
+running power state and actual `nvidia-smi` output:
+
+| Setting | Observed value |
+|---|---|
+| VM / dedicated resource group | `scene-twin-poc-1111` / `scene-twin-poc-1111` |
+| Subscription | `86677b6e-28fc-48e4-8988-5ab9e568eece` |
+| Location / size | `italynorth` / `Standard_NC4as_T4_v3` |
+| Priority / eviction policy | Spot / Deallocate |
+| Maximum price | `-1` (Azure's on-demand price ceiling, not free compute) |
+| GPU / memory | Tesla T4 / 16,384 MiB |
+| NVIDIA driver | `615.71.10` |
+| Auto-shutdown | None, explicitly approved by the user |
+
+This verifies infrastructure and the installed driver, **not PyTorch/CUDA model
+execution or Idol inference**. The extension initially left an active/partial
+package installation; standard apt lock waiting and dependency repair completed
+it without killing package processes or bypassing locks.
+
+The operator-only variant was necessary because the subscription's MCAPS policy
+rejected on-demand allocation and `Microsoft.DevTestLab/schedules` was unavailable
+in Italy North. The source helper/template have not been changed to reproduce
+that exception: they still request the original scheduled, non-Spot deployment,
+and the helper conservatively rejects even Zone-only SKU restrictions. Do not
+run the unchanged create command against this policy as though it were the
+verified Spot path, or reuse the already-created group.
+
+Spot capacity can be evicted at any time; keepalive activity cannot prevent it.
+Checkpoint work and retain results outside the VM. With no shutdown schedule,
+the operator must monitor runtime and explicitly deallocate/delete approved
+resources when finished. Deallocation stops compute billing but leaves
+chargeable disks and public IPs. The expiry tag is not an enforced deadline.
 
 ## Authenticate and inspect
 
@@ -84,9 +119,9 @@ the `.scene-data` bundle privately to the browser host; serve it using
 `SCENE_DATA_DIR`. For a long-lived worker use restricted self-hosted Actions
 configuration only after establishing its trust/lifecycle policy.
 
-The template's Azure deployment and the actual GPU inference remain unverified
-until an authenticated operator runs them. Local tests cover guard behavior, not
-Azure allocation, driver installation or model compatibility.
+The unchanged source template's deployment path and actual GPU inference remain
+unverified. The Spot infrastructure snapshot above does not validate that
+template or model compatibility; local tests cover guard behavior only.
 
 ## Cleanup
 

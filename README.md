@@ -7,8 +7,9 @@ Three Fiber/Spark workbench renders and edits the result.
 
 **Current milestone:** the three procedural scenarios run through real Blender
 exports. Eleven case slots are implemented. The eight image cases require their
-original files; actual segmentation/Idol GPU inference and Azure provisioning
-have not yet been verified. This is not a calibrated or telemetry-connected
+original files; actual segmentation/Idol GPU inference has not yet been verified.
+An operator-deployed Italy North Spot T4 now has verified driver/hardware access,
+not verified model execution. This is not a calibrated or telemetry-connected
 digital twin.
 
 ## Start locally
@@ -209,9 +210,11 @@ batch generation and metric calibration are future improvements.
   Authorization does not supply an Azure identity: the intended external tenant
   and subscription must be authenticated/configured first.
 
-No VM was deployed and no model inference was run in the current development
-environment. Do not queue against a guessed GPU runner or reuse another project's
-cloud identities/resources. Public artifact upload is opt-in and limited to the
+The coordinating operator deployed an explicitly approved Italy North Spot T4
+without auto-shutdown and verified real `nvidia-smi`; PyTorch/model inference
+remains unrun. See the Azure guide for the observed status and source-template
+limitations. Do not queue against a guessed GPU runner or reuse another project's
+cloud identities/resources. GPU artifact upload is opt-in and limited to the
 procedural benchmark; uploaded source images are excluded.
 
 ## Validation
