@@ -8,6 +8,11 @@ on:
         type: boolean
         default: false
         required: false
+      source:
+        description: "private-original or explicitly approved public-preview"
+        type: string
+        default: private-original
+        required: false
     secrets:
       HF_TOKEN:
         required: true
@@ -44,3 +49,83 @@ jobs:
           RUNNER_LABEL: ${{ vars.SCENE_GPU_RUNNER }}
           REQUIRE_GPU_RUNNER: ${{ inputs.run_gpu }}
         run: python scripts/resolve_smoke_models.py
+  infer:
+    if: inputs.run_gpu
+    needs: readiness
+    runs-on: ${{ vars.SCENE_GPU_RUNNER }}
+    timeout-minutes: 90
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      SCENE_IDOL_MODEL_REVISION: ${{ needs.readiness.outputs.idol_revision }}
+      SCENE_DINOV3_REVISION: ${{ needs.readiness.outputs.dinov3_revision }}
+      SCENE_FLUX2_REVISION: ${{ needs.readiness.outputs.flux2_revision }}
+      SCENE_DETECTOR_REVISION: ${{ needs.readiness.outputs.detector_revision }}
+      SCENE_SEGMENTER_REVISION: ${{ needs.readiness.outputs.segmenter_revision }}
+      SCENE_DETECTOR_MODEL: IDEA-Research/grounding-dino-tiny
+      SCENE_SEGMENTER_MODEL: facebook/sam2.1-hiera-small
+      SCENE_IDOL_COMPILE: "0"
+      ATTN_BACKEND: sdpa
+      HF_HOME: /home/scene/scene-private-data/huggingface-cache
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      HF_HUB_DISABLE_PROGRESS_BARS: "1"
+      HF_HUB_VERBOSITY: error
+      TOKENIZERS_PARALLELISM: "false"
+      PYTHONPATH: ${{ github.workspace }}/services/pipeline
+      SMOKE_SOURCE: ${{ inputs.source }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify prepared runtime and actual CUDA
+        run: |
+          nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader
+          /home/scene/scene-vision-venv/bin/python - <<'PY'
+          import json, os, torch
+          from pathlib import Path
+          from transformers import AutoModelForZeroShotObjectDetection, AutoProcessor, Sam2Model, Sam2Processor
+          import scene_pipeline.extract
+          if not torch.cuda.is_available():
+              raise SystemExit("Vision CUDA is unavailable.")
+          values = torch.arange(16, device="cuda", dtype=torch.float32)
+          total = (values.square() + 1).sum()
+          torch.cuda.synchronize()
+          if total.item() != 1256:
+              raise SystemExit("Vision CUDA arithmetic verification failed.")
+          if not Path(scene_pipeline.extract.__file__).resolve().is_relative_to(Path(os.environ["PYTHONPATH"]).resolve()):
+              raise SystemExit("Vision imports do not use the checked-out source.")
+          print(json.dumps({"vision_imports_ready": True, "cuda_kernel_verified": True}))
+          PY
+          /home/scene/scene-worker-venv/bin/python - <<'PY'
+          import json, os, torch
+          from pathlib import Path
+          from importlib.metadata import distribution
+          from idol import IdolPipeline
+          import scene_pipeline.idol_worker
+          from scene_pipeline.idol_worker import SDK_REVISION
+          if not torch.cuda.is_available():
+              raise SystemExit("CUDA is unavailable; no synthetic fallback is permitted.")
+          values = torch.arange(16, device="cuda", dtype=torch.float32)
+          total = (values.square() + 1).sum()
+          torch.cuda.synchronize()
+          if total.item() != 1256:
+              raise SystemExit("Idol CUDA arithmetic verification failed.")
+          if not Path(scene_pipeline.idol_worker.__file__).resolve().is_relative_to(Path(os.environ["PYTHONPATH"]).resolve()):
+              raise SystemExit("Idol imports do not use the checked-out source.")
+          metadata = json.loads(distribution("idol").read_text("direct_url.json") or "{}")
+          if metadata.get("vcs_info", {}).get("commit_id") != SDK_REVISION:
+              raise SystemExit("Prepared venv does not contain the exact requirements-idol SDK commit.")
+          print(json.dumps({"cuda_kernel_verified": True, "device_count": torch.cuda.device_count()}))
+          PY
+      - name: Extract one private non-person crop and reconstruct with real Idol
+        run: |
+          umask 077
+          args=()
+          case "$SMOKE_SOURCE" in
+            private-original) ;;
+            public-preview) args+=(--public-preview "$GITHUB_WORKSPACE/apps/web/public/references/I02.webp") ;;
+            *) echo "Unsupported smoke source." >&2; exit 1 ;;
+          esac
+          /home/scene/scene-worker-venv/bin/python scripts/private_gpu_smoke.py run \
+            --data-dir /home/scene/scene-private-data \
+            --output /home/scene/scene-private-data/smoke-output "${args[@]}"

@@ -174,12 +174,13 @@ chat, the frontend, shell history or deployment templates. Model terms and
 commercial-use rights must be reviewed separately from this repository's MIT
 license and Idol's Apache-2.0 SDK license.
 
-Install on a CUDA-capable worker, not necessarily this development host:
-
-```sh
-python3 -m venv .venv
-.venv/bin/pip install -e ".[vision]" -r requirements-idol.txt
-```
+Prepare separate CUDA-capable Python 3.12 environments for `.[vision]` extraction
+and base-project + `requirements-idol.txt` inference. Their current Hugging Face
+hub major requirements conflict; do not combine them or loosen the vision cap.
+The dedicated one-object smoke uses the prepared fixed worker environments
+described in [`infra/azure/README.md`](infra/azure/README.md), not this cloud
+development host. `smoke_mode=readiness` checks real gated-config access on CPU
+before `smoke_mode=gpu` can request the private worker.
 
 Pin full **40-character commit SHAs** in the worker environment:
 
@@ -191,7 +192,8 @@ SCENE_DETECTOR_REVISION=<IDEA-Research/grounding-dino-tiny commit>
 SCENE_SEGMENTER_REVISION=<facebook/sam2.1-hiera-small commit>
 ```
 
-The SDK is pinned in `requirements-idol.txt`. First run:
+The SDK is pinned in `requirements-idol.txt`. The historical combined-environment full-batch command below is not certified
+against that dependency conflict; prefer the documented isolated smoke first:
 
 ```sh
 .venv/bin/scene-toolchain run --cases P02 \

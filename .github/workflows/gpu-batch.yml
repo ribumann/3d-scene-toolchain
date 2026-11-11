@@ -12,6 +12,14 @@ on:
           - "off"
           - readiness
           - gpu
+      smoke_source:
+        description: "Private smoke input only; a public-preview run records the actual WebP hash, not an original-image claim"
+        default: private-original
+        required: false
+        type: choice
+        options:
+          - private-original
+          - public-preview
       cases:
         description: "Space-separated prompt case IDs (P01 P02 P03). Image uploads remain private until separate access is configured."
         default: "P01 P02 P03"
@@ -35,6 +43,7 @@ jobs:
     uses: ./.github/workflows/gpu-smoke.yml
     with:
       run_gpu: ${{ inputs.smoke_mode == 'gpu' }}
+      source: ${{ inputs.smoke_source || 'private-original' }}
     secrets:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
   readiness:

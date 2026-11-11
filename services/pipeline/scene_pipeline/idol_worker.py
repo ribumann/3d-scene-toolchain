@@ -20,7 +20,7 @@ def generate(image: Path, destination: Path, mode="synthetic", seed=42, count=32
         raise PrerequisiteError("Pin SCENE_IDOL_MODEL_REVISION to the exact speridlabs/idol model commit")
     try:
         import torch
-        from huggingface_hub import HfApi, hf_hub_download, snapshot_download
+        from huggingface_hub import hf_hub_download, snapshot_download
         from idol import IdolPipeline
     except ImportError as error:
         raise PrerequisiteError("Install the pinned Idol SDK and its declared dependencies in the GPU worker; see requirements-idol.txt") from error
@@ -38,7 +38,6 @@ def generate(image: Path, destination: Path, mode="synthetic", seed=42, count=32
         if not revision or len(revision) != 40 or any(character not in "0123456789abcdef" for character in revision):
             raise PrerequisiteError(f"Pin {environment} before loading gated encoders")
         repository = config["image_encoders"][key]
-        HfApi().auth_check(repo_id=repository, repo_type="model")
         patterns = (
             ["config.json", "preprocessor_config.json", "model.safetensors",
              "model.safetensors.index.json", "model-*.safetensors"]

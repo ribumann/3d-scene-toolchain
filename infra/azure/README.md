@@ -91,33 +91,92 @@ Do not use this script to reuse an existing group's resources.
 
 ## Configure and run jobs
 
-After connecting to the new worker:
+### Dedicated private one-object smoke
+
+The manually dispatched, registered `gpu-batch.yml` workflow now routes explicit
+smoke modes to the dedicated reusable `gpu-smoke.yml`. Its default
+`smoke_mode=off` preserves the old procedural benchmark; no push or pull request
+can start this smoke. A workflow introduced only on a feature branch may not
+be dispatchable directly, so use the registered parent:
 
 ```sh
-nvidia-smi
-sudo apt-get update
-sudo apt-get install -y python3-venv git blender python3-numpy tesseract-ocr tesseract-ocr-jpn
-git clone https://github.com/ribumann/3d-scene-toolchain.git
-cd 3d-scene-toolchain
-git checkout <verified-implementation-commit>
-python3 -m venv .venv
-.venv/bin/pip install -e ".[vision]" -r requirements-idol.txt
+gh workflow run gpu-batch.yml --repo ribumann/3d-scene-toolchain \
+  --ref copilot/hybrid-scene-toolchain -f smoke_mode=readiness
 ```
 
-Supply `HF_TOKEN` through the operator's secret facility; do not put it in shell
-history, Git, deployment parameters or public logs. Accept the gated encoder terms
-and configure the immutable model revision variables described in the main README.
-Start with one low-count object and measure memory on the T4:
+Readiness uses only `ubuntu-latest` CPU compute and the repository `HF_TOKEN`
+secret. It resolves full 40-character commits for Idol, DINOv3, FLUX.2 VAE,
+Grounding DINO and SAM2, actually downloads the two gated small configs at those
+pins, and checks Idol's encoder IDs. Only model IDs and immutable pins are
+printed; failures report sanitized gate/status errors without service envelopes
+or account data. A configured token is not proof of accepted gated-model terms.
+
+CPU [run 43004864760](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43004864760)
+actually passed these gated downloads and five model-pin checks on 2026-11-11.
+That verifies the current secret's required model access, not GPU reconstruction.
+
+The operator must prepare the existing GPU VM before requesting GPU mode:
+
+- An isolated, trusted ephemeral repository runner with its unique label in
+  `SCENE_GPU_RUNNER`; no assumed hosted GPU runner.
+- `/home/scene/scene-vision-venv`: Python 3.12, base project plus `.[vision]`,
+  including working CUDA PyTorch, Grounding DINO and SAM2 imports.
+- `/home/scene/scene-worker-venv`: Python 3.12, base project (`-e .`) plus the
+  exact Git-pinned `requirements-idol.txt`, with working CUDA PyTorch/Idol imports.
+- Private data root `/home/scene/scene-private-data`, owned by `scene`, mode 0700,
+  with I02 registered in `scene.sqlite3` and canonical
+  `sources/I02/<original-sha256>/{original,preview.png}` from the upload API.
+- `/home/scene/scene-private-data/smoke-output` must not already exist; previous
+  results are never silently overwritten. Preserve/move them privately before
+  an explicitly approved retry. Allow disk space for gated weights and caches.
+
+**Keep the two environments separate.** The current vision dependency cap
+(`transformers<5`) requires `huggingface-hub<1`, while the pinned Idol SDK's
+`diffusers>=0.40` requires a newer hub major. Combining `.[vision]` and the Idol
+requirements in one environment is not supported; do not loosen the vision cap
+or downgrade model quality to make a smoke appear successful. The old full-batch
+workflow still has its original combined installation path and is not certified
+against this dependency conflict.
+
+Once readiness and VM setup are confirmed:
 
 ```sh
-.venv/bin/scene-toolchain preflight
-.venv/bin/scene-toolchain run --cases P02 --stages extract blender idol --report report.json
+gh workflow run gpu-batch.yml --repo ribumann/3d-scene-toolchain \
+  --ref copilot/hybrid-scene-toolchain -f smoke_mode=gpu \
+  -f smoke_source=private-original
 ```
 
-Only run the full procedural batch after the real inference succeeds. Transfer
-the `.scene-data` bundle privately to the browser host; serve it using
-`SCENE_DATA_DIR`. For a long-lived worker use restricted self-hosted Actions
-configuration only after establishing its trust/lifecycle policy.
+The checked-out source SHA is used in both environments without reinstalling
+packages. Both interpreters verify actual CUDA arithmetic and synchronize, not
+just `is_available()`. Gate verification uses real pinned downloads rather than
+the version-specific `HfApi.auth_check` metadata endpoint; the Idol worker still
+downloads its pinned gated encoder files using the job-scoped token.
+The extraction subprocess exits before the separate Idol process
+starts, releasing detector/segmenter CUDA allocations. I02 uses the existing
+`building. conveyor. truck. tree.` prompts. Selection requires an approved
+non-person category, a matching RGBA crop at least 32 pixels per side, at least
+256 foreground pixels and some transparent mask background. Invalid candidates
+are counted; no valid candidate fails explicitly.
+
+Exactly one selected crop is passed to the existing Idol CLI with `--mode real`,
+32,768 Gaussians, 50 steps and seed 42. Generation provenance and actual PLY
+validity/count are checked before success. There is no Blender batch, synthetic
+substitution, reduced-quality retry or automatic publication. A CUDA memory
+failure remains a failed smoke.
+
+If private transfer is not ready, the user separately authorized
+`-f smoke_source=public-preview`: it uses the checked-in I02 WebP preview and
+records that file's actual SHA-256 as `public-webp-preview`, never as original
+image bytes. This is an explicit input choice, not a silent fallback.
+
+Originals, crops, scene annotations, raw logs, PLY and preprocessed images stay
+on the private VM. The workflow uploads **no artifacts**. Only a constructed
+status/timing report is printed; the private output also retains it as
+`safe-status.json`. Device VRAM is sampled with `nvidia-smi` every two seconds,
+so `peak_device_memory_mib_sampled` is an observed device-wide sample, not a
+certified instantaneous per-process peak. Child processes have bounded stage
+timeouts and are stopped on interruption. Spot eviction can still interrupt
+work; checkpointing and cleanup remain the operator's responsibility.
 
 The unchanged source template's deployment path and actual GPU inference remain
 unverified. The Spot infrastructure snapshot above does not validate that
