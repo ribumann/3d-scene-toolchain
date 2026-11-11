@@ -16,7 +16,7 @@ from PIL import Image, ImageDraw
 from scene_pipeline.gaussians import validate_ply
 from scene_pipeline.models import Evidence, Node, Scene, Source
 from scene_pipeline.store import Store
-from scripts.private_gpu_batch import make_plan, run_batch
+from scripts.private_gpu_batch import make_plan, run_batch, run_cases
 from scripts.private_gpu_smoke import PIN_NAMES, ROOT, SDK_REVISION, SmokeError, load_source
 from scripts.resolve_smoke_models import I02_BATCH_REVISIONS, MODELS, resolve_models
 
@@ -30,6 +30,7 @@ class PrivateBatchTests(unittest.TestCase):
         self.failures = {}
         self.bad_provenance = set()
         self.interrupt_after_write = set()
+        self.case_id = "I02"
 
     def source(self, root, color="green"):
         stream = io.BytesIO()
@@ -41,7 +42,7 @@ class PrivateBatchTests(unittest.TestCase):
         categories = categories or self.categories
         folder.mkdir(parents=True, exist_ok=True)
         scene = Scene(
-            id="scene-I02", case_id="I02", name="Synthetic test extraction",
+            id=f"scene-{self.case_id}", case_id=self.case_id, name="Synthetic test extraction",
             description="Synthetic image-plane proposals, not measured dimensions.",
             sources=[Source(id="image", kind="photo", filename=source["filename"], sha256=source["sha256"])],
             nodes=[Node(
@@ -61,6 +62,12 @@ class PrivateBatchTests(unittest.TestCase):
             "detector": {"model": "IDEA-Research/grounding-dino-tiny", "revision": self.environment["SCENE_DETECTOR_REVISION"]},
             "segmenter": {"model": "facebook/sam2.1-hiera-small", "revision": self.environment["SCENE_SEGMENTER_REVISION"]},
         }
+        if self.case_id in ("I01", "I04", "I05"):
+            for node in scene.nodes:
+                node.category = "footprint" if self.case_id == "I05" else "equipment-candidate"
+            report.update(method="opencv-line-contours+tesseract", topology_status="not_extracted")
+            report.pop("detector")
+            report.pop("segmenter")
         (folder / "scene.json").write_text(scene.model_dump_json())
         (folder / "extraction.json").write_text(json.dumps(report))
         return scene, report
@@ -96,7 +103,7 @@ class PrivateBatchTests(unittest.TestCase):
             root = Path(arguments[arguments.index("--data-dir") + 1])
             destination = Path(arguments[arguments.index("--output") + 1])
             preview = Path(arguments[arguments.index("--public-preview") + 1]) if "--public-preview" in arguments else None
-            self.extraction(destination / "extraction", load_source(root, preview)[0])
+            self.extraction(destination / "extraction", load_source(root, preview, self.case_id)[0])
             return
         crop = Path(arguments[arguments.index("--image") + 1])
         destination = Path(arguments[arguments.index("--out") + 1])
@@ -117,7 +124,7 @@ class PrivateBatchTests(unittest.TestCase):
         with patch.dict(os.environ, self.environment), patch(
             "scripts.private_gpu_batch.run_stage", side_effect=self.stage,
         ), redirect_stdout(stdout):
-            code = run_batch(root, public_preview)
+            code = run_batch(root, public_preview, self.case_id)
         self.assertNotIn("PRIVATE_TEST_TOKEN", stdout.getvalue())
         self.assertNotIn("Sensitive private", stdout.getvalue())
         return code, json.loads(stdout.getvalue())
@@ -337,6 +344,51 @@ class PrivateBatchTests(unittest.TestCase):
             self.assertEqual(report["failure_reason"], "public_preview_does_not_match_authorized_asset")
             self.assertFalse(self.calls)
             self.assertFalse((root / "assets").exists())
+
+    def test_other_photo_generated_and_diagram_cases_use_independent_honest_routes(self):
+        examples = {"I03": "tank", "G01": "shelf", "G02": "industrial machine", "G03": "pond",
+                    "I01": "region", "I04": "region", "I05": "region"}
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for case, category in examples.items():
+                with self.subTest(case=case):
+                    self.case_id, self.categories = case, [category, "person"]
+                    preview = root / f"{case}.webp"
+                    preview.write_bytes((ROOT / f"apps/web/public/references/{case}.webp").read_bytes())
+                    self.calls.clear()
+                    code, report = self.run_private(root, preview)
+                    self.assertEqual(code, 0)
+                    output = root / f"assets/{case}/object-batch-public-preview"
+                    state = json.loads((output / "batch.json").read_text())
+                    scene = Scene.model_validate_json((output / state["scene_path"]).read_text())
+                    self.assertEqual(scene.case_id, case)
+                    if case in ("I01", "I04", "I05"):
+                        self.assertEqual(report["status"], "proposals")
+                        self.assertEqual(self.calls, ["extract"])
+                        self.assertFalse(scene.assets)
+                        self.assertFalse(scene.edges)
+                        self.assertIsNone(report["gaussian_count_per_object"])
+                    else:
+                        self.assertEqual(report["status"], "succeeded")
+                        self.assertEqual(self.calls, ["extract", "object-000"])
+                        self.assertEqual(len(scene.nodes), 1)
+                        self.assertEqual(report["reference_origin"], "ai-generated" if case.startswith("G") else "user-supplied-original")
+
+    def test_case_orchestrator_continues_failed_cases_but_stops_on_interruption(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            calls = []
+            def batch(directory, preview, case):
+                calls.append(case)
+                print(json.dumps({"case_id": case, "status": "failed" if case == "I01" else "proposals"}))
+                return 1 if case == "I01" else 0
+            with patch("scripts.private_gpu_batch.run_batch", side_effect=batch), redirect_stdout(io.StringIO()):
+                self.assertEqual(run_cases(root, ["I01", "I04"], "public-preview"), 1)
+            self.assertEqual(calls, ["I01", "I04"])
+            status = json.loads((root / "pilot-status.json").read_text())
+            self.assertFalse(status["complete"])
+            with self.assertRaisesRegex(SmokeError, "invalid_unique"):
+                run_cases(root, ["I02", "I02"], "public-preview")
 
 
 class PinnedBatchReadinessTests(unittest.TestCase):

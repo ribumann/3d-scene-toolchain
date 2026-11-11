@@ -326,6 +326,46 @@ public reference previews, default benchmark route and local API behavior are
 unchanged. Actual multi-object execution/quality remains pending; the earlier
 successful result still establishes only the single-tree smoke.
 
+### Eight-case pilot execution
+
+The private batch now accepts all eight explicit approved preview inputs:
+
+```sh
+gh workflow run gpu-batch.yml --repo ribumann/3d-scene-toolchain \
+  --ref copilot/hybrid-scene-toolchain -f smoke_mode=batch \
+  -f smoke_source=public-preview \
+  -f 'pilot_cases=I01 I02 I03 I04 I05 G01 G02 G03'
+```
+
+Select any unique subset with `pilot_cases`, for example `I03 G01`. The default
+remains I02. One self-hosted job processes selected cases sequentially, continues
+after a case failure, and stops on interruption. Redispatch a subset to resume
+after Spot eviction or the 360-minute job bound. Failed cases do not become
+successful merely because other cases complete. Per-case `batch.json` /
+`safe-status.json` live under `assets/{ID}/object-batch-public-preview/`;
+`pilot-status.json` summarizes this invocation. Extract/object attempt records
+include `SCENE_SOURCE_REVISION` (the checked-out Git SHA); checkpoints still bind
+source/model/settings and revalidate files before reuse across code checkouts.
+
+I02/I03/G01/G02/G03 use their existing detector prompts and case-specific strict
+non-person category allowlists, then sequential real Idol inference with the
+same exact model pins and 32,768/50/42 settings. Generated inputs retain
+AI-generated reference provenance; compressed WebPs are never original bytes.
+
+I01/I04 diagrams and I05 plan use OCR/line-contour extraction **without** the
+normal local 100-region truncation. The vision environment needs OpenCV and
+system Tesseract with `eng` and `jpn` language data (I05 fails without Japanese).
+Their result is `status=proposals`, not reconstructed appearance: unreviewed
+inferred region boxes, assumed height/scale and no invented process topology.
+They do not feed symbolic diagram crops into Idol as if they were object photos.
+The existing local API and single-object smoke retain their previous defaults.
+
+All eight previews must match the committed authorized bytes. Original Store
+records are unchanged; actual original-image transfer/comparison is independent.
+No batch artifacts or media are uploaded. Actual eight-case results and quality
+acceptance remain pending operator execution; source support is not evidence
+that eight scenes were reconstructed.
+
 ## Cleanup
 
 Retrieve artifacts, then delete only the verified dedicated group:

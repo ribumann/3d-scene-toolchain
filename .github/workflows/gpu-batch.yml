@@ -21,6 +21,11 @@ on:
         options:
           - private-original
           - public-preview
+      pilot_cases:
+        description: "Batch only: unique image case IDs, e.g. I01 I02 I03 I04 I05 G01 G02 G03; default preserves I02"
+        default: "I02"
+        type: string
+        required: false
       cases:
         description: "Space-separated prompt case IDs (P01 P02 P03). Image uploads remain private until separate access is configured."
         default: "P01 P02 P03"
@@ -45,6 +50,7 @@ jobs:
     with:
       run_gpu: ${{ inputs.smoke_mode == 'gpu' || inputs.smoke_mode == 'batch' }}
       object_batch: ${{ inputs.smoke_mode == 'batch' }}
+      pilot_cases: ${{ inputs.pilot_cases || 'I02' }}
       source: ${{ inputs.smoke_source || 'private-original' }}
     secrets:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}

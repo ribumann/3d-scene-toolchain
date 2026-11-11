@@ -78,6 +78,11 @@ def main():
     if os.environ.get("I02_OBJECT_BATCH") == "true" and os.environ.get("SMOKE_SOURCE") not in ("private-original", "public-preview"):
         print("I02 batch readiness failed: choose private-original or explicitly approved public-preview; no GPU work queued.", file=sys.stderr)
         return 1
+    if os.environ.get("I02_OBJECT_BATCH") == "true":
+        cases = os.environ.get("PILOT_CASES", "I02").split()
+        if not cases or len(cases) != len(set(cases)) or any(case not in ("I01", "I02", "I03", "I04", "I05", "G01", "G02", "G03") for case in cases):
+            print("Pilot batch readiness failed: use unique I01-I05/G01-G03 case IDs; no GPU work queued.", file=sys.stderr)
+            return 1
     try:
         with tempfile.TemporaryDirectory(prefix="scene-model-gates-") as cache:
             pins = resolve_models(

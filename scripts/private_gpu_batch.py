@@ -1,7 +1,8 @@
-"""Private, resumable I02 object reconstruction; no uploads or scene publication."""
+"""Private resumable pilot batches: object appearance or honest diagram proposals."""
 
 import argparse
 import hashlib
+import io
 import json
 import os
 import re
@@ -11,10 +12,11 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from contextlib import redirect_stdout
 
 from scene_pipeline.models import Asset, Scene
 from scripts.private_gpu_smoke import (
-    PIN_NAMES, ROOT, SDK_REVISION, SmokeError, enumerate_crops, load_source,
+    PILOT_IDS, PIN_NAMES, ROOT, SDK_REVISION, SmokeError, enumerate_crops, load_source,
     run_stage, validate_extraction, validate_generation,
 )
 
@@ -74,6 +76,7 @@ def extraction_for(directory, output, state, report, public_preview=None):
     if receipt is None:
         attempts = state.setdefault("extraction_attempts", [])
         attempt = {"directory": f"extractions/attempt-{len(attempts):03d}", "status": "running", "timing": {}}
+        attempt["source_revision"] = os.environ.get("SCENE_SOURCE_REVISION", "local-unversioned")
         attempts.append(attempt)
         write_json(output / "batch.json", state)
         destination = private_path(output, attempt["directory"])
@@ -81,6 +84,7 @@ def extraction_for(directory, output, state, report, public_preview=None):
         arguments = [
             "/home/scene/scene-vision-venv/bin/python", str(ROOT / "scripts/private_gpu_smoke.py"),
             "extract", "--all-objects", "--data-dir", str(directory), "--output", str(destination),
+            "--case", state["contract"]["case_id"],
         ]
         if public_preview is not None:
             arguments += ["--public-preview", str(public_preview)]
@@ -95,8 +99,9 @@ def extraction_for(directory, output, state, report, public_preview=None):
             raise SmokeError("cached_extraction_changed")
     scene = Scene.model_validate_json((folder / "scene.json").read_text())
     extraction = json.loads((folder / "extraction.json").read_text())
-    validate_extraction(scene, extraction, state["contract"]["source_sha256"])
-    plan, rejected = make_plan(scene, extraction, folder)
+    case_id = state["contract"]["case_id"]
+    validate_extraction(scene, extraction, state["contract"]["source_sha256"], case_id)
+    plan, rejected = ([], []) if case_id in ("I01", "I04", "I05") else make_plan(scene, extraction, folder)
     if receipt is None:
         state["extraction"] = {"directory": str(folder.relative_to(output)), "files": snapshot_extraction(folder)}
         state["plan"], state["rejected"] = plan, rejected
@@ -212,6 +217,7 @@ def reconstruct_objects(directory, output, state, report, scene, folder, plan):
         attempt = {
             "directory": f"objects/{identifier}/attempt-{len(entry['attempts']):03d}",
             "status": "running", "timing": {},
+            "source_revision": os.environ.get("SCENE_SOURCE_REVISION", "local-unversioned"),
         }
         entry["attempts"].append(attempt)
         record["status"] = "running"
@@ -246,19 +252,21 @@ def reconstruct_objects(directory, output, state, report, scene, folder, plan):
     report["failure_reason"] = None if report["status"] == "succeeded" else "one_or_more_objects_failed"
 
 
-def run_batch(directory, public_preview=None):
+def run_batch(directory, public_preview=None, case_id="I02"):
     directory = Path(directory).absolute()
-    output = directory / ("assets/I02/object-batch-public-preview" if public_preview is not None else "assets/I02/object-batch")
+    output = directory / "assets" / case_id / ("object-batch-public-preview" if public_preview is not None else "object-batch")
     state, lock = None, None
     started = time.monotonic()
     report = {
-        "case_id": "I02", "source_kind": "private-original", "mode": "real",
+        "case_id": case_id, "source_kind": "private-original", "mode": "real",
         "scope": "usable_segmented_objects_not_full_plant", "status": "running",
         "stage": "preflight",
         "gaussian_count_per_object": 32768, "steps": 50, "seed": 42,
         "failure_reason": None,
     }
     try:
+        if case_id not in PILOT_IDS:
+            raise SmokeError("unsupported_pilot_case")
         if not os.environ.get("HF_TOKEN"):
             raise SmokeError("HF_TOKEN_missing")
         pins = {name: os.environ.get(name, "") for name in PIN_NAMES}
@@ -267,24 +275,25 @@ def run_batch(directory, public_preview=None):
         input_provenance = None
         if public_preview is not None:
             public_preview = Path(public_preview).absolute()
-            authorized = ROOT / "apps/web/public/references/I02.webp"
+            authorized = ROOT / f"apps/web/public/references/{case_id}.webp"
             if public_preview.is_symlink() or digest(public_preview) != digest(authorized):
                 raise SmokeError("public_preview_does_not_match_authorized_asset")
-            source, _ = load_source(directory, public_preview)
+            source, _ = load_source(directory, public_preview, case_id)
             input_provenance = {
                 "source_kind": "user-approved-public-webp-preview",
                 "sha256": source["sha256"], "bytes": public_preview.stat().st_size,
-                "url": "https://red-wave-0c7bb6c0f.4.azurestaticapps.net/references/I02.webp",
+                "url": f"https://red-wave-0c7bb6c0f.4.azurestaticapps.net/references/{case_id}.webp",
                 "not_original_bytes": True,
             }
             from PIL import Image
             with Image.open(public_preview) as image:
                 input_provenance["dimensions"] = [image.width, image.height]
             report.update(input_provenance)
+            report["reference_origin"] = "ai-generated" if case_id.startswith("G") else "user-supplied-original"
         else:
-            source, _ = load_source(directory)
+            source, _ = load_source(directory, case_id=case_id)
         contract = {
-            "version": 1, "case_id": "I02", "source_kind": "private-original",
+            "version": 1, "case_id": case_id, "source_kind": "private-original",
             "source_sha256": source["sha256"], "preview_sha256": digest(Path(source["preview_path"])),
             "model_pins": pins, "sdk_revision": SDK_REVISION,
             "mode": "real", "count": 32768, "steps": 50, "seed": 42,
@@ -295,9 +304,15 @@ def run_batch(directory, public_preview=None):
         }
         if input_provenance is not None:
             contract.update(source_kind=input_provenance["source_kind"], input_provenance=input_provenance)
+        if case_id in ("I01", "I04", "I05"):
+            contract.update(mode="diagram-proposals", crop_contract="ocr-contour-unreviewed-no-topology-v1")
+            report.update(
+                mode="diagram-proposals", scope="inferred_regions_not_appearance_reconstruction",
+                gaussian_count_per_object=None, steps=None, seed=None,
+            )
         if directory.is_symlink():
             raise SmokeError("unsafe_private_data_root")
-        private_path(directory, "assets/I02/object-batch")
+        private_path(directory, str(output.relative_to(directory)))
         output.mkdir(parents=True, exist_ok=True, mode=0o700)
         import fcntl
         lock = private_path(output, ".lock").open("a")
@@ -321,7 +336,16 @@ def run_batch(directory, public_preview=None):
         write_json(output / "safe-status.json", report)
         scene, folder, plan = extraction_for(directory, output, state, report, public_preview)
         report["stage"] = "objects"
-        reconstruct_objects(directory, output, state, report, scene, folder, plan)
+        if case_id in ("I01", "I04", "I05"):
+            if not scene.nodes or scene.assets or scene.edges:
+                raise SmokeError("invalid_diagram_proposal_scene")
+            scene.description += " OCR/contour proposals only; no Idol appearance, recovered height or process topology."
+            proposal_path = "diagram-proposals.json"
+            write_json(output / proposal_path, scene.model_dump())
+            state["scene_path"] = proposal_path
+            report.update(status="proposals", failure_reason=None, nodes_proposed=len(scene.nodes), objects_succeeded=0)
+        else:
+            reconstruct_objects(directory, output, state, report, scene, folder, plan)
         report["stage"] = "complete"
     except SmokeError as error:
         report.update(status="failed", failure_reason=str(error))
@@ -354,7 +378,27 @@ def run_batch(directory, public_preview=None):
         if lock is not None:
             lock.close()
         print(json.dumps(report, sort_keys=True))
-    return 0 if report["status"] == "succeeded" else 1
+    return 0 if report["status"] in ("succeeded", "proposals") else 1
+
+
+def run_cases(directory, cases, source):
+    if not cases or len(cases) != len(set(cases)) or any(case not in PILOT_IDS for case in cases):
+        raise SmokeError("invalid_unique_pilot_case_selection")
+    reports = []
+    for case in cases:
+        preview = Path(directory) / "approved-public-previews" / f"{case}.webp" if source == "public-preview" else None
+        captured = io.StringIO()
+        with redirect_stdout(captured):
+            run_batch(directory, preview, case)
+        report = json.loads(captured.getvalue())
+        reports.append(report)
+        write_json(Path(directory) / "pilot-status.json", {"cases": reports, "complete": False})
+        print(json.dumps(report, sort_keys=True), flush=True)
+        if report["status"] == "interrupted":
+            return 1
+    complete = all(report["status"] in ("succeeded", "proposals") for report in reports)
+    write_json(Path(directory) / "pilot-status.json", {"cases": reports, "complete": complete})
+    return 0 if complete else 1
 
 
 def main():
@@ -362,10 +406,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", type=Path, required=True)
     parser.add_argument("--public-preview", type=Path, help="Explicit authorized I02 WebP input, never original bytes.")
+    parser.add_argument("--cases", nargs="+", choices=PILOT_IDS)
+    parser.add_argument("--source", choices=("private-original", "public-preview"), default="public-preview")
     args = parser.parse_args()
     def interrupt(signum, frame):
         raise SystemExit(128 + signum)
     signal.signal(signal.SIGTERM, interrupt)
+    if args.cases:
+        if args.public_preview:
+            parser.error("--cases uses staged per-case inputs, not --public-preview")
+        return run_cases(args.data_dir, args.cases, args.source)
     return run_batch(args.data_dir, args.public_preview)
 
 

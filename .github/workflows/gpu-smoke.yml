@@ -18,6 +18,10 @@ on:
         type: boolean
         default: false
         required: false
+      pilot_cases:
+        type: string
+        default: "I02"
+        required: false
     secrets:
       HF_TOKEN:
         required: true
@@ -55,6 +59,7 @@ jobs:
           REQUIRE_GPU_RUNNER: ${{ inputs.run_gpu }}
           I02_OBJECT_BATCH: ${{ inputs.object_batch }}
           SMOKE_SOURCE: ${{ inputs.source }}
+          PILOT_CASES: ${{ inputs.pilot_cases }}
         run: python scripts/resolve_smoke_models.py
   infer:
     if: inputs.run_gpu
@@ -79,6 +84,8 @@ jobs:
       TOKENIZERS_PARALLELISM: "false"
       PYTHONPATH: ${{ github.workspace }}/services/pipeline
       SMOKE_SOURCE: ${{ inputs.source }}
+      PILOT_CASES: ${{ inputs.pilot_cases }}
+      SCENE_SOURCE_REVISION: ${{ github.sha }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -137,15 +144,22 @@ jobs:
           /home/scene/scene-worker-venv/bin/python scripts/private_gpu_smoke.py run \
             --data-dir /home/scene/scene-private-data \
             --output /home/scene/scene-private-data/smoke-output "${args[@]}"
-      - name: Reconstruct every usable distinct private I02 object with resume
+      - name: Process selected private pilot cases sequentially with resume
         if: inputs.object_batch
         run: |
           umask 077
-          args=()
           case "$SMOKE_SOURCE" in
             private-original) ;;
-            public-preview) args+=(--public-preview "/home/scene/scene-private-data/approved-public-previews/I02.webp") ;;
+            public-preview) ;;
             *) echo "Unsupported batch source." >&2; exit 1 ;;
           esac
-          /home/scene/scene-worker-venv/bin/python -m scripts.private_gpu_batch \
-            --data-dir /home/scene/scene-private-data "${args[@]}"
+          /home/scene/scene-worker-venv/bin/python - <<'PY'
+          import os
+          from pathlib import Path
+          from scripts.private_gpu_batch import run_cases
+          import signal
+          def interrupt(signum, frame):
+              raise SystemExit(128 + signum)
+          signal.signal(signal.SIGTERM, interrupt)
+          raise SystemExit(run_cases(Path("/home/scene/scene-private-data"), os.environ["PILOT_CASES"].split(), os.environ["SMOKE_SOURCE"]))
+          PY

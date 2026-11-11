@@ -24,13 +24,21 @@ PIN_NAMES = (
     "SCENE_DETECTOR_REVISION", "SCENE_SEGMENTER_REVISION",
 )
 ALLOWED_CATEGORIES = {"building", "conveyor", "truck", "tree"}
+CASE_CATEGORIES = {
+    "I02": ALLOWED_CATEGORIES,
+    "I03": {"industrial vessel", "tank", "valve", "pipe"},
+    "G01": {"shelf", "checkout counter", "refrigerator"},
+    "G02": {"industrial machine", "conveyor", "buffer"},
+    "G03": {"enclosure", "tree", "building", "pond"},
+}
+PILOT_IDS = ("I01", "I02", "I03", "I04", "I05", "G01", "G02", "G03")
 
 
 class SmokeError(RuntimeError):
     pass
 
 
-def load_source(directory: Path, public_preview: Path | None = None):
+def load_source(directory: Path, public_preview: Path | None = None, case_id="I02"):
     if public_preview is not None:
         content = public_preview.read_bytes()
         with Image.open(public_preview) as image:
@@ -38,15 +46,15 @@ def load_source(directory: Path, public_preview: Path | None = None):
                 raise SmokeError("public_preview_is_not_webp")
             image.verify()
         return {
-            "preview_path": str(public_preview), "filename": "I02-public-preview.webp",
+            "preview_path": str(public_preview), "filename": f"{case_id}-public-preview.webp",
             "sha256": hashlib.sha256(content).hexdigest(),
         }, "public-webp-preview"
     database = directory / "scene.sqlite3"
     with sqlite3.connect(database.resolve().as_uri() + "?mode=ro", uri=True) as connection:
-        row = connection.execute("SELECT sha256,filename FROM sources WHERE case_id='I02'").fetchone()
+        row = connection.execute("SELECT sha256,filename FROM sources WHERE case_id=?", (case_id,)).fetchone()
     if row is None or not re.fullmatch(r"[0-9a-f]{64}", row[0]):
         raise SmokeError("private_I02_source_metadata_missing")
-    folder = directory / "sources" / "I02" / row[0]
+    folder = directory / "sources" / case_id / row[0]
     original, preview = folder / "original", folder / "preview.png"
     if hashlib.sha256(original.read_bytes()).hexdigest() != row[0]:
         raise SmokeError("private_original_checksum_mismatch")
@@ -61,7 +69,7 @@ def load_source(directory: Path, public_preview: Path | None = None):
 
 
 def enumerate_crops(scene: Scene, extraction: dict, directory: Path):
-    if scene.case_id != "I02" or extraction.get("method") != "grounding-dino+sam2":
+    if scene.case_id not in CASE_CATEGORIES or extraction.get("method") != "grounding-dino+sam2":
         raise SmokeError("unexpected_extraction_contract")
     nodes = {node.id: node for node in scene.nodes}
     annotations = {}
@@ -74,7 +82,7 @@ def enumerate_crops(scene: Scene, extraction: dict, directory: Path):
     for node in sorted(scene.nodes, key=lambda item: item.id):
         annotation = annotations.get(node.id, {})
         reason = None
-        if not node.visible or node.category not in ALLOWED_CATEGORIES:
+        if not node.visible or node.category not in CASE_CATEGORIES[scene.case_id]:
             reason = "not_an_approved_non_person_object"
         elif annotation.get("crop") != f"{node.id}.png":
             reason = "invalid_crop_reference"
@@ -123,9 +131,13 @@ def select_crop(scene: Scene, extraction: dict, directory: Path):
     }
 
 
-def validate_extraction(scene: Scene, extraction: dict, source_sha256: str):
-    if scene.case_id != "I02" or not any(item.sha256 == source_sha256 for item in scene.sources):
+def validate_extraction(scene: Scene, extraction: dict, source_sha256: str, case_id="I02"):
+    if scene.case_id != case_id or not any(item.sha256 == source_sha256 for item in scene.sources):
         raise SmokeError("extraction_source_changed")
+    if case_id in ("I01", "I04", "I05"):
+        if extraction.get("method") != "opencv-line-contours+tesseract" or extraction.get("topology_status") != "not_extracted":
+            raise SmokeError("unexpected_diagram_extraction_contract")
+        return
     if extraction["detector"] != {
         "model": "IDEA-Research/grounding-dino-tiny", "revision": os.environ["SCENE_DETECTOR_REVISION"],
     } or extraction["segmenter"] != {
@@ -191,13 +203,16 @@ def run_stage(arguments, log: Path, timeout: int, measurement: dict):
         raise SmokeError("stage_failed_inspect_private_log")
 
 
-def extract_only(directory: Path, output: Path, public_preview: Path | None, all_objects=False):
-    from scene_pipeline.extract import extract_photo
+def extract_only(directory: Path, output: Path, public_preview: Path | None, all_objects=False, case_id="I02"):
+    from scene_pipeline.extract import extract_diagram, extract_photo
     from scene_pipeline.models import Case
 
-    source, _ = load_source(directory, public_preview)
-    case = next(Case.model_validate(item) for item in json.loads((ROOT / "cases/manifest.json").read_text()) if item["id"] == "I02")
-    scene, _ = extract_photo(case, source, output / "extraction", max_objects=None if all_objects else 48)
+    source, _ = load_source(directory, public_preview, case_id)
+    case = next(Case.model_validate(item) for item in json.loads((ROOT / "cases/manifest.json").read_text()) if item["id"] == case_id)
+    if case.input_type in ("diagram", "plan"):
+        scene, _ = extract_diagram(case, source, output / "extraction", max_regions=None)
+    else:
+        scene, _ = extract_photo(case, source, output / "extraction", max_objects=None if all_objects else 48)
     (output / "extraction/scene.json").write_text(scene.model_dump_json(indent=2))
 
 
@@ -262,11 +277,14 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--public-preview", type=Path)
     parser.add_argument("--all-objects", action="store_true", help="Extract every detection for the separate private batch.")
+    parser.add_argument("--case", choices=PILOT_IDS, default="I02")
     args = parser.parse_args()
     if args.all_objects and args.command != "extract":
         parser.error("--all-objects is only supported by the extraction subprocess")
+    if args.command == "run" and args.case != "I02":
+        parser.error("The original smoke supports I02 only; use the pilot batch for other cases")
     if args.command == "extract":
-        extract_only(args.data_dir, args.output, args.public_preview, args.all_objects)
+        extract_only(args.data_dir, args.output, args.public_preview, args.all_objects, args.case)
         return 0
     def interrupt(signum, frame):
         raise SystemExit(128 + signum)

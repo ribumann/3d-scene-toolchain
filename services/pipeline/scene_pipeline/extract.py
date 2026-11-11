@@ -23,7 +23,9 @@ def source_scene(case: Case, source: dict):
     )
 
 
-def extract_diagram(case: Case, source: dict, output: Path):
+def extract_diagram(case: Case, source: dict, output: Path, *, max_regions: int | None = 100):
+    if max_regions is not None and max_regions < 1:
+        raise ValueError("Region limit must be positive or None for all proposals")
     try:
         import cv2
     except ImportError as error:
@@ -45,7 +47,7 @@ def extract_diagram(case: Case, source: dict, output: Path):
         if .0007 * width * height < area < .3 * width * height and w > 8 and h > 8:
             if not any(abs(x - a) < 4 and abs(y - b) < 4 and abs(w - c) < 8 and abs(h - d) < 8 for a, b, c, d in rectangles):
                 rectangles.append((x, y, w, h))
-    rectangles = sorted(rectangles, key=lambda value: value[2] * value[3], reverse=True)[:100]
+    rectangles = sorted(rectangles, key=lambda value: value[2] * value[3], reverse=True)[:max_regions]
     languages = subprocess.run(["tesseract", "--list-langs"], check=True, capture_output=True, text=True).stdout.split()
     language = "eng+jpn" if case.id == "I05" else "eng"
     if case.id == "I05" and "jpn" not in languages:
