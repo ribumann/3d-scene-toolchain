@@ -378,8 +378,15 @@ to package after processing selected cases. A failed batch still fails the job;
 packaging may separately export revalidated successful objects with honest partial
 statuses. It does not mask inference or package failures.
 
+Package mode runs on a separate **CPU-only publisher runner**, not the GPU runner.
+Set repository variable `SCENE_PUBLISH_RUNNER` to its unique label (different
+from `SCENE_GPU_RUNNER`), with a separate runner installation and work directory
+`/home/scene/scene-worker/publisher-work`. The job checks that isolated workspace
+**before checkout**. The operator prepared `scene-italynorth-publisher` under
+`/home/scene/actions-publisher`; never reuse the active GPU runner/work tree.
+
 To export existing **stopped** preview checkpoints without repeating extraction
-or inference, register a fresh ephemeral runner, then:
+or inference, register the publisher runner, then:
 
 ```sh
 gh workflow run gpu-batch.yml --repo ribumann/3d-scene-toolchain \
@@ -387,14 +394,39 @@ gh workflow run gpu-batch.yml --repo ribumann/3d-scene-toolchain \
   -f smoke_source=public-preview -f publish_pilots=true
 ```
 
-This still uses the registered parent and exactly one prepared self-hosted job.
-It skips CUDA/inference stages; readiness retains its pinned-config check.
-It refuses an active case lock or `running` checkpoint. A stale running checkpoint
+This uses the registered parent and one CPU publisher job. Its distinct
+`scene-pilot-publication` concurrency group can run alongside
+`scene-gpu-benchmark`; the GPU group's behavior is unchanged and no active run
+is cancelled/restarted. Package mode never enters the GPU reusable job, downloads
+HF configs/weights or receives an HF token. CUDA is hidden from the publisher.
+The existing prepared base/worker interpreter handles CPU file validation only.
+
+By default it refuses an active case lock or `running` checkpoint. A stale running checkpoint
 after an abrupt eviction must first be recovered by the normal batch resume route,
 not manually marked successful. Stopped interrupted/partial checkpoints may export
 only independently revalidated successful objects. It always inventories all eight
 cases; `pilot_cases` selects execution, not export scope. Missing checkpoints
 remain `not_run`.
+
+To publish completed sources **while other cases are still running**, add the
+explicit snapshot flag:
+
+```sh
+gh workflow run gpu-batch.yml --repo ribumann/3d-scene-toolchain \
+  --ref copilot/hybrid-scene-toolchain -f smoke_mode=package \
+  -f smoke_source=public-preview -f publish_pilots=true \
+  -f incremental_pilots=true
+```
+
+`incremental_pilots` defaults false and applies only to package mode. A busy case
+lock is skipped without reading its checkpoint/media; an unlocked checkpoint
+still marked `running` is also skipped without reading extraction/object files.
+Both become `processing`, `scene=null`, zero exported objects, **not** `not_run`
+or a successful partial reconstruction. Only stopped cases are locked and fully
+revalidated/copied; the case lock remains held through that source's export.
+The publisher does not alter checkpoints or private media. Repeat the command
+after each source completes; each package still inventories all eight cases.
+These statuses describe a publication snapshot, not live progress.
 
 The package step runs the **current Actions checkout**, not the stale editable
 `/home/scene/scene-worker/source`. Equivalent operator command:
@@ -408,6 +440,11 @@ PYTHONPATH="$GITHUB_WORKSPACE/services/pipeline" \
   --approve-derived-publication
 ```
 
+For an incremental operator export add `--incremental`. Private export requires
+POSIX `flock`; unsupported platforms fail explicitly rather than weakening locks.
+Read-only package validation and the static build do not import `fcntl` and can
+run on Windows with the normal declared Python dependencies.
+
 The destination must be new. Source/preview SHA, immutable models/SDK/settings,
 extraction hashes, parent/crop mapping and actual successful PLYs are revalidated.
 Original-input checkpoints are not implicitly approved. Only the dedicated
@@ -417,6 +454,8 @@ The private data root is never an upload path. Portable contents are exactly
 `pilots.json`, declared `scenes/{ID}.json`, and `assets/{ID}/{parent}.ply`.
 No originals, masks/crops, raw logs, generation journals or credentials are copied.
 Scene/asset provenance is allowlisted; PLY header comments are removed.
+Files are staged privately and the new final package directory appears only after
+the entire snapshot passes validation; failed staging is never an upload path.
 
 The [static demo guide](static-demo.md#approved-derived-pilot-packages) documents
 the portable manifest, optional CPU artifact ingestion and separately explicit

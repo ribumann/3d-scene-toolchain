@@ -31,6 +31,10 @@ on:
         description: "Explicitly approve validated derived pilot scenes/PLY for public packaging; never originals/crops/logs"
         default: false
         type: boolean
+      incremental_pilots:
+        description: "Package mode only: publish stopped results now; active cases remain processing with no scene"
+        default: false
+        type: boolean
       cases:
         description: "Space-separated prompt case IDs (P01 P02 P03). Image uploads remain private until separate access is configured."
         default: "P01 P02 P03"
@@ -45,22 +49,81 @@ permissions:
   contents: read
 
 concurrency:
-  group: scene-gpu-benchmark
+  group: ${{ inputs.smoke_mode == 'package' && 'scene-pilot-publication' || 'scene-gpu-benchmark' }}
   cancel-in-progress: false
 
 jobs:
   private-smoke:
-    if: github.event_name == 'workflow_dispatch' && (inputs.smoke_mode == 'readiness' || inputs.smoke_mode == 'gpu' || inputs.smoke_mode == 'batch' || inputs.smoke_mode == 'package')
+    if: github.event_name == 'workflow_dispatch' && (inputs.smoke_mode == 'readiness' || inputs.smoke_mode == 'gpu' || inputs.smoke_mode == 'batch')
     uses: ./.github/workflows/gpu-smoke.yml
     with:
-      run_gpu: ${{ inputs.smoke_mode == 'gpu' || inputs.smoke_mode == 'batch' || inputs.smoke_mode == 'package' }}
-      object_batch: ${{ inputs.smoke_mode == 'batch' || inputs.smoke_mode == 'package' }}
-      package_only: ${{ inputs.smoke_mode == 'package' }}
+      run_gpu: ${{ inputs.smoke_mode == 'gpu' || inputs.smoke_mode == 'batch' }}
+      object_batch: ${{ inputs.smoke_mode == 'batch' }}
       pilot_cases: ${{ inputs.pilot_cases || 'I02' }}
       publish_pilots: ${{ inputs.publish_pilots || false }}
       source: ${{ inputs.smoke_source || 'private-original' }}
     secrets:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
+  publication-readiness:
+    if: github.event_name == 'workflow_dispatch' && inputs.smoke_mode == 'package'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require explicit preview publication and a separate publisher runner
+        env:
+          APPROVE: ${{ inputs.publish_pilots }}
+          SOURCE: ${{ inputs.smoke_source }}
+          PUBLISH_RUNNER: ${{ vars.SCENE_PUBLISH_RUNNER }}
+          GPU_RUNNER: ${{ vars.SCENE_GPU_RUNNER }}
+        run: |
+          python - <<'PY'
+          import os, re
+          if os.environ["APPROVE"] != "true" or os.environ["SOURCE"] != "public-preview":
+              raise SystemExit("Package mode requires publish_pilots=true and smoke_source=public-preview.")
+          label = os.environ["PUBLISH_RUNNER"]
+          if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,99}", label) or label == os.environ["GPU_RUNNER"]:
+              raise SystemExit("Configure SCENE_PUBLISH_RUNNER as a distinct CPU publisher label and isolated work directory.")
+          PY
+  publication:
+    needs: publication-readiness
+    runs-on: ${{ vars.SCENE_PUBLISH_RUNNER }}
+    timeout-minutes: 30
+    env:
+      PYTHONPATH: ${{ github.workspace }}/services/pipeline
+      CUDA_VISIBLE_DEVICES: ""
+      HF_TOKEN: ""
+      INCREMENTAL: ${{ inputs.incremental_pilots }}
+    steps:
+      - name: Verify isolated publisher workspace before checkout
+        run: |
+          /home/scene/scene-worker-venv/bin/python - <<'PY'
+          import os
+          from pathlib import Path
+          workspace = Path(os.environ["GITHUB_WORKSPACE"]).resolve()
+          publisher = Path("/home/scene/scene-worker/publisher-work").resolve()
+          if not workspace.is_relative_to(publisher):
+              raise SystemExit("Use the separate publisher runner work directory; the GPU checkout must remain untouched.")
+          PY
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Snapshot only independently validated stopped cases
+        run: |
+          umask 077
+          args=()
+          if [ "$INCREMENTAL" = true ]; then args+=(--incremental); fi
+          /home/scene/scene-worker-venv/bin/python -m scripts.package_pilots \
+            --data-dir /home/scene/scene-private-data \
+            --out "$RUNNER_TEMP/pilot-publication-$GITHUB_RUN_ID" \
+            --approve-derived-publication "${args[@]}"
+      - name: Upload only approved public package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pilot-publication-${{ github.run_id }}
+          path: ${{ runner.temp }}/pilot-publication-${{ github.run_id }}/
+          if-no-files-found: error
+          retention-days: 7
   readiness:
     if: inputs.smoke_mode == 'off' || inputs.smoke_mode == ''
     runs-on: ubuntu-latest

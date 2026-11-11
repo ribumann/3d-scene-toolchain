@@ -137,6 +137,11 @@ substitute the separate procedural-report artifact or an unverified local build.
 The private GPU workflow has a separate explicit `publish_pilots=true` approval
 flag, default **false**, and a `smoke_mode=package` route for stopped checkpoints
 without repeating inference. See the [operator export command](README.md#explicit-derived-only-export).
+Package mode uses a separate CPU publisher runner/work directory and concurrency
+group, so it can run alongside the existing GPU batch without restarting it.
+Add `incremental_pilots=true` to publish completed sources immediately: active
+cases are skipped as `processing` with no scene or object files. Repeat per-source
+snapshots as work finishes; nothing reads/copies active checkpoint objects.
 Only validated preview-input results enter **`pilot-publication-<GPUrunID>`**
 with seven-day retention; no upload ever targets the private data root.
 The portable allowlist is:
@@ -147,7 +152,7 @@ The portable allowlist is:
 | `scenes/{ID}.json` | Existing Scene schema; only successful appearances or unreviewed diagram/plan proposals |
 | `assets/{ID}/{parent}.ply` | Revalidated 32,768-Gaussian object output, sanitized header/provenance |
 
-Each case records `status` (`not_run`, `failed`, `partial`, `succeeded`, `proposals`),
+Each case records `status` (`not_run`, `processing`, `failed`, `partial`, `succeeded`, `proposals`),
 published parent-object count, `failed_objects` (failed **or unfinished** distinct
 crops), optional rejected count and extraction/object Git `source_revisions`.
 It retains original-vs-generated reference origin, authorized preview SHA,
@@ -156,6 +161,8 @@ It retains original-vs-generated reference origin, authorized preview SHA,
 original photography. `scene=null` is required for no-result cases. Scene assets
 retain parent IDs, crop hashes, pixel bounding boxes, duplicate aliases and
 model/SDK settings; crop bytes, private paths, raw logs and tokens are excluded.
+`processing` is distinct from `not_run`; it describes the snapshot, not live
+status, and never publishes an active case's partially written outputs.
 File validation is not human fidelity acceptance.
 
 The CPU workflow can consume an explicitly selected completed GPU run on this
@@ -174,7 +181,8 @@ A missing, expired, wrong-branch or invalid package fails rather than falling ba
 Omitting `pilot_run_id` preserves the reference/procedural-only build.
 
 Local equivalent, from the **current checked-out source** with the Python
-environment activated:
+environment activated (read-only validation/build also work on Windows; private
+snapshot export itself requires POSIX file locking):
 
 ```sh
 gh run download <GPUrunID> --repo ribumann/3d-scene-toolchain \

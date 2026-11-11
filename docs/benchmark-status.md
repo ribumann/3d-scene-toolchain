@@ -190,7 +190,12 @@ originals, segmentation crops, raw logs or tokens. The new `publish_pilots=true`
 flag (default false) packages only independently revalidated stopped preview
 checkpoints into a fresh allowlisted `pilot-publication-<runID>` artifact,
 retained seven days. `smoke_mode=package` avoids repeating inference.
-Running checkpoints/locks, mismatched source/pins/settings, modified crops/PLY
+Default strict export refuses running checkpoints/locks; the separate opt-in
+`incremental_pilots=true` snapshot marks those cases `processing` with no scene
+or object reads, while exporting stopped completed sources. The package-only
+CPU runner has a separate work directory/concurrency group and cannot invoke
+GPU inference or alter the active GPU checkout.
+Mismatched source/pins/settings, modified crops/PLY
 or unexpected package files fail explicitly. Batch failures remain failures;
 valid partial objects may be exported with failed/unfinished counts, never
 replaced with fabricated geometry.

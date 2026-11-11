@@ -53,6 +53,8 @@ def build_demo(public: Path, pilot_package: Path | None = None):
             case.summary = f"User-supplied {provenance} reference, shared as a public WebP preview. No 3D reconstruction is published."
         entry = entries.get(case.id)
         case.status = "ready" if case.id in ("P01", "P02", "P03") else "awaiting_input"
+        if entry and entry["status"] == "processing":
+            case.summary = "Processing at publication snapshot. Active outputs are not published; this is not live status."
         if entry and entry["scene"]:
             case.status = "ready"
             case.summary = (

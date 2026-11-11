@@ -24,7 +24,7 @@ const casePath = (id: string) => `/api/cases/${encodeURIComponent(id)}`;
 export const readOnly = import.meta.env.MODE === "demo";
 export type PilotStatus = {
   case_id: string;
-  status: "not_run" | "failed" | "partial" | "succeeded" | "proposals";
+  status: "not_run" | "processing" | "failed" | "partial" | "succeeded" | "proposals";
   objects: number;
   failed_objects: number;
   reference_origin: "ai-generated" | "user-supplied-original";

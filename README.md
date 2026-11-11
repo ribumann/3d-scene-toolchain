@@ -231,6 +231,10 @@ Outputs remain private by default. `publish_pilots=true` explicitly approves onl
 revalidated derived preview-input scenes/PLY for a separate allowlisted artifact;
 `smoke_mode=package` exports stopped checkpoints without repeating inference.
 Neither option uploads originals, masks/crops or raw logs.
+Package-only mode uses a separate CPU publisher runner; with
+`incremental_pilots=true`, completed sources can be published individually while
+the GPU batch continues. Active cases remain honestly labeled `processing`, with
+no scene or in-progress object publication.
 
 Pin full **40-character commit SHAs** in the worker environment:
 

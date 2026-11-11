@@ -1,5 +1,7 @@
 import fcntl
 import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -77,8 +79,9 @@ class PilotPublicationTests(unittest.TestCase):
             state = json.loads((output / "batch.json").read_text())
             ply = output / state["objects"]["object-000"]["attempts"][-1]["directory"] / "object.ply"
             ply.write_bytes(b"not valid generated output")
-            with self.assertRaises(ValueError):
-                package_pilots(root, root / "publication", approve=True)
+            for incremental in (False, True):
+                with self.subTest(incremental=incremental), self.assertRaises(ValueError):
+                    package_pilots(root, root / "publication", approve=True, incremental=incremental)
             self.assertFalse((root / "publication").exists())
 
     def test_running_cases_refuse_export_but_stopped_partial_exports_only_validated_objects(self):
@@ -115,3 +118,89 @@ class PilotPublicationTests(unittest.TestCase):
             (destination / "pilots.json").write_text(json.dumps(manifest))
             with self.assertRaisesRegex(SmokeError, "unexpected_public_case_fields"):
                 validate_package(destination)
+
+    def test_incremental_snapshot_skips_locked_checkpoint_without_reading_it_then_publishes_completed_source(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.prepare(root, "I01")
+            self.prepare(root)
+            output = root / "assets/I02/object-batch-public-preview"
+            checkpoint = output / "batch.json"
+            completed = checkpoint.read_bytes()
+            with (output / ".lock").open("rb") as lock:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                checkpoint.write_text("invalid active checkpoint must never be read")
+                manifest = package_pilots(root, root / "first", approve=True, incremental=True)
+                self.assertEqual(checkpoint.read_text(), "invalid active checkpoint must never be read")
+            entries = {item["case_id"]: item for item in manifest["cases"]}
+            self.assertEqual(entries["I01"]["status"], "proposals")
+            self.assertEqual(entries["I02"]["status"], "processing")
+            self.assertIsNone(entries["I02"]["scene"])
+            self.assertEqual(entries["I02"]["objects"], 0)
+            self.assertEqual(entries["I03"]["status"], "not_run")
+            self.assertFalse((root / "first/assets").exists())
+            public = root / "first-public"
+            build_demo(public, root / "first")
+            cases = {item["id"]: item for item in json.loads((public / "demo/cases.json").read_text())}
+            self.assertEqual(cases["I02"]["status"], "awaiting_input")
+            self.assertIn("Processing at publication snapshot", cases["I02"]["summary"])
+            self.assertFalse((public / "demo/I02.json").exists())
+            checkpoint.write_bytes(completed)
+            second = package_pilots(root, root / "second", approve=True, incremental=True)
+            entry = next(item for item in second["cases"] if item["case_id"] == "I02")
+            self.assertEqual(entry["status"], "succeeded")
+            self.assertTrue((root / "second/assets/I02/object-000.ply").is_file())
+            self.assertEqual(checkpoint.read_bytes(), completed)
+
+    def test_incremental_running_checkpoint_never_reads_objects_and_stopped_pins_still_must_match(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.prepare(root)
+            output = root / "assets/I02/object-batch-public-preview"
+            checkpoint = output / "batch.json"
+            state = json.loads(checkpoint.read_text())
+            completed = checkpoint.read_bytes()
+            checkpoint.write_text(json.dumps({"status": "running", "extraction": {"directory": "../do-not-read"}}))
+            manifest = package_pilots(root, root / "running", approve=True, incremental=True)
+            entry = next(item for item in manifest["cases"] if item["case_id"] == "I02")
+            self.assertEqual((entry["status"], entry["scene"]), ("processing", None))
+            self.assertFalse((root / "running/assets").exists())
+            state["contract"]["seed"] = 99
+            checkpoint.write_text(json.dumps(state))
+            with self.assertRaisesRegex(SmokeError, "source_pins_or_settings_mismatch"):
+                package_pilots(root, root / "bad-stopped", approve=True, incremental=True)
+            self.assertFalse((root / "bad-stopped").exists())
+            checkpoint.write_bytes(completed)
+
+    def test_read_only_validation_and_build_do_not_require_posix_export_locking(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.prepare(root)
+            package_pilots(root, root / "publication", approve=True)
+            result = subprocess.run([sys.executable, "-c", """
+import builtins, sys
+from pathlib import Path
+original_import = builtins.__import__
+def without_fcntl(name, *args, **kwargs):
+    if name == "fcntl":
+        raise ImportError("Simulated Windows: no fcntl")
+    return original_import(name, *args, **kwargs)
+builtins.__import__ = without_fcntl
+from scripts.build_static_demo import build_demo
+from scripts.package_pilots import package_pilots, validate_package
+from scripts.private_gpu_smoke import SmokeError
+root = Path(sys.argv[1])
+validate_package(root / "publication")
+build_demo(root / "approved-build", root / "publication")
+build_demo(root / "default-build")
+try:
+    package_pilots(root, root / "unsupported-export", approve=True)
+except SmokeError as error:
+    assert str(error) == "private_publication_export_requires_posix_flock"
+else:
+    raise AssertionError("Private export must not bypass locking on unsupported platforms")
+""", str(root)], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((root / "approved-build/pilot-assets/pilot/I02/object-000.ply").is_file())
+            self.assertFalse((root / "default-build/pilot-assets").exists())
+            self.assertFalse((root / "unsupported-export").exists())

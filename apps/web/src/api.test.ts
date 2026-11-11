@@ -41,6 +41,19 @@ describe("API contract", () => {
       vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("not found", { status: 404 })));
       await expect(createApi(true).scene("P01")).rejects.toMatchObject({ status: 404 });
     });
+    it("keeps processing sources reference-only while completed sources remain inspectable", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockImplementation((path: string) => Promise.resolve(new Response(JSON.stringify(
+        path.endsWith("cases.json") ? [{ id: "I01", status: "ready" }, { id: "I02", status: "awaiting_input" }] :
+          path.endsWith("pilots.json") ? [{ case_id: "I02", status: "processing", scene: null, objects: 0 }] :
+            { case_id: "I01", assets: [] },
+      )))));
+      const demo = createApi(true);
+      await demo.cases();
+      await expect(demo.pilots()).resolves.toEqual([{ case_id: "I02", status: "processing", scene: null, objects: 0 }]);
+      await expect(demo.scene("I01")).resolves.toMatchObject({ case_id: "I01" });
+      await expect(demo.scene("I02")).rejects.toMatchObject({ status: 409 });
+      expect(vi.mocked(fetch).mock.calls.every(([path]) => !String(path).startsWith("/api/"))).toBe(true);
+    });
     it("loads only catalog-approved pilot scenes and maps approved PLY paths without /api requests", async () => {
       const fetchMock = vi.fn().mockImplementation((path: string) => Promise.resolve(new Response(JSON.stringify(
         path.endsWith("cases.json") ? [{ id: "I02", status: "ready" }] :
