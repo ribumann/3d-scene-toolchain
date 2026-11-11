@@ -252,11 +252,23 @@ That snapshot published I01-I05, not G01-G03.
 
 Final CPU-only publisher
 [43079293375](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43079293375)
-was running when these final execution facts were reported. **Final all-eight
-artifact review/deployment and public rendering verification remain pending**;
-batch completion alone does not establish their publication. Existing
-`/?case=I01` through `/?case=I05` links select the earlier published sources;
-the same G01-G03 links require the final package to expose their completed views.
+completed, and its approved package was deployed by
+[43079522724](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43079522724)
+at source `97e239ddb569c0f994aef723623e7297295f52e9`.
+Both final CI jobs, **web** and **python-and-blender**, completed successfully.
+The operator verified all **39 derived-file SHA256 values**, all **eight reference
+SHA256 values**, and the exact eight-case inventory against the public origin.
+The published outcomes match the table above: 31 actual appearances and 203
+unreviewed proposals. Full originals, segmentation crops, raw logs and tokens
+remain excluded.
+
+All eight source views can now be selected with
+[`/?case=I01`](https://red-wave-0c7bb6c0f.4.azurestaticapps.net/?case=I01)
+through `/?case=I05`, and `/?case=G01` through `/?case=G03`.
+This verifies deployment, content identity and inventory, **not all-case browser
+rendering or fidelity**. The final G03 browser tool timed out; no 16/16 browser
+load result is claimed. The earlier confirmed I02 9/9 and artifact I03 3/3
+checks remain separate point-in-time renderer evidence.
 See the
 [publication contract](../infra/azure/static-demo.md#approved-derived-pilot-packages)
 for exact artifacts, commands and approval boundaries.

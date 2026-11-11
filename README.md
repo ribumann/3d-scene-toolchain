@@ -16,8 +16,10 @@ Spot T4 in [run 43043580373](https://github.com/ribumann/3d-scene-toolchain/acti
 and **203 unreviewed region proposals** across three diagrams/plans. The GPU job
 took 1h 51m 20s; appearances used 32,768 Gaussians, 50 steps and seed 42.
 These are output-contract results, not full-facility reconstruction, metric
-accuracy or a calibrated/telemetry-connected digital twin. An initial I01-I05
-derived snapshot is public; final all-eight publication remains pending.
+accuracy or a calibrated/telemetry-connected digital twin. All eight derived
+views are now public; their 39 derived-file hashes and eight reference hashes
+were verified against the approved package. Per-case visual fidelity remains
+unaccepted.
 
 ## Start locally
 
@@ -86,7 +88,9 @@ and diagram/plan proposals without exposing a backend. The viewer distinguishes
 successful, partial, failed and not-run cases, keeps reference comparisons, and
 never substitutes geometry for failed appearance loading. The operator verified
 the initial I01-I05 derived deployment, including live I02 loading 9/9 appearances.
-Final all-eight publication/review is separate from completed GPU execution.
+Final all-eight deployment also succeeded, with exact public-package hash and
+case-inventory verification. This does not establish every case's browser
+rendering or visual accuracy.
 See the [approved export/build route](infra/azure/static-demo.md#approved-derived-pilot-packages).
 
 Publish only `apps/web/dist-demo/`, not the repository or `.scene-data/`.

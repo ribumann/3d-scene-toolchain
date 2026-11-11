@@ -38,8 +38,8 @@ never full original images, tokens, runtime stores or a repository archive.
 Reference-image publication authorization covers these eight WebP previews,
 not private originals or masks/crops. The operator separately approved validated
 derived pilot scenes/PLY for the explicit package route below; the ordinary build
-still includes no inference output. An initial approved I01-I05 derived snapshot
-has since been deployed; final all-eight publication remains pending below.
+still includes no inference output. The approved derived package has since been
+deployed for all eight sources, with exact public-content verification below.
 Do not expose the unauthenticated local API. The operator configured the
 repository secret `AZURE_STATIC_WEB_APPS_API_TOKEN_SCENE_POC` for this exact app;
 its value must never be copied into source, logs, frontend configuration or chat.
@@ -230,8 +230,19 @@ GPU run `43043580373` has now completed all eight sources (31 real object
 appearances and 203 unreviewed diagram/plan proposals); the
 [runtime report](../../docs/benchmark-status.md#successful-eight-case-approved-preview-batch-2026-11-11)
 records individual counts, approved compressed-WebP provenance and limitations.
-Final CPU publisher `43079293375` was still running at this report;
-final all-eight artifact review/deployment/public rendering is **not yet verified**.
+Final CPU publisher
+[43079293375](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43079293375)
+completed; deployment
+[43079522724](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43079522724)
+at `97e239ddb569c0f994aef723623e7297295f52e9` succeeded in both **web** and
+**python-and-blender** jobs. The operator verified all 39 derived-file hashes,
+all eight reference SHA256 values and the exact case inventory against the public
+origin. The final package exposes all eight `/?case={ID}` views with the recorded
+31 actual appearances and 203 unreviewed region proposals.
+
+Content/deployment verification is not all-case rendering verification: the
+final G03 browser tool timed out, so no G03 16/16 browser load is claimed.
+The earlier I02 9/9 live and I03 3/3 artifact checks remain separate evidence.
 Per-case fidelity acceptance remains separate from execution and publication.
 
 ## Opt-in Static Web Apps publication
