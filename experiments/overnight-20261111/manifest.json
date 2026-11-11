@@ -1,0 +1,293 @@
+{
+  "schema_version": 1,
+  "trials": [
+    {
+      "id": "T01",
+      "title": "Isolated pump assembly",
+      "detector_phrases": [
+        "centrifugal water pump assembly with electric motor"
+      ],
+      "expected_inventory": [
+        {
+          "identity": "pump-assembly",
+          "category": "pump",
+          "count": 1
+        }
+      ],
+      "reviewed_objects": [
+        {
+          "id": "pump-assembly",
+          "category": "pump",
+          "box": [
+            0.155,
+            0.135,
+            0.705,
+            0.775
+          ],
+          "reviewed": true
+        }
+      ],
+      "instances": [
+        {
+          "id": "pump-1",
+          "object_id": "pump-assembly",
+          "position": [
+            0,
+            0.5,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1.6,
+            1,
+            0.8
+          ]
+        }
+      ],
+      "source": {
+        "filename": "T01.png",
+        "sha256": "125ed1db88a4e7e6956d6fee1c25bbe62addfd333879e5b4345693753bbca5d3",
+        "url": "https://raw.githubusercontent.com/ribumann/3d-scene-toolchain/9376329bd1ef7a2d362d7b3d5bf28755f1a0c884/experiments/overnight-20261111/inputs/T01.png",
+        "kind": "generated-industrial-illustration",
+        "generator": "Copilot image_generation tool; underlying image model/version not exposed",
+        "prompt": "Create one reconstruction-friendly, photorealistic industrial product reference image for a controlled single-image-to-3D experiment. Show EXACTLY ONE complete compact centrifugal water-pump assembly: a blue painted cast-iron volute pump connected to one gray electric motor on one short shared rectangular steel base. Treat the connected pump+motor+base as a single asset. Three-quarter front-left view, camera approximately 20 degrees above the horizontal; the pump inlet, round volute, motor cooling fins and both mounting feet should be legible. Entire assembly fully visible, uncropped, with ample clear margin on all sides; occupies about 65 percent of the frame. Neutral pale-gray seamless studio background, soft diffuse balanced lighting, very faint short contact shadow, matte nonreflective surfaces, crisp edges, moderate depth of field with the whole object sharp, natural engineering proportions. No person, no other equipment, no detached parts, no hoses or wires, no writing, labels, logos, watermarks, borders, inset views, diagrams, floor grid, or collage. This is a plausible generated illustration, not a photograph of any real vendor's product.",
+        "publication_approved": true,
+        "width": 1536,
+        "height": 1024
+      },
+      "layout_kind": "manual-relative-not-metric"
+    },
+    {
+      "id": "T02",
+      "title": "Separated pump, tank and cabinet",
+      "detector_phrases": [
+        "centrifugal water pump assembly",
+        "vertical cylindrical tank",
+        "electrical control cabinet"
+      ],
+      "expected_inventory": [
+        {
+          "identity": "pump",
+          "category": "pump",
+          "count": 1
+        },
+        {
+          "identity": "tank",
+          "category": "tank",
+          "count": 1
+        },
+        {
+          "identity": "cabinet",
+          "category": "cabinet",
+          "count": 1
+        }
+      ],
+      "reviewed_objects": [
+        {
+          "id": "pump",
+          "category": "pump",
+          "box": [
+            0.035,
+            0.414,
+            0.31,
+            0.31
+          ],
+          "reviewed": true
+        },
+        {
+          "id": "tank",
+          "category": "tank",
+          "box": [
+            0.408,
+            0.163,
+            0.189,
+            0.58
+          ],
+          "reviewed": true
+        },
+        {
+          "id": "cabinet",
+          "category": "cabinet",
+          "box": [
+            0.744,
+            0.171,
+            0.198,
+            0.581
+          ],
+          "reviewed": true
+        }
+      ],
+      "instances": [
+        {
+          "id": "pump-1",
+          "object_id": "pump",
+          "position": [
+            -2,
+            0.5,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1.6,
+            1,
+            0.8
+          ]
+        },
+        {
+          "id": "tank-1",
+          "object_id": "tank",
+          "position": [
+            0,
+            1.1,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            2.2,
+            1
+          ]
+        },
+        {
+          "id": "cabinet-1",
+          "object_id": "cabinet",
+          "position": [
+            2,
+            1,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1,
+            2,
+            0.6
+          ]
+        }
+      ],
+      "source": {
+        "filename": "T02.png",
+        "sha256": "02fd83c5c0643077b5d9a88e6df12ae84951045e1d156ae52c5f919ce8058626",
+        "url": "https://raw.githubusercontent.com/ribumann/3d-scene-toolchain/9376329bd1ef7a2d362d7b3d5bf28755f1a0c884/experiments/overnight-20261111/inputs/T02.png",
+        "kind": "generated-industrial-illustration",
+        "generator": "Copilot image_generation tool; underlying image model/version not exposed",
+        "prompt": "Create one reconstruction-friendly, photorealistic industrial equipment layout reference image for a controlled per-object single-image-to-3D experiment. Show EXACTLY THREE clearly separated standalone equipment assets arranged on a single neutral pale-gray seamless studio ground: on the LEFT, one compact blue centrifugal pump with gray motor on its single shared base; in the CENTER, one plain matte stainless-steel vertical cylindrical buffer tank with domed top on three short feet; on the RIGHT, one closed upright light-gray rectangular electrical control cabinet on a plinth, with a small dark rectangular display inset in its front. Each of the THREE assets must be entirely visible, with generous obvious empty gaps between their silhouettes; no touching, overlap or occlusion, no connecting pipe or cable. A slightly elevated three-quarter front view, same object scale and uniform soft diffuse lighting, short faint shadows, sharp focus across all three assets, natural physically plausible machinery proportions, low-gloss surfaces without reflections. Let the composition be spacious and all assets have ample border margin. No extra equipment, person, furniture, labels, readable writing, logos, watermarks, annotations, arrows, dimension lines, floor grid, inset views or collage. Generated illustrative layout, not a factual facility reconstruction.",
+        "publication_approved": true,
+        "width": 1536,
+        "height": 1024
+      },
+      "layout_kind": "manual-relative-not-metric"
+    },
+    {
+      "id": "T03",
+      "title": "Two pump instances",
+      "detector_phrases": [
+        "centrifugal water pump assembly with electric motor"
+      ],
+      "expected_inventory": [
+        {
+          "identity": "pump-assembly",
+          "category": "pump",
+          "count": 2
+        }
+      ],
+      "reviewed_objects": [
+        {
+          "id": "pump-left",
+          "category": "pump",
+          "box": [
+            0.045,
+            0.285,
+            0.41,
+            0.41
+          ],
+          "reviewed": true,
+          "reusable_asset_id": "authored-pump"
+        },
+        {
+          "id": "pump-right",
+          "category": "pump",
+          "box": [
+            0.565,
+            0.285,
+            0.405,
+            0.41
+          ],
+          "reviewed": true,
+          "reusable_asset_id": "authored-pump"
+        }
+      ],
+      "instances": [
+        {
+          "id": "pump-left",
+          "object_id": "pump-left",
+          "position": [
+            -1.4,
+            0.5,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1.6,
+            1,
+            0.8
+          ]
+        },
+        {
+          "id": "pump-right",
+          "object_id": "pump-left",
+          "position": [
+            1.4,
+            0.5,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ],
+          "size": [
+            1.6,
+            1,
+            0.8
+          ]
+        }
+      ],
+      "notes": [
+        "Generated copies differ slightly; no pixel-identical or shape-identical claim.",
+        "Optimized layout intentionally instances the left reviewed asset twice; this is authored reuse, not two independently reconstructed appearances."
+      ],
+      "source": {
+        "filename": "T03.png",
+        "sha256": "74598a0b45a9d2215095b1b3b33fa9d966ad98fa59c26afc771aca322c601745",
+        "url": "https://raw.githubusercontent.com/ribumann/3d-scene-toolchain/9376329bd1ef7a2d362d7b3d5bf28755f1a0c884/experiments/overnight-20261111/inputs/T03.png",
+        "kind": "generated-industrial-illustration",
+        "generator": "Copilot image_generation tool; underlying image model/version not exposed",
+        "prompt": "Create one photorealistic, reconstruction-friendly industrial product layout reference image for testing explicit repeated-asset instancing. Show EXACTLY TWO instances of the SAME compact blue centrifugal water-pump assembly: blue cast-iron volute pump attached to a gray finned electric motor, both on one short shared rectangular steel base. The LEFT and RIGHT assemblies should have identical geometry, material, size, details and orientation, as two copies of one manufactured asset, both viewed from three-quarter front-left, spaced widely apart with a large clean empty gap and absolutely no overlap. Both entire bases and every visible part fully within frame with ample margins. Neutral pale-gray seamless studio floor and backdrop, soft diffuse uniform lighting, subtle short contact shadows, both copies equally sharp, natural realistic proportions, matte painted blue and gray metal, no specular glare or dramatic shading. No other objects, detached parts, pipes, cables, people, text, brands, logos, watermarks, borders, panels, arrows, dimension lines or floor grid. This is a generated illustrative two-instance arrangement, not evidence that two real machines were measured.",
+        "publication_approved": true,
+        "width": 1536,
+        "height": 1024
+      },
+      "layout_kind": "manual-relative-not-metric"
+    }
+  ]
+}
