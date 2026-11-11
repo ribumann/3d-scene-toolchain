@@ -13,6 +13,11 @@ on:
         type: string
         default: private-original
         required: false
+      object_batch:
+        description: "Process every usable distinct private I02 crop sequentially with validated resume"
+        type: boolean
+        default: false
+        required: false
     secrets:
       HF_TOKEN:
         required: true
@@ -48,12 +53,14 @@ jobs:
           HF_HUB_VERBOSITY: error
           RUNNER_LABEL: ${{ vars.SCENE_GPU_RUNNER }}
           REQUIRE_GPU_RUNNER: ${{ inputs.run_gpu }}
+          I02_OBJECT_BATCH: ${{ inputs.object_batch }}
+          SMOKE_SOURCE: ${{ inputs.source }}
         run: python scripts/resolve_smoke_models.py
   infer:
     if: inputs.run_gpu
     needs: readiness
     runs-on: ${{ vars.SCENE_GPU_RUNNER }}
-    timeout-minutes: 90
+    timeout-minutes: ${{ inputs.object_batch && 360 || 90 }}
     env:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       SCENE_IDOL_MODEL_REVISION: ${{ needs.readiness.outputs.idol_revision }}
@@ -118,6 +125,7 @@ jobs:
           print(json.dumps({"cuda_kernel_verified": True, "device_count": torch.cuda.device_count()}))
           PY
       - name: Extract one private non-person crop and reconstruct with real Idol
+        if: ${{ !inputs.object_batch }}
         run: |
           umask 077
           args=()
@@ -129,3 +137,9 @@ jobs:
           /home/scene/scene-worker-venv/bin/python scripts/private_gpu_smoke.py run \
             --data-dir /home/scene/scene-private-data \
             --output /home/scene/scene-private-data/smoke-output "${args[@]}"
+      - name: Reconstruct every usable distinct private I02 object with resume
+        if: inputs.object_batch
+        run: |
+          umask 077
+          /home/scene/scene-worker-venv/bin/python -m scripts.private_gpu_batch \
+            --data-dir /home/scene/scene-private-data

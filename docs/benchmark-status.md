@@ -152,6 +152,23 @@ not geometric fidelity or human quality acceptance. The original, segmentation
 crops, PLY and raw logs remain private on the VM. The eight public reference
 previews are unchanged; no inferred object or scene has been published.
 
+### Next private I02 object batch: implementation ready, execution pending
+
+The separate registered `smoke_mode=batch` route extracts I02 once, enumerates
+all usable approved non-person crops without the normal 48-box truncation, and
+runs distinct crops sequentially at the successful smoke's exact model pins and
+32,768 Gaussians / 50 steps / seed 42. Exact duplicates retain all parent-node
+aliases. Individual failures are explicit; validated outputs/extraction are
+resumable with source/pin/settings/hash checks, and only successful assets enter
+private scene assembly with approximate/inferred layout.
+
+This is source preparation, **not an executed multi-object result**. It needs
+only the already-ingested I02 original on the worker, not completion of the
+all-eight archive transfer. No images, masks, PLY, logs or assembled scene are
+published; the public reference demo and normal local API are unchanged.
+See the [private batch operator guide](../infra/azure/README.md) for dispatch,
+checkpoint paths, retry behavior and bounded execution.
+
 ## Remaining acceptance work
 
 ### Read-only static viewer preparation

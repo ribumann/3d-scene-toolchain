@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       smoke_mode:
-        description: "off preserves the procedural benchmark; readiness checks HF access only; gpu runs the private one-object smoke"
+        description: "off: procedural benchmark; readiness: HF checks; gpu: one-object smoke; batch: resumable private I02 objects"
         default: "off"
         required: false
         type: choice
@@ -12,6 +12,7 @@ on:
           - "off"
           - readiness
           - gpu
+          - batch
       smoke_source:
         description: "Private smoke input only; a public-preview run records the actual WebP hash, not an original-image claim"
         default: private-original
@@ -39,10 +40,11 @@ concurrency:
 
 jobs:
   private-smoke:
-    if: github.event_name == 'workflow_dispatch' && (inputs.smoke_mode == 'readiness' || inputs.smoke_mode == 'gpu')
+    if: github.event_name == 'workflow_dispatch' && (inputs.smoke_mode == 'readiness' || inputs.smoke_mode == 'gpu' || inputs.smoke_mode == 'batch')
     uses: ./.github/workflows/gpu-smoke.yml
     with:
-      run_gpu: ${{ inputs.smoke_mode == 'gpu' }}
+      run_gpu: ${{ inputs.smoke_mode == 'gpu' || inputs.smoke_mode == 'batch' }}
+      object_batch: ${{ inputs.smoke_mode == 'batch' }}
       source: ${{ inputs.smoke_source || 'private-original' }}
     secrets:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}

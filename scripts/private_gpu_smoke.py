@@ -60,15 +60,21 @@ def load_source(directory: Path, public_preview: Path | None = None):
     return {"preview_path": str(preview), "filename": row[1], "sha256": row[0]}, "private-original"
 
 
-def select_crop(scene: Scene, extraction: dict, directory: Path):
+def enumerate_crops(scene: Scene, extraction: dict, directory: Path):
     if scene.case_id != "I02" or extraction.get("method") != "grounding-dino+sam2":
         raise SmokeError("unexpected_extraction_contract")
     nodes = {node.id: node for node in scene.nodes}
-    candidates, rejected = [], {}
+    annotations = {}
     for annotation in extraction["annotations"]:
-        node = nodes.get(annotation["node_id"])
+        identifier = annotation["node_id"]
+        if identifier not in nodes or identifier in annotations:
+            raise SmokeError("unexpected_or_duplicate_extraction_annotation")
+        annotations[identifier] = annotation
+    candidates, rejected = [], []
+    for node in sorted(scene.nodes, key=lambda item: item.id):
+        annotation = annotations.get(node.id, {})
         reason = None
-        if node is None or not node.visible or node.category not in ALLOWED_CATEGORIES:
+        if not node.visible or node.category not in ALLOWED_CATEGORIES:
             reason = "not_an_approved_non_person_object"
         elif annotation.get("crop") != f"{node.id}.png":
             reason = "invalid_crop_reference"
@@ -90,18 +96,60 @@ def select_crop(scene: Scene, extraction: dict, directory: Path):
                             if foreground < 256 or histogram[0] == 0:
                                 reason = "empty_or_unsegmented_alpha"
                             else:
-                                candidates.append((node.evidence.confidence, foreground, node.id, path, node.category))
+                                candidates.append({
+                                    "node_id": node.id, "category": node.category, "path": path,
+                                    "confidence": node.evidence.confidence, "foreground_pixels": foreground,
+                                    "crop_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                                    "bbox_pixels": annotation["bbox_pixels"],
+                                })
                 except (OSError, UnidentifiedImageError):
                     reason = "unreadable_crop"
         if reason:
-            rejected[reason] = rejected.get(reason, 0) + 1
+            rejected.append({"node_id": node.id, "category": node.category, "reason": reason})
+    return candidates, rejected
+
+
+def select_crop(scene: Scene, extraction: dict, directory: Path):
+    candidates, rejected = enumerate_crops(scene, extraction, directory)
     if not candidates:
         raise SmokeError("no_valid_non_person_segmented_crop")
-    _, foreground, identifier, path, category = max(candidates)
-    return path, {
-        "selected_node": identifier, "selected_category": category,
-        "foreground_pixels": foreground, "rejected_crops": rejected,
+    selected = max(candidates, key=lambda item: (item["confidence"], item["foreground_pixels"], item["node_id"]))
+    counts = {}
+    for item in rejected:
+        counts[item["reason"]] = counts.get(item["reason"], 0) + 1
+    return selected["path"], {
+        "selected_node": selected["node_id"], "selected_category": selected["category"],
+        "foreground_pixels": selected["foreground_pixels"], "rejected_crops": counts,
     }
+
+
+def validate_extraction(scene: Scene, extraction: dict, source_sha256: str):
+    if scene.case_id != "I02" or not any(item.sha256 == source_sha256 for item in scene.sources):
+        raise SmokeError("extraction_source_changed")
+    if extraction["detector"] != {
+        "model": "IDEA-Research/grounding-dino-tiny", "revision": os.environ["SCENE_DETECTOR_REVISION"],
+    } or extraction["segmenter"] != {
+        "model": "facebook/sam2.1-hiera-small", "revision": os.environ["SCENE_SEGMENTER_REVISION"],
+    }:
+        raise SmokeError("extraction_model_pins_mismatch")
+
+
+def validate_generation(output: Path, crop: Path):
+    if any((output / name).is_symlink() for name in ("generation.json", "object.ply")):
+        raise SmokeError("unsafe_generation_symlink")
+    metadata = json.loads((output / "generation.json").read_text())
+    if any(metadata.get(key) != value for key, value in {
+        "model": "speridlabs/idol", "mode": "real", "steps": 50, "seed": 42, "sdk_revision": SDK_REVISION,
+        "model_revision": os.environ["SCENE_IDOL_MODEL_REVISION"],
+        "input_sha256": hashlib.sha256(crop.read_bytes()).hexdigest(),
+    }.items()) or metadata.get("encoder_revisions") != {key: os.environ[key] for key in ("SCENE_DINOV3_REVISION", "SCENE_FLUX2_REVISION")}:
+        raise SmokeError("idol_provenance_mismatch")
+    validated = validate_ply(output / "object.ply")
+    if validated["gaussian_count"] != 32768:
+        raise SmokeError("unexpected_gaussian_count_no_quality_fallback")
+    if any(metadata.get(key) != value for key, value in validated.items()):
+        raise SmokeError("idol_output_metadata_mismatch")
+    return metadata
 
 
 def gpu_memory_mib():
@@ -143,13 +191,13 @@ def run_stage(arguments, log: Path, timeout: int, measurement: dict):
         raise SmokeError("stage_failed_inspect_private_log")
 
 
-def extract_only(directory: Path, output: Path, public_preview: Path | None):
+def extract_only(directory: Path, output: Path, public_preview: Path | None, all_objects=False):
     from scene_pipeline.extract import extract_photo
     from scene_pipeline.models import Case
 
     source, _ = load_source(directory, public_preview)
     case = next(Case.model_validate(item) for item in json.loads((ROOT / "cases/manifest.json").read_text()) if item["id"] == "I02")
-    scene, _ = extract_photo(case, source, output / "extraction")
+    scene, _ = extract_photo(case, source, output / "extraction", max_objects=None if all_objects else 48)
     (output / "extraction/scene.json").write_text(scene.model_dump_json(indent=2))
 
 
@@ -181,15 +229,8 @@ def run_smoke(directory: Path, output: Path, public_preview: Path | None):
         run_stage(arguments, output / "extract-private.log", 1200, report["timings"]["extract"])
         folder = output / "extraction"
         scene = Scene.model_validate_json((folder / "scene.json").read_text())
-        if not any(item.sha256 == source["sha256"] for item in scene.sources):
-            raise SmokeError("extraction_source_changed")
         extraction = json.loads((folder / "extraction.json").read_text())
-        if extraction["detector"] != {
-            "model": "IDEA-Research/grounding-dino-tiny", "revision": os.environ["SCENE_DETECTOR_REVISION"],
-        } or extraction["segmenter"] != {
-            "model": "facebook/sam2.1-hiera-small", "revision": os.environ["SCENE_SEGMENTER_REVISION"],
-        }:
-            raise SmokeError("extraction_model_pins_mismatch")
+        validate_extraction(scene, extraction, source["sha256"])
         crop, selection = select_crop(scene, extraction, folder)
         report.update(selection)
         report["objects_detected"] = len(scene.nodes)
@@ -200,17 +241,8 @@ def run_smoke(directory: Path, output: Path, public_preview: Path | None):
              "--out", str(output), "--mode", "real", "--count", "32768"],
             output / "idol-private.log", 3600, report["timings"]["idol"],
         )
-        metadata = json.loads((output / "generation.json").read_text())
-        if any(metadata.get(key) != value for key, value in {
-            "model": "speridlabs/idol", "mode": "real", "steps": 50, "seed": 42, "sdk_revision": SDK_REVISION,
-            "model_revision": os.environ["SCENE_IDOL_MODEL_REVISION"],
-            "input_sha256": hashlib.sha256(crop.read_bytes()).hexdigest(),
-        }.items()) or metadata.get("encoder_revisions") != {key: os.environ[key] for key in ("SCENE_DINOV3_REVISION", "SCENE_FLUX2_REVISION")}:
-            raise SmokeError("idol_provenance_mismatch")
-        validated = validate_ply(output / "object.ply")
-        if validated["gaussian_count"] != 32768:
-            raise SmokeError("unexpected_gaussian_count_no_quality_fallback")
-        report.update(status="succeeded", stage="complete", failure_reason=None, gaussian_count=validated["gaussian_count"])
+        metadata = validate_generation(output, crop)
+        report.update(status="succeeded", stage="complete", failure_reason=None, gaussian_count=metadata["gaussian_count"])
     except SmokeError as error:
         report["failure_reason"] = str(error)
     except (OSError, ValueError, KeyError, sqlite3.Error, subprocess.TimeoutExpired):
@@ -229,9 +261,12 @@ def main():
     parser.add_argument("--data-dir", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--public-preview", type=Path)
+    parser.add_argument("--all-objects", action="store_true", help="Extract every detection for the separate private batch.")
     args = parser.parse_args()
+    if args.all_objects and args.command != "extract":
+        parser.error("--all-objects is only supported by the extraction subprocess")
     if args.command == "extract":
-        extract_only(args.data_dir, args.output, args.public_preview)
+        extract_only(args.data_dir, args.output, args.public_preview, args.all_objects)
         return 0
     def interrupt(signum, frame):
         raise SystemExit(128 + signum)

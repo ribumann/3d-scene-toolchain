@@ -222,6 +222,82 @@ one-object inference on the operator's Spot variant does not validate that
 template, every model/input combination or full-scene quality; local guard tests
 are separate from the actual execution evidence above.
 
+### Private I02 multi-object batch (implemented; execution pending)
+
+Use the same prepared two environments, unique ephemeral runner label and
+checksum-verified I02 original. Full archive intake for the other seven cases
+is **not** a prerequisite. Dispatch only when the operator approves execution:
+
+```sh
+gh workflow run gpu-batch.yml --repo ribumann/3d-scene-toolchain \
+  --ref copilot/hybrid-scene-toolchain -f smoke_mode=batch \
+  -f smoke_source=private-original
+```
+
+This registered-parent route still allocates exactly **one self-hosted job**.
+CPU readiness verifies the five exact model revisions observed in successful
+smoke `43011155168`, not floating `main`; the pins are recorded in
+`scripts/resolve_smoke_models.py`. It rejects public-preview input for this batch.
+The job keeps its existing CUDA/import/SDK checks and job-scoped HF token.
+No packages are installed on the GPU worker by the workflow.
+
+`python -m scripts.private_gpu_batch --data-dir /home/scene/scene-private-data`
+runs under `/home/scene/scene-worker-venv/bin/python`. It launches extraction once
+in the vision environment with **all** above-threshold detections, explicitly
+opting out of the existing local/smoke 48-box limit. Usability retains the
+smoke's exact non-person category/visibility/RGBA/size/mask checks. Every
+parent node is accounted for, with rejected crops and reasons preserved.
+There is no confidence-only selection or arbitrary batch count limit.
+Exact byte-identical crop aliases share one inference while retaining all
+parent IDs, bounding boxes and crop hashes; similar or overlapping crops are
+not heuristically merged.
+
+Every usable distinct crop runs sequentially in a fresh Idol process:
+`mode=real`, 32,768 Gaussians, 50 steps, seed 42, compile disabled and SDPA.
+An object's failure/OOM/timeout is recorded with its private log; remaining
+objects continue without lower-quality or synthetic retries. A run with any
+usable-object failure exits nonzero and reports partial/failed status. An empty
+usable set fails explicitly. Only all usable distinct outputs passing actual
+PLY/provenance validation can produce batch success; this is not full-plant
+coverage or geometric-quality acceptance.
+
+Private output root:
+`/home/scene/scene-private-data/assets/I02/object-batch/`.
+`batch.json` is an atomic checkpoint binding original/preview SHA, five pins,
+SDK, settings and a hashed extraction snapshot. It retains the full parent/crop
+plan, rejection list, isolated extraction/object attempts and current
+`scene_path`. `safe-status.json` and constructed console JSON contain safe
+per-object outcomes/timings; raw logs and media remain private.
+
+Redispatch the same command after re-registering a consumed ephemeral runner to
+resume. A matching completed extraction is reused, and each completed object is
+rechecked against its crop, generation settings/pins, PLY count/attributes and
+saved hashes before skipping inference. Complete outputs left by an interrupted
+checkpoint are also revalidated. Invalid cached outputs are explicitly marked
+and retried in a new attempt directory; prior files are retained. Changed
+source/pins/settings or a changed extraction snapshot fail explicitly rather
+than silently mixing results. For an intentionally different context, preserve
+the entire old batch directory privately before starting a new batch. The prior
+single-object smoke directory is not implicitly trusted or imported.
+
+The current private scene snapshot uses the existing Scene/Asset schema and
+contains **only validated successful object assets**, not failed-object proxy
+substitutions. Original parent IDs, source hash, crop/bbox mapping and duplicate
+aliases remain in asset provenance. Positions/sizes retain their unreviewed
+inferred image-plane interpretation, not metric or recovered depth. Asset
+`/api/assets/` URIs are local schema references under the private Store root:
+the batch does not save a scene revision into the database, start an endpoint
+or publish anything.
+
+Each child has a bounded timeout (20 minutes extraction, 60 minutes per Idol
+object); the single batch job allows 360 minutes. These are execution bounds,
+not an object cap. Interruptions leave readable checkpoints and never claim
+success; Spot eviction still requires an operator-managed retry. The workflow
+uploads no batch artifacts, originals, crops, PLY or raw logs. The public demo,
+public reference previews, default benchmark route and local API behavior are
+unchanged. Actual multi-object execution/quality remains pending; the earlier
+successful result still establishes only the single-tree smoke.
+
 ## Cleanup
 
 Retrieve artifacts, then delete only the verified dedicated group:

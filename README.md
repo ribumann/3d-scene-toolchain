@@ -195,6 +195,26 @@ described in [`infra/azure/README.md`](infra/azure/README.md), not this cloud
 development host. `smoke_mode=readiness` checks real gated-config access on CPU
 before `smoke_mode=gpu` can request the private worker.
 
+The next opt-in route is a **private I02 multi-object batch**, not another
+highest-confidence crop smoke:
+
+```sh
+gh workflow run gpu-batch.yml --repo ribumann/3d-scene-toolchain \
+  --ref copilot/hybrid-scene-toolchain -f smoke_mode=batch \
+  -f smoke_source=private-original
+```
+
+It extracts I02 once without the local adapter's 48-box truncation, enumerates
+every usable building/conveyor/truck/tree crop, and reconstructs distinct crops
+sequentially with the successful smoke's immutable model pins and 32,768/50/42
+settings. Exact duplicate crops retain every parent mapping. Completed outputs
+are revalidated before resume; failures are isolated and reported, never filled
+with fake geometry. Only I02 must be ingested on the worker; all-eight archive
+transfer is not a prerequisite. Outputs and assembled scene snapshots stay
+private, with inferred image-plane layout, not metric truth. This route is
+implemented but has **not yet completed an actual multi-object GPU run**.
+Setup, output/checkpoint paths and retry semantics are in the Azure guide.
+
 Pin full **40-character commit SHAs** in the worker environment:
 
 ```text
@@ -218,9 +238,10 @@ float32 DINO encoder and SDPA rather than assuming native bf16 support. Compile 
 disabled until measured; `SCENE_IDOL_COMPILE=1` enables the SDK optimization path.
 Only the FLUX VAE is downloaded. PLY output is checked for Gaussian attributes,
 finite values, normalized rotations and nondegenerate bounds before publication.
-Generated hidden surfaces remain guesses. The first selected visible non-ground
-object gets the appearance asset; full automatic per-object quality ranking,
-batch generation and metric calibration are future improvements.
+Generated hidden surfaces remain guesses. The unchanged normal local API adapter
+attaches an appearance asset to its first suitable visible object; the private
+I02 batch is a separate explicit route. Automatic per-object quality ranking,
+cross-case batching and metric calibration remain future improvements.
 
 ### Where to run
 

@@ -14,18 +14,31 @@ MODELS = {
     "detector_revision": "IDEA-Research/grounding-dino-tiny",
     "segmenter_revision": "facebook/sam2.1-hiera-small",
 }
+# Actual successful private smoke 43011155168; batch retries must not float to main.
+I02_BATCH_REVISIONS = {
+    "idol_revision": "2731c2291fc65a797c5cb627a5e5526fc1490902",
+    "dinov3_revision": "c807c9eeea853df70aec4069e6f56b28ddc82acc",
+    "flux2_revision": "26afe3a78bb242c0a8bb181dcc8937bb16e5c66c",
+    "detector_revision": "a2bb814dd30d776dcf7e30523b00659f4f141c71",
+    "segmenter_revision": "ee5bba1d82bb8749febdf90f45e84b687142ba03",
+}
 
 
 class ReadinessError(RuntimeError):
     pass
 
 
-def resolve_models(api, download, token, cache):
+def resolve_models(api, download, token, cache, revisions=None):
     pins = {}
     for output, repository in MODELS.items():
-        revision = api.model_info(repo_id=repository, token=token).sha
+        arguments = {"repo_id": repository, "token": token}
+        if revisions is not None:
+            arguments["revision"] = revisions[output]
+        revision = api.model_info(**arguments).sha
         if not isinstance(revision, str) or not re.fullmatch(r"[0-9a-f]{40}", revision):
             raise ReadinessError(f"{repository}: immutable model revision unavailable")
+        if revisions is not None and revision != revisions[output]:
+            raise ReadinessError(f"{repository}: verified batch revision changed")
         pins[output] = revision
     for output, filename in (
         ("dinov3_revision", "config.json"),
@@ -62,9 +75,15 @@ def main():
     ):
         print("HF readiness failed: configure the isolated SCENE_GPU_RUNNER label.", file=sys.stderr)
         return 1
+    if os.environ.get("I02_OBJECT_BATCH") == "true" and os.environ.get("SMOKE_SOURCE") != "private-original":
+        print("I02 batch readiness failed: choose private-original; no GPU work queued.", file=sys.stderr)
+        return 1
     try:
         with tempfile.TemporaryDirectory(prefix="scene-model-gates-") as cache:
-            pins = resolve_models(HfApi(), hf_hub_download, token, cache)
+            pins = resolve_models(
+                HfApi(), hf_hub_download, token, cache,
+                I02_BATCH_REVISIONS if os.environ.get("I02_OBJECT_BATCH") == "true" else None,
+            )
     except HfHubHTTPError as error:
         status = error.response.status_code if error.response is not None else "unknown"
         print(f"HF readiness failed: model metadata/config request HTTP {status}. Check token scope and accepted model terms; no GPU work queued.", file=sys.stderr)

@@ -87,7 +87,9 @@ def extract_diagram(case: Case, source: dict, output: Path):
     return scene, report
 
 
-def extract_photo(case: Case, source: dict, output: Path):
+def extract_photo(case: Case, source: dict, output: Path, *, max_objects: int | None = 48):
+    if max_objects is not None and max_objects < 1:
+        raise ValueError("Photo object limit must be positive or None for all detections")
     try:
         import torch
         from transformers import AutoModelForZeroShotObjectDetection, AutoProcessor, Sam2Model, Sam2Processor
@@ -117,9 +119,9 @@ def extract_photo(case: Case, source: dict, output: Path):
     detected = processor.post_process_grounded_object_detection(
         prediction, inputs.input_ids, threshold=.3, text_threshold=.25, target_sizes=[image.size[::-1]],
     )[0]
-    boxes = detected["boxes"].cpu().tolist()[:48]
-    labels = detected["text_labels"][:48]
-    scores = detected["scores"].cpu().tolist()[:48]
+    boxes = detected["boxes"].cpu().tolist()[:max_objects]
+    labels = detected["text_labels"][:max_objects]
+    scores = detected["scores"].cpu().tolist()[:max_objects]
     del detector, inputs, prediction
     torch.cuda.empty_cache()
     if not boxes:

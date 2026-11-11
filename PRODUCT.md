@@ -27,6 +27,9 @@ No certified dimensions, physics/process simulation or guaranteed hidden geometr
 Per-runtime access to private image bytes remains an explicit prerequisite.
 CPU readiness verified required gated model access; a subsequent private smoke
 executed actual Idol weights for one segmented I02 tree object, not a full scene.
+An explicit private I02 multi-object route is implemented with sequential
+per-crop reconstruction, validated resume and inferred-layout scene assembly;
+its actual multi-object execution and quality remain unverified.
 
 ## Operating Context
 
