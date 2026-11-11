@@ -44,6 +44,10 @@ cross-origin mutation permission is granted.
 
 ## Public read-only demo build
 
+[Open the public read-only demo](https://red-wave-0c7bb6c0f.4.azurestaticapps.net/).
+The operator verified all three WebGL2 scenes on the real HTTPS origin. It has
+no API backend, uploaded image inputs or actual Idol inference results.
+
 The separate static build needs no backend, Blender or inference GPU:
 
 ```sh

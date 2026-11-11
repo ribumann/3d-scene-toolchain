@@ -28,7 +28,8 @@ The original Storage website publication was blocked by enforced
 the policy. No firewall, authentication or TLS bypass was used. A separate
 Free Static Web App was therefore created in the same dedicated resource group.
 West Europe returned a regional new-customer capacity refusal, so this app uses
-East US 2. Do not treat the original Storage endpoint as the deployed viewer.
+East US 2. The original Storage account remains provisioned, network-disabled
+and unused; it does not host the demo.
 
 The site is intentionally public. Publish only the allowlisted build output and
 never uploaded source images, tokens, runtime stores or a repository archive.
@@ -38,8 +39,16 @@ its value must never be copied into source, logs, frontend configuration or chat
 CPU workflow run
 [43000921576](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43000921576)
 completed the upload successfully and reported this exact public hostname,
-with Oryx skipped and no API/Functions created. Public-origin browser rendering
-still requires the operator's separate verification.
+with Oryx skipped and no API/Functions created.
+
+On 2026-11-11 the coordinating operator separately verified the public origin:
+HTTPS returned 200 in a secure context; the case catalog and all three scene
+snapshots returned 200 with `application/json`; actual WebGL2 geometry rendered
+for Grocery (28 objects), Semiconductor (28) and Zoo (49), with no lost context.
+Case switching sent no `/api` requests, labels toggled successfully, and an
+explicit `/api/cases` probe returned 404. The public browser panel was only
+173 pixels wide; the earlier 390-pixel no-overflow check was a separate local
+verification, not a public-device/performance certification.
 
 ## Build and inspect
 
@@ -127,8 +136,8 @@ Verify upload content types (`text/html`, JavaScript, CSS, `application/json`);
 do not disable HTTPS or enable public blob-container ACLs to solve access
 failures.
 
-After publication, verify HTTPS, each JSON snapshot, browser WebGL rendering and
-no `/api` requests on the real public origin before claiming a deployed demo.
+After each new publication, repeat the HTTPS, JSON, WebGL and no-`/api` checks;
+the verified observations above are a point-in-time deployment check.
 The app uses the Free plan, not a paid hosting tier. Other resources in the
 dedicated group can still incur charges; apply an operator-managed budget and
 delete only the verified dedicated resources when the PoC is no longer needed.

@@ -103,7 +103,15 @@ Enforced Storage network policy blocked the original publication target. A
 dedicated Free Azure Static Web App was created instead; CPU workflow
 [43000921576](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43000921576)
 successfully uploaded only the read-only build, with no API/Functions.
-Public-origin browser rendering is not verified by that deployment result.
+The coordinating operator subsequently verified the actual public origin at
+https://red-wave-0c7bb6c0f.4.azurestaticapps.net/: secure HTTPS 200, catalog and
+P01-P03 JSON 200 with `application/json`, and all three visibly rendered WebGL2
+scenes (28/28/49 objects) with no lost context. Labels toggled; switching cases
+made no `/api` requests, and an explicit `/api/cases` probe returned 404.
+The public browser panel was 173 pixels wide; local 390-pixel layout checks
+remain separate evidence, not a public performance or device certification.
+The original Storage account remains provisioned but network-disabled and
+unused; it is not the viewer host.
 See [`infra/azure/static-demo.md`](../infra/azure/static-demo.md) for the artifact
 boundary, exact target and opt-in deployment controls.
 
