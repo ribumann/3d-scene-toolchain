@@ -1,0 +1,206 @@
+"""Publish only approved generated trial references and validated derived outputs."""
+
+import argparse
+import json
+import re
+import shutil
+import tempfile
+from pathlib import Path
+
+from scene_pipeline.gaussians import validate_ply
+from scene_pipeline.models import Scene
+from scripts.package_pilots import pinned_environment, public_ply
+from scripts.private_gpu_batch import digest, private_path, snapshot_extraction, write_json
+from scripts.private_gpu_smoke import ROOT, SmokeError
+from scripts.private_gpu_trials import SETTINGS, assemble, checked_result, crop_plan, source_path
+from scripts.trial_contracts import VARIANTS, TrialManifest, load_manifest
+
+APPROVED_MANIFEST = ROOT / "cases/trials.json"
+STATUSES = {"not_run", "processing", "failed", "partial", "succeeded", "interrupted"}
+SUMMARY_FIELDS = {
+    "trial_id", "variant", "status", "failure_reason", "expected_objects", "detected_objects",
+    "usable_crops", "rejected", "objects", "cache_hits", "cache_misses", "resumed",
+    "independent_generations", "settings", "source_sha256", "supervision", "seconds_this_run",
+    "objects_succeeded", "objects_failed", "published_instances",
+}
+
+
+def safe_report(report):
+    if set(report) - SUMMARY_FIELDS or report["status"] not in STATUSES:
+        raise SmokeError("invalid_trial_public_report")
+    for record in report.get("objects", []) + report.get("rejected", []):
+        if set(record) - {"node_id", "status", "timing", "failure_reason", "reason", "duplicate_of", "resume_rejected"}:
+            raise SmokeError("unexpected_trial_object_report")
+        for field in ("failure_reason", "reason", "resume_rejected", "node_id", "duplicate_of"):
+            if field in record and not re.fullmatch(r"[a-zA-Z0-9_.-]{1,120}", record[field]):
+                raise SmokeError("unsafe_trial_failure_diagnostic")
+        if "timing" in record and (
+            set(record["timing"]) - {"seconds", "peak_device_memory_mib_sampled", "sample_interval_seconds"}
+            or any(not isinstance(value, (int, float)) or value < 0 for value in record["timing"].values())
+        ):
+            raise SmokeError("unsafe_trial_measurement")
+    if report.get("failure_reason") is not None and not re.fullmatch(r"[a-zA-Z0-9_.-]{1,120}", report["failure_reason"]):
+        raise SmokeError("unsafe_trial_failure_diagnostic")
+    return report
+
+
+def package_trials(directory, destination, manifest_path=APPROVED_MANIFEST, approve=False):
+    import fcntl
+
+    if not approve:
+        raise SmokeError("explicit_trial_publication_approval_required")
+    approved = load_manifest(manifest_path)
+    if destination.exists() or destination.is_symlink():
+        raise SmokeError("trial_publication_destination_must_be_new")
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    package = {"schema_version": 1, "approved_generated_trial_publication": True, "trials": [], "files": {}}
+    with tempfile.TemporaryDirectory(prefix=destination.name + "-", dir=destination.parent) as temporary, pinned_environment():
+        staging = Path(temporary)
+        write_json(staging / "trial-manifest.json", approved.model_dump(mode="json"))
+        package["files"]["trial-manifest.json"] = digest(staging / "trial-manifest.json")
+        for trial in approved.trials:
+            source = source_path(directory, trial)
+            reference = f"references/{trial.id}.png"
+            (staging / "references").mkdir(exist_ok=True)
+            shutil.copyfile(source, staging / reference)
+            package["files"][reference] = digest(staging / reference)
+            for variant in VARIANTS:
+                entry = {"trial_id": trial.id, "variant": variant, "status": "not_run", "scene": None, "report": None}
+                package["trials"].append(entry)
+                output = private_path(directory, f"trials/{trial.id}/{variant}")
+                if not (output / "trial.json").exists():
+                    continue
+                with private_path(output, ".lock").open("rb") as lock:
+                    try:
+                        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    except BlockingIOError:
+                        entry["status"] = "processing"
+                        continue
+                    state = json.loads((output / "trial.json").read_text())
+                    if state["status"] == "running":
+                        entry["status"] = "processing"
+                        continue
+                    if state["contract"] != {"trial": trial.model_dump(mode="json"), "variant": variant, "settings": SETTINGS}:
+                        raise SmokeError("trial_publication_contract_mismatch")
+                    entry.update(status=state["status"], report=safe_report(state["report"]))
+                    if not state.get("scene"):
+                        continue
+                    receipt = state["extraction"]
+                    folder = private_path(output, receipt["directory"])
+                    if snapshot_extraction(folder) != receipt["files"]:
+                        raise SmokeError("trial_publication_extraction_changed")
+                    extracted = Scene.model_validate_json((folder / "scene.json").read_text())
+                    extraction = json.loads((folder / "extraction.json").read_text())
+                    candidates, rejected = crop_plan(extracted, extraction, folder, trial, variant)
+                    if rejected != entry["report"]["rejected"]:
+                        raise SmokeError("trial_publication_plan_changed")
+                    successes = state["successes"]
+                    for candidate in candidates:
+                        identifier = candidate["node_id"]
+                        if identifier not in successes:
+                            continue
+                        result = successes[identifier]
+                        generated = private_path(directory, result["directory"])
+                        attempt = state["objects"][identifier]["attempts"][-1]
+                        metadata, _ = checked_result(generated, candidate["path"], attempt["files"])
+                        if metadata != result["metadata"]:
+                            raise SmokeError("trial_publication_generation_changed")
+                    scene = assemble(trial, variant, extracted, candidates, successes)
+                    for asset in scene.assets:
+                        parent = asset.provenance["parent_node_id"]
+                        relative = f"assets/{trial.id}/{variant}/{parent}.ply"
+                        validated = public_ply(private_path(directory, successes[parent]["directory"]) / "object.ply", staging / relative)
+                        asset.sha256 = validated["sha256"]
+                        provenance = asset.provenance
+                        asset.provenance = {
+                            **validated, "model": "speridlabs/idol", "mode": "real",
+                            "steps": 50, "seed": 42, "model_pins": SETTINGS["model_pins"],
+                            "sdk_revision": SETTINGS["sdk_revision"],
+                            **{key: provenance[key] for key in (
+                                "trial_id", "variant", "parent_node_id", "crop_sha256", "source_sha256",
+                                "bbox_pixels", "cache_key", "reused", "reusable_asset_id", "instance", "layout",
+                            )},
+                        }
+                        package["files"][relative] = validated["sha256"]
+                    entry["scene"] = f"scenes/{trial.id}-{variant}.json"
+                    (staging / "scenes").mkdir(exist_ok=True)
+                    write_json(staging / entry["scene"], scene.model_dump())
+                    package["files"][entry["scene"]] = digest(staging / entry["scene"])
+        write_json(staging / "trials.json", package)
+        validate_trial_package(staging, manifest_path)
+        staging.rename(destination)
+    return package
+
+
+def validate_trial_package(directory, manifest_path=None):
+    approved = load_manifest(manifest_path or APPROVED_MANIFEST)
+    manifest = TrialManifest.model_validate_json(private_path(directory, "trial-manifest.json").read_text())
+    if manifest != approved or directory.is_symlink():
+        raise SmokeError("unapproved_trial_manifest")
+    package = json.loads(private_path(directory, "trials.json").read_text())
+    if set(package) != {"schema_version", "approved_generated_trial_publication", "trials", "files"} or package["schema_version"] != 1 or package["approved_generated_trial_publication"] is not True:
+        raise SmokeError("unapproved_trial_package")
+    if [(item["trial_id"], item["variant"]) for item in package["trials"]] != [
+        (trial.id, variant) for trial in approved.trials for variant in VARIANTS
+    ]:
+        raise SmokeError("trial_package_inventory_mismatch")
+    allowed = {"trials.json", "trial-manifest.json"}
+    for trial in approved.trials:
+        relative = f"references/{trial.id}.png"
+        if digest(private_path(directory, relative)) != trial.source.sha256:
+            raise SmokeError("trial_reference_hash_mismatch")
+        allowed.add(relative)
+    for entry in package["trials"]:
+        case, variant = entry["trial_id"], entry["variant"]
+        if set(entry) != {"trial_id", "variant", "status", "scene", "report"} or entry["status"] not in STATUSES:
+            raise SmokeError("unsafe_trial_entry")
+        if entry["report"] is not None:
+            report = safe_report(entry["report"])
+            trial = next(item for item in approved.trials if item.id == case)
+            if report["settings"] != SETTINGS or report["source_sha256"] != trial.source.sha256 or report["status"] != entry["status"]:
+                raise SmokeError("invalid_trial_report_provenance")
+        if entry["scene"] is None:
+            continue
+        if entry["status"] not in ("succeeded", "partial") or entry["scene"] != f"scenes/{case}-{variant}.json":
+            raise SmokeError("invalid_trial_scene_status")
+        allowed.add(entry["scene"])
+        scene = Scene.model_validate_json(private_path(directory, entry["scene"]).read_text())
+        if scene.case_id != f"{case}-{variant}" or not scene.nodes or scene.edges:
+            raise SmokeError("invalid_trial_scene_identity")
+        for asset in scene.assets:
+            parent = asset.provenance["parent_node_id"]
+            if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,95}", parent):
+                raise SmokeError("unsafe_trial_asset")
+            relative = f"assets/{case}/{variant}/{parent}.ply"
+            if asset.kind != "ply" or asset.uri != f"/api/assets/trials/{case}/{variant}/{parent}.ply":
+                raise SmokeError("unsafe_trial_asset")
+            validated = validate_ply(private_path(directory, relative))
+            if validated["gaussian_count"] != 32768 or asset.sha256 != validated["sha256"]:
+                raise SmokeError("invalid_trial_gaussians")
+            allowed.add(relative)
+    actual = set()
+    for path in directory.rglob("*"):
+        if path.is_symlink():
+            raise SmokeError("unsafe_trial_package_symlink")
+        if path.is_file():
+            actual.add(path.relative_to(directory).as_posix())
+    if actual != allowed or set(package["files"]) != allowed - {"trials.json"}:
+        raise SmokeError("unexpected_trial_package_files")
+    for name, checksum in package["files"].items():
+        if not re.fullmatch(r"[a-f0-9]{64}", checksum) or digest(private_path(directory, name)) != checksum:
+            raise SmokeError("trial_package_file_changed")
+    return package, approved
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--data-dir", type=Path, required=True)
+    parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--manifest", type=Path, default=APPROVED_MANIFEST)
+    parser.add_argument("--approve-generated-trial-publication", action="store_true")
+    args = parser.parse_args()
+    package_trials(args.data_dir, args.out, args.manifest, args.approve_generated_trial_publication)
+
+
+if __name__ == "__main__":
+    main()

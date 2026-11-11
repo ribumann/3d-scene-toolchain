@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "trials": [
+    {
+      "id": "T01",
+      "title": "Synthetic inspection photo: utility-room pump",
+      "detector_phrases": ["pump"],
+      "expected_inventory": [{"identity": "pump-assembly", "category": "pump", "count": 1}],
+      "reviewed_objects": [{"id": "pump-assembly", "identity": "pump-assembly", "category": "pump", "box": [0.25, 0.45, 0.4, 0.355], "reviewed": true}],
+      "instances": [{"id": "pump-1", "object_id": "pump-assembly", "position": [0, 0.5, 0], "rotation": [0, 0, 0], "size": [1.6, 1, 0.8]}],
+      "source": {
+        "filename": "T01.png",
+        "sha256": "29e76fcbfde7be4e345202788a53ae35ddf6c24feaf46ba53bab9eb86565e795",
+        "url": "https://raw.githubusercontent.com/ribumann/3d-scene-toolchain/0da37093aa90905eefb16562c1b6017fca9bd536/experiments/overnight-20261111/inputs/T01.png",
+        "kind": "generated-photographic-scene",
+        "generator": "Copilot image_generation tool; underlying image model/version not exposed",
+        "prompt": "Generate a realistic ordinary CAMERA PHOTOGRAPH of an industrial utility-room corner, not a product render or a perfect 3D object. The reconstruction target is ONE blue centrifugal pump and gray electric motor connected on a shared worn steel base, sitting on a dusty concrete floor. The pump occupies only about 40 percent of the photograph, in the lower middle of the frame, seen obliquely from standing human height. Around and behind it: rough off-white painted masonry, copper and gray pipes attached to the wall, a small junction box, a coiled cable along the skirting, a stained floor drain and a few floor scuffs. A connected pipe enters the pump inlet and a thin foreground cable crosses near one foot, but the main pump/motor silhouette and shared base remain mostly visible. Realistic imperfect mixed workshop lighting from one high window and a fluorescent fixture, mild shadows and slight sensor grain, plausible small paint scratches and dust. Full room photograph with an unposed everyday maintenance-inspection feel. The pump must require object detection and segmentation to separate it from floor, pipes and background; do not isolate it, do not use a seamless studio, do not make a CAD or CGI look, no dramatic cinematic effects. No people, readable text, logos, labels, watermarks, split panels or annotations. This is a synthetic photographic test scene, not a claim of a photograph from a real site.",
+        "publication_approved": true
+      },
+      "layout_kind": "manual-relative-not-metric"
+    },
+    {
+      "id": "T02",
+      "title": "Synthetic inspection photo: three-equipment mechanical room",
+      "detector_phrases": ["pump", "tank", "control cabinet"],
+      "expected_inventory": [{"identity": "pump", "category": "pump", "count": 1}, {"identity": "tank", "category": "tank", "count": 1}, {"identity": "cabinet", "category": "control cabinet", "count": 1}],
+      "reviewed_objects": [
+        {"id": "pump", "identity": "pump", "category": "pump", "box": [0.075, 0.445, 0.4, 0.455], "reviewed": true},
+        {"id": "tank", "identity": "tank", "category": "tank", "box": [0.424, 0.1, 0.207, 0.49], "reviewed": true},
+        {"id": "cabinet", "identity": "cabinet", "category": "control cabinet", "box": [0.765, 0.075, 0.195, 0.75], "reviewed": true}
+      ],
+      "instances": [
+        {"id": "pump-1", "object_id": "pump", "position": [-2, 0.5, 0], "rotation": [0, 0, 0], "size": [1.6, 1, 0.8]},
+        {"id": "tank-1", "object_id": "tank", "position": [0, 1.1, 0], "rotation": [0, 0, 0], "size": [1, 2.2, 1]},
+        {"id": "cabinet-1", "object_id": "cabinet", "position": [2, 1, 0], "rotation": [0, 0, 0], "size": [1, 2, 0.6]}
+      ],
+      "source": {
+        "filename": "T02.png",
+        "sha256": "1f3df98dc12b0d4a9f0bfaf3b2470b85dea368a69ec72ef54bcd60bf7a00bd81",
+        "url": "https://raw.githubusercontent.com/ribumann/3d-scene-toolchain/0da37093aa90905eefb16562c1b6017fca9bd536/experiments/overnight-20261111/inputs/T02.png",
+        "kind": "generated-photographic-scene",
+        "generator": "Copilot image_generation tool; underlying image model/version not exposed",
+        "prompt": "Generate a believable ordinary CAMERA PHOTOGRAPH taken inside a modest industrial mechanical room during a maintenance walk-through. Exactly THREE primary target equipment assemblies: a blue centrifugal pump with gray motor on one shared base in the left foreground; a tall dull stainless cylindrical buffer tank with domed top and short feet in the middle rear; a closed gray upright electrical control cabinet at the right. They are separate machines within one real-looking room, NOT a showroom lineup or isolated products. Their apparent scales differ because of perspective. Include concrete floor, stained light-gray walls, overhead pipework, wall conduits, small valves, a yellow floor safety stripe and shelving with a couple indistinct maintenance supplies far behind them. Allow one narrow pipe to pass in front of a small edge of the tank and a trailing cable near the pump base; avoid major occlusion so about 85 percent of each target is visible. Camera from a doorway at human height, oblique room perspective, mild lens distortion, slightly uneven fluorescent/daylight illumination, natural soft shadows, subtle dirt and wear, sharp enough to extract the three objects. Equipment occupies about 60 percent of the full image; real background remains visible between and around it. Photographic realism, not an architectural visualization, CAD image, clean product render or studio background. No people, readable writing, brand marks, logos, watermarks, captions, arrows or collage. Synthetic photographic reconstruction input; do not imply this is a documented real facility.",
+        "publication_approved": true
+      },
+      "layout_kind": "manual-relative-not-metric"
+    },
+    {
+      "id": "T03",
+      "title": "Synthetic inspection photo: two pump instances in perspective",
+      "detector_phrases": ["pump"],
+      "expected_inventory": [{"identity": "pump-assembly", "category": "pump", "count": 2}],
+      "reviewed_objects": [
+        {"id": "pump-left", "identity": "pump-assembly", "category": "pump", "box": [0.035, 0.365, 0.58, 0.54], "reviewed": true},
+        {"id": "pump-right", "identity": "pump-assembly", "category": "pump", "box": [0.677, 0.353, 0.245, 0.254], "reviewed": true}
+      ],
+      "instances": [
+        {"id": "pump-left", "object_id": "pump-left", "position": [-1.4, 0.5, 0], "rotation": [0, 0, 0], "size": [1.6, 1, 0.8]},
+        {"id": "pump-right", "object_id": "pump-right", "position": [1.4, 0.5, 1.4], "rotation": [0, 0, 0], "size": [1.6, 1, 0.8]}
+      ],
+      "source": {
+        "filename": "T03.png",
+        "sha256": "709968b94f0691a7e45f52135235dad410e01cee6787e31adfc6f95b4e065d85",
+        "url": "https://raw.githubusercontent.com/ribumann/3d-scene-toolchain/0da37093aa90905eefb16562c1b6017fca9bd536/experiments/overnight-20261111/inputs/T03.png",
+        "kind": "generated-photographic-scene",
+        "generator": "Copilot image_generation tool; underlying image model/version not exposed",
+        "prompt": "Generate a photorealistic ordinary maintenance CAMERA PHOTOGRAPH of a working industrial pump-room interior containing exactly TWO primary blue centrifugal pump-and-gray-motor assemblies of the same general manufactured type, each on its own worn base. One pump is nearer in the left foreground, the second is farther away toward the right rear, with different apparent scale and a slightly different viewing angle due to perspective. Do NOT duplicate a perfect render: both have natural slight variations in dust, paint wear and lighting. The full room must be visible: concrete floor, rough pale walls, pipe manifold behind and above the machines, wall brackets, cable tray, a floor channel and realistic shadows. A thin pipe partly overlaps the far pump's upper edge, but the two assemblies remain individually recognizable and mostly visible; their silhouettes should not merge into one object. Natural inspection-photo framing from standing height, modest uneven overhead work lighting, mild sensor grain, muted colors, no cinematic styling. This scene must require real extraction and instance separation from the background; no seamless studio, no ideal isometric layout, no cutout objects, no CGI/CAD appearance, no exploded view. No people, readable text, brands, logos, watermarks, arrows, borders or collage. This is a synthetic photographic test image, not evidence that the depicted machines or dimensions exist at a real site.",
+        "publication_approved": true
+      },
+      "layout_kind": "manual-relative-not-metric"
+    }
+  ]
+}

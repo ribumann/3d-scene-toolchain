@@ -86,7 +86,12 @@ def main():
         return 1
     if os.environ.get("I02_OBJECT_BATCH") == "true":
         cases = os.environ.get("PILOT_CASES", "I02").split()
-        if not cases or len(cases) != len(set(cases)) or any(case not in ("I01", "I02", "I03", "I04", "I05", "G01", "G02", "G03") for case in cases):
+        trial = os.environ.get("TRIAL_BATCH") == "true"
+        allowed = ("T01", "T02", "T03") if trial else ("I01", "I02", "I03", "I04", "I05", "G01", "G02", "G03")
+        if trial and os.environ.get("TRIAL_VARIANTS") not in ("both", "baseline", "optimized"):
+            print("Select baseline, optimized or both trial variants.", file=sys.stderr)
+            return 1
+        if not cases or len(cases) != len(set(cases)) or any(case not in allowed for case in cases):
             print("Pilot batch readiness failed: use unique I01-I05/G01-G03 case IDs; no GPU work queued.", file=sys.stderr)
             return 1
     try:

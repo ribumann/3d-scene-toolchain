@@ -1,13 +1,13 @@
 """Opt-in sequential generated-input trials; never modify frozen pilot checkpoints."""
 
 import argparse
-import fcntl
 import json
 import os
 import shutil
 import signal
 import sys
 import time
+import urllib.request
 from pathlib import Path
 
 import numpy as np
@@ -36,6 +36,39 @@ def source_path(directory, trial):
             raise SmokeError("invalid_trial_source")
         image.verify()
     return source
+
+
+def stage_sources(directory, manifest_path):
+    """Fetch only hash-bound, explicitly approved generated PNGs."""
+    manifest = load_manifest(manifest_path)
+    target = private_path(directory, "approved-trials")
+    target.mkdir(parents=True, exist_ok=True)
+    for trial in manifest.trials:
+        destination = private_path(target, trial.source.filename)
+        if destination.exists():
+            source_path(directory, trial)
+            continue
+        temporary = private_path(target, trial.source.filename + ".partial")
+        try:
+            with urllib.request.urlopen(trial.source.url, timeout=60) as response, temporary.open("wb") as stream:
+                if response.geturl() != trial.source.url:
+                    raise SmokeError("trial_input_redirect_refused")
+                total = 0
+                while chunk := response.read(64 * 1024):
+                    total += len(chunk)
+                    if total > 12 * 1024 * 1024:
+                        raise SmokeError("trial_input_exceeds_12mib")
+                    stream.write(chunk)
+            if digest(temporary) != trial.source.sha256:
+                raise SmokeError("trial_input_download_checksum_mismatch")
+            with Image.open(temporary) as image:
+                if image.format != "PNG" or image.width * image.height > 20_000_000:
+                    raise SmokeError("invalid_trial_source")
+                image.verify()
+            temporary.replace(destination)
+        finally:
+            temporary.unlink(missing_ok=True)
+    write_json(target / "manifest.json", manifest.model_dump(mode="json"))
 
 
 def extract_trial(directory, output, manifest, case_id, variant):
@@ -206,6 +239,7 @@ def assemble(trial, variant, extracted, candidates, successes):
 
 
 def run_trial(directory, manifest_path, trial, variant):
+    import fcntl
     started = time.monotonic()
     output = private_path(directory, f"trials/{trial.id}/{variant}")
     output.mkdir(parents=True, exist_ok=True)
@@ -361,7 +395,7 @@ def run_trial(directory, manifest_path, trial, variant):
 def main():
     os.umask(0o077)
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("run", "extract"))
+    parser.add_argument("command", choices=("run", "extract", "stage"))
     parser.add_argument("--data-dir", type=Path, required=True)
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--cases", nargs="+", choices=TRIAL_IDS, required=True)
@@ -372,6 +406,9 @@ def main():
     trials = {item.id: item for item in manifest.trials}
     if len(set(args.cases)) != len(args.cases) or len(set(args.variants)) != len(args.variants) or any(case not in trials for case in args.cases):
         parser.error("Select unique manifested trials and variants")
+    if args.command == "stage":
+        stage_sources(args.data_dir, args.manifest)
+        return 0
     if args.command == "extract":
         if len(args.cases) != 1 or len(args.variants) != 1 or args.output is None:
             parser.error("Extraction requires one case/variant and output")

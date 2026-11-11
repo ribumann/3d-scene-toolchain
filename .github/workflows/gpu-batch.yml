@@ -14,6 +14,8 @@ on:
           - gpu
           - batch
           - package
+          - trials
+          - trial-package
       smoke_source:
         description: "Explicit smoke/batch input; public-preview records authorized WebP provenance, never original bytes"
         default: private-original
@@ -35,6 +37,18 @@ on:
         description: "Package mode only: publish stopped results now; active cases remain processing with no scene"
         default: false
         type: boolean
+      trial_variants:
+        description: "Trials only: baseline detector+SAM2 versus supervised optimized route"
+        default: both
+        type: choice
+        options:
+          - both
+          - baseline
+          - optimized
+      publish_trials:
+        description: "Explicitly approve additive generated trial package; requires retained pilot package for public build"
+        default: false
+        type: boolean
       cases:
         description: "Space-separated prompt case IDs (P01 P02 P03). Image uploads remain private until separate access is configured."
         default: "P01 P02 P03"
@@ -49,23 +63,25 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ inputs.smoke_mode == 'package' && 'scene-pilot-publication' || 'scene-gpu-benchmark' }}
+  group: ${{ (inputs.smoke_mode == 'package' || inputs.smoke_mode == 'trial-package') && 'scene-pilot-publication' || 'scene-gpu-benchmark' }}
   cancel-in-progress: false
 
 jobs:
   private-smoke:
-    if: github.event_name == 'workflow_dispatch' && (inputs.smoke_mode == 'readiness' || inputs.smoke_mode == 'gpu' || inputs.smoke_mode == 'batch')
+    if: github.event_name == 'workflow_dispatch' && (inputs.smoke_mode == 'readiness' || inputs.smoke_mode == 'gpu' || inputs.smoke_mode == 'batch' || inputs.smoke_mode == 'trials')
     uses: ./.github/workflows/gpu-smoke.yml
     with:
-      run_gpu: ${{ inputs.smoke_mode == 'gpu' || inputs.smoke_mode == 'batch' }}
-      object_batch: ${{ inputs.smoke_mode == 'batch' }}
+      run_gpu: ${{ inputs.smoke_mode == 'gpu' || inputs.smoke_mode == 'batch' || inputs.smoke_mode == 'trials' }}
+      object_batch: ${{ inputs.smoke_mode == 'batch' || inputs.smoke_mode == 'trials' }}
+      trial_batch: ${{ inputs.smoke_mode == 'trials' }}
+      trial_variants: ${{ inputs.trial_variants || 'both' }}
       pilot_cases: ${{ inputs.pilot_cases || 'I02' }}
       publish_pilots: ${{ inputs.publish_pilots || false }}
       source: ${{ inputs.smoke_source || 'private-original' }}
     secrets:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
   publication-readiness:
-    if: github.event_name == 'workflow_dispatch' && inputs.smoke_mode == 'package'
+    if: github.event_name == 'workflow_dispatch' && (inputs.smoke_mode == 'package' || inputs.smoke_mode == 'trial-package')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -75,10 +91,13 @@ jobs:
           SOURCE: ${{ inputs.smoke_source }}
           PUBLISH_RUNNER: ${{ vars.SCENE_PUBLISH_RUNNER }}
           GPU_RUNNER: ${{ vars.SCENE_GPU_RUNNER }}
+          TRIAL_PACKAGE: ${{ inputs.smoke_mode == 'trial-package' }}
+          APPROVE_TRIALS: ${{ inputs.publish_trials }}
         run: |
           python - <<'PY'
           import os, re
-          if os.environ["APPROVE"] != "true" or os.environ["SOURCE"] != "public-preview":
+          trial = os.environ["TRIAL_PACKAGE"] == "true"
+          if (os.environ["APPROVE_TRIALS"] if trial else os.environ["APPROVE"]) != "true" or (not trial and os.environ["SOURCE"] != "public-preview"):
               raise SystemExit("Package mode requires publish_pilots=true and smoke_source=public-preview.")
           label = os.environ["PUBLISH_RUNNER"]
           if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,99}", label) or label == os.environ["GPU_RUNNER"]:
@@ -93,6 +112,7 @@ jobs:
       CUDA_VISIBLE_DEVICES: ""
       HF_TOKEN: ""
       INCREMENTAL: ${{ inputs.incremental_pilots }}
+      TRIAL_PACKAGE: ${{ inputs.smoke_mode == 'trial-package' }}
     steps:
       - name: Verify isolated publisher workspace before checkout
         run: |
@@ -109,6 +129,7 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
       - name: Snapshot only independently validated stopped cases
+        if: inputs.smoke_mode == 'package'
         run: |
           umask 077
           args=()
@@ -117,11 +138,28 @@ jobs:
             --data-dir /home/scene/scene-private-data \
             --out "$RUNNER_TEMP/pilot-publication-$GITHUB_RUN_ID" \
             --approve-derived-publication "${args[@]}"
+      - name: Package only approved generated trials and validated outputs
+        if: inputs.smoke_mode == 'trial-package'
+        run: |
+          umask 077
+          /home/scene/scene-worker-venv/bin/python -m scripts.package_trials \
+            --data-dir /home/scene/scene-private-data \
+            --out "$RUNNER_TEMP/trial-publication-$GITHUB_RUN_ID" \
+            --approve-generated-trial-publication
       - name: Upload only approved public package
+        if: inputs.smoke_mode == 'package'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: pilot-publication-${{ github.run_id }}
           path: ${{ runner.temp }}/pilot-publication-${{ github.run_id }}/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload only approved trial package
+        if: inputs.smoke_mode == 'trial-package'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: trial-publication-${{ github.run_id }}
+          path: ${{ runner.temp }}/trial-publication-${{ github.run_id }}/
           if-no-files-found: error
           retention-days: 7
   readiness:
