@@ -89,7 +89,11 @@ def extract_diagram(case: Case, source: dict, output: Path, *, max_regions: int 
     return scene, report
 
 
-def extract_photo(case: Case, source: dict, output: Path, *, max_objects: int | None = 48):
+def extract_photo(
+    case: Case, source: dict, output: Path, *, max_objects: int | None = 48,
+    caption: str | None = None, reviewed_boxes: list[list[float]] | None = None,
+    reviewed_labels: list[str] | None = None,
+):
     if max_objects is not None and max_objects < 1:
         raise ValueError("Photo object limit must be positive or None for all detections")
     try:
@@ -113,19 +117,33 @@ def extract_photo(case: Case, source: dict, output: Path, *, max_objects: int | 
         "G02": "industrial machine. conveyor. buffer.",
         "G03": "enclosure. tree. building. pond.",
     }
-    processor = AutoProcessor.from_pretrained(detector_name, revision=detector_revision)
-    detector = AutoModelForZeroShotObjectDetection.from_pretrained(detector_name, revision=detector_revision).to("cuda")
-    inputs = processor(images=image, text=captions[case.id], return_tensors="pt").to("cuda")
-    with torch.inference_mode():
-        prediction = detector(**inputs)
-    detected = processor.post_process_grounded_object_detection(
-        prediction, inputs.input_ids, threshold=.3, text_threshold=.25, target_sizes=[image.size[::-1]],
-    )[0]
-    boxes = detected["boxes"].cpu().tolist()[:max_objects]
-    labels = detected["text_labels"][:max_objects]
-    scores = detected["scores"].cpu().tolist()[:max_objects]
-    del detector, inputs, prediction
-    torch.cuda.empty_cache()
+    if reviewed_boxes is not None:
+        if not reviewed_boxes or reviewed_labels is None or len(reviewed_boxes) != len(reviewed_labels):
+            raise ValueError("Reviewed boxes require one explicit semantic label per box")
+        width, height = image.size
+        if any(
+            len(box) != 4 or not all(np.isfinite(value) for value in box)
+            or box[0] < 0 or box[1] < 0 or box[2] <= 0 or box[3] <= 0
+            or box[0] + box[2] > 1 or box[1] + box[3] > 1
+            for box in reviewed_boxes
+        ):
+            raise ValueError("Reviewed boxes must be normalized x/y/width/height")
+        boxes = [[x * width, y * height, (x + w) * width, (y + h) * height] for x, y, w, h in reviewed_boxes]
+        labels, scores = reviewed_labels, [1.0] * len(boxes)
+    else:
+        processor = AutoProcessor.from_pretrained(detector_name, revision=detector_revision)
+        detector = AutoModelForZeroShotObjectDetection.from_pretrained(detector_name, revision=detector_revision).to("cuda")
+        inputs = processor(images=image, text=caption if caption is not None else captions[case.id], return_tensors="pt").to("cuda")
+        with torch.inference_mode():
+            prediction = detector(**inputs)
+        detected = processor.post_process_grounded_object_detection(
+            prediction, inputs.input_ids, threshold=.3, text_threshold=.25, target_sizes=[image.size[::-1]],
+        )[0]
+        boxes = detected["boxes"].cpu().tolist()[:max_objects]
+        labels = detected["text_labels"][:max_objects]
+        scores = detected["scores"].cpu().tolist()[:max_objects]
+        del detector, inputs, prediction
+        torch.cuda.empty_cache()
     if not boxes:
         raise ValueError("No objects met the detector threshold; refine object phrases or manually annotate before retrying")
     sam_processor = Sam2Processor.from_pretrained(segmenter_name, revision=segmenter_revision)
@@ -157,11 +175,15 @@ def extract_photo(case: Case, source: dict, output: Path, *, max_objects: int | 
             id=identifier, label=f"{label} {index + 1}", category=label, shape="cylinder" if "tank" in label or "vessel" in label else "box",
             position=((x1 + x2 - width) / width * 15, vertical / 2, (y1 + y2 - height) / height * 10),
             size=(extent, vertical, max(.3, extent * .65)), color="#809fab",
-            evidence=Evidence(origin="inferred", confidence=float(score), source_id="image", note="Mask grounded in image; 3D depth, scale and placement are provisional, not recovered dimensions."),
+            evidence=Evidence(origin="inferred", confidence=float(score), source_id="image", note=(
+                "Manually reviewed semantic box with SAM2 mask; confidence is supervision, not measured accuracy. "
+                if reviewed_boxes is not None else "Mask grounded in image; "
+            ) + "3D depth, scale and placement are provisional, not recovered dimensions."),
         ))
         annotations.append({"node_id": identifier, "bbox_pixels": [x1, y1, x2 - x1, y2 - y1], "crop": f"{identifier}.png", "score": score})
     report = {
-        "method": "grounding-dino+sam2", "annotations": annotations, "reviewed": False,
+        "method": "reviewed-boxes+sam2" if reviewed_boxes is not None else "grounding-dino+sam2",
+        "annotations": annotations, "reviewed": False,
         "detector": {"model": detector_name, "revision": detector_revision},
         "segmenter": {"model": segmenter_name, "revision": segmenter_revision},
         "warnings": ["Photo positions are an illustrative image-plane layout. No calibrated depth or process connectivity is inferred."],
