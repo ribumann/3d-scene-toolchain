@@ -1,8 +1,9 @@
 # Benchmark status
 
 This records the development milestone, not full acceptance of the eleven-case
-toolchain. I01-I05 originals are now privately ingested on the operator's host;
-G01-G03 references and verified gated-model execution remain pending.
+toolchain. All eight I01-I05/G01-G03 references are privately ingested on the
+operator's host. Eight authorized public WebP previews are packaged separately;
+verified model reconstruction remains pending.
 
 ## Original CPU batch (before private image intake)
 
@@ -51,7 +52,7 @@ primitive geometry; no resemblance or physical accuracy score is implied.
 
 ## Private original-image intake (2026-11-11)
 
-The user supplied all five originals. The coordinating operator verified their
+The user supplied all eight image references. The coordinating operator verified their
 exact checksums against the attached bytes and ingested them privately through
 the existing FastAPI upload API, including originals, previews and metadata:
 
@@ -63,12 +64,13 @@ the existing FastAPI upload API, including originals, previews and metadata:
 | I04 Assembly diagram | 474 x 647 | Validated and ingested privately |
 | I05 Japanese factory plan | 720 x 1263 | Validated and ingested privately |
 
-All five satisfy the 12 MiB/20-million-pixel upload limits. The files are local
-to the operator's private runtime, not available in this cloud checkout and not
-committed or published. This intake is not extraction, reconstruction or actual
-Idol inference. G01-G03 remain absent; gated model access/execution is unverified.
-The public illustrative demo deliberately still excludes all eight image inputs
-until actual derived outputs and publication scope have been reviewed.
+G01 grocery, G02 semiconductor and G03 zoo AI-generated references were also
+privately ingested; their original dimensions are not recorded in this report.
+All eight full originals remain in the operator's private runtime, not this
+cloud checkout or public build. The user explicitly authorized publication of
+eight metadata-stripped WebP previews (~2.13 MiB total), committed separately at
+`ed50316`. This intake/publication is not extraction, reconstruction or actual
+Idol inference. No derived output publication is implied.
 
 ## Additional checks
 
@@ -102,8 +104,12 @@ reported Tesla T4, 16,384 MiB and driver `615.71.10` after package installation
 completed. The user explicitly approved no auto-shutdown. Spot eviction remains
 possible despite activity; the operator must checkpoint work and manage cleanup.
 
-This confirms VM/hardware/driver readiness only. PyTorch/CUDA model execution
-and actual Idol inference remain unrun. The source deployment defaults were not
+The operator prepared separate Python 3.12 vision/Idol environments and verified
+their imports and CUDA availability. CPU readiness
+[43004864760](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43004864760)
+actually downloaded the required gated configs and resolved five immutable model
+pins; no HF token failure was observed. Actual CUDA kernels/model reconstruction
+and Idol inference remain unverified. The source deployment defaults were not
 changed; this worker used an operator-only Spot/no-shutdown variant after policy
 and schedule-region blockers. See the [GPU operator guide](../infra/azure/README.md).
 
@@ -111,15 +117,19 @@ and schedule-region blockers. See the [GPU operator guide](../infra/azure/README
 
 ### Read-only static viewer preparation
 
-A separate `npm run build:demo` artifact now packages only public deterministic
-templates for P01-P03, with 28, 28 and 49 semantic objects respectively. The eight
-image-input cases remain explicitly unavailable **in that public demo**, even
-though I01-I05 are now ingested privately. No runtime store, original
-image, Blender export or Gaussian inference result is included.
+A separate `npm run build:demo` artifact packages public deterministic templates
+for P01-P03, with 28, 28 and 49 semantic objects respectively, plus exactly eight
+authorized WebP previews. Image cases display original-vs-AI-generated
+provenance and explicitly state that no reconstructed 3D scene is published.
+No runtime store, full original image, Blender export or Gaussian inference
+result is included.
 
 Local Chromium/WebGL2 checks loaded and rendered all three JSON scenes and
 exercised object selection/isolation, camera controls, labels, route pause/play
-and JSON export. All eight missing-input states were checked. No `/api` requests
+and JSON export. The earlier build checked eight missing-input states; the
+reference-preview update separately decoded all eight actual WebPs, checked
+provenance/no-scene labels and error/reload behavior on desktop and at 390 pixels.
+No `/api` requests
 or mutation controls were present. The 390-pixel layout had no horizontal
 document overflow; the browser pass also corrected canvas sizing within the
 mobile viewport. Python snapshot tests, frontend tests and both local/demo
@@ -137,15 +147,16 @@ made no `/api` requests, and an explicit `/api/cases` probe returned 404.
 The public browser panel was 173 pixels wide; local 390-pixel layout checks
 remain separate evidence, not a public performance or device certification.
 The original Storage account remains provisioned but network-disabled and
-unused; it is not the viewer host.
+unused; it is not the viewer host. That initial public-origin verification
+predates the reference-preview UI; each new deployment needs a separate check.
 See [`infra/azure/static-demo.md`](../infra/azure/static-demo.md) for the artifact
 boundary, exact target and opt-in deployment controls.
 
 ### Full pipeline
 
-Use the privately ingested I01-I05 originals on the authorized operator host;
-obtain the three generated G01-G03 references separately. Confirm per-worker
-private input access, gated encoder access and immutable model revisions. Run
+Use the privately ingested eight originals on the authorized operator host;
+no additional image generation is needed. Confirm per-worker
+private input access and use the readiness job's immutable model revisions. Run
 one actual Idol object first, then all eleven full pipeline cases. Review masks,
 labels, graph directions/loops, footprint layout and source-linked uncertainty.
 

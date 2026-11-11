@@ -24,8 +24,9 @@ manufacturing, industrial facilities and a zoo.
 Hybrid geometry and Gaussian appearance assets; source-linked interpretation,
 selection, labels, saved layout edits and illustrative process/path animations.
 No certified dimensions, physics/process simulation or guaranteed hidden geometry.
-Per-runtime access to private image bytes, gated model access and verified GPU
-model execution remain explicit prerequisites.
+Per-runtime access to private image bytes and verified GPU model execution remain
+explicit prerequisites. CPU readiness verified the configured secret's required
+gated model access; that is not model inference.
 
 ## Operating Context
 
@@ -38,10 +39,12 @@ been exposed.
 ## Evidence on Hand
 
 Three scenario prompts are in the repository. On 2026-11-11 the user supplied
-all five originals for I01-I05; the coordinating operator validated and ingested
-them privately through the existing API. Their originals, previews and metadata
-are local to that operator's runtime, not this cloud checkout or public demo.
-G01-G03 generated references are still absent. Intake is not reconstruction.
+all eight references: I01-I05 originals and G01-G03 AI-generated grocery,
+semiconductor and zoo images. The coordinating operator validated and ingested
+them privately through the existing API. Full originals and private metadata
+remain in that operator's runtime. The user separately authorized eight
+metadata-stripped public WebP previews for the read-only demo, clearly labeled
+original-vs-AI-generated and reference-only. Intake is not reconstruction.
 Repository is public and MIT licensed; uploaded media must not be published
 without confirmed rights and scope review.
 

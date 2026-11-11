@@ -5,6 +5,7 @@ button, input, select { font: inherit; }
 button { cursor: pointer; color: #29455a; background: #fff; border: 1px solid #c8d6df; border-radius: 4px; padding: 7px 10px; font-weight: 600; }
 button:hover:not(:disabled) { background: #edf5fa; border-color: #9fb9ca; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid #1767b5; outline-offset: 2px; }
+.reference-figure a:focus-visible { outline: 2px solid #1767b5; outline-offset: 2px; }
 button:disabled { opacity: .48; cursor: not-allowed; }
 button.primary { color: #fff; background: #165f9e; border-color: #165f9e; padding: 9px 15px; }
 button.primary:hover:not(:disabled) { background: #104c80; }
@@ -87,6 +88,13 @@ select, input[type="number"] { color: #253f52; background: #fff; border: 1px sol
 .source-image { display: block; width: 100%; max-height: 200px; object-fit: contain; background: #eef3f6; border: 1px solid #d9e4e9; }
 .source-placeholder { min-height: 90px; display: grid; place-items: center; padding: 12px; text-align: center; color: #6c8393; background: #f1f5f7; border: 1px dashed #cbd9e1; font-size: 12px; }
 .source-copy { color: #576f80; font-size: 12px; margin: 10px 0; overflow-wrap: anywhere; max-height: 120px; overflow: auto; }
+.reference-viewport { flex: 1; min-width: 0; padding: 20px; background: #edf3f7; }
+.reference-heading { margin-bottom: 16px; }
+.reference-heading p { color: #526c7c; margin-top: 6px; }
+.reference-figure { margin: 0; }
+.reference-figure img { display: block; width: 100%; max-height: 560px; object-fit: contain; background: #fff; border: 1px solid #c7d7e1; }
+.reference-figure figcaption { margin-top: 12px; color: #526c7c; line-height: 1.5; }
+.reference-figure a { color: #165f9e; text-underline-offset: 3px; }
 .wide { width: 100%; }
 .object-list { max-height: 240px; overflow: auto; margin: 0 -7px; }
 .object-item { display: flex; gap: 9px; width: 100%; text-align: left; border: 1px solid transparent; background: transparent; padding: 7px; }

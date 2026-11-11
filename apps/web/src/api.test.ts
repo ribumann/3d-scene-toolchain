@@ -21,7 +21,7 @@ describe("API contract", () => {
         "/demo/cases.json", "/demo/P01.json", "/demo/P02.json", "/demo/P03.json",
       ]);
     });
-    it("rejects all mutations and unavailable references without sending requests", async () => {
+    it("rejects all mutations and unpublished reconstructions without sending requests", async () => {
       vi.stubGlobal("fetch", vi.fn());
       const demo = createApi(true);
       for (const result of [
@@ -30,7 +30,7 @@ describe("API contract", () => {
         demo.start("P01", "idol"), demo.cancel("job"), demo.sourceMetadata("I01"),
       ]) await expect(result).rejects.toMatchObject({ status: 403 });
       for (const id of ["I01", "I02", "I03", "I04", "I05", "G01", "G02", "G03", "../P01"]) {
-        await expect(demo.scene(id)).rejects.toMatchObject({ status: 409 });
+        await expect(demo.scene(id)).rejects.toMatchObject({ status: 409, message: expect.stringContaining("no reconstructed 3D scene is published") });
       }
       await expect(demo.jobs()).resolves.toEqual([]);
       expect(fetch).not.toHaveBeenCalled();

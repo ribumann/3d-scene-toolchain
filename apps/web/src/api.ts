@@ -34,7 +34,7 @@ export function createApi(staticDemo = false) {
     cases: () => call<Case[]>(staticDemo ? "/demo/cases.json" : "/api/cases"),
     scene: (id: string) => {
       if (staticDemo && !["P01", "P02", "P03"].includes(id)) {
-        return Promise.reject(new ApiError(409, "This reference image is not included in the public demo. Only P01-P03 have procedural scenes; image extraction and GPU inference have not been run."));
+        return Promise.reject(new ApiError(409, "Reference preview only: no reconstructed 3D scene is published for this case. P01-P03 are separate procedural examples, not reconstructions of the references."));
       }
       return call<Scene>(staticDemo ? `/demo/${id}.json` : `${casePath(id)}/scene`);
     },

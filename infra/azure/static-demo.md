@@ -5,7 +5,9 @@
 This deployment uses a dedicated **Free Azure Static Web App**, with no FastAPI
 backend, GPU, container or model credentials. Three public procedural scene
 snapshots are generated directly from the repository's deterministic templates.
-The eight image-input cases are listed as unavailable, not reconstructed.
+Eight authorized metadata-stripped WebP reference previews are also included:
+I01-I05 original references, and G01/G02/G03 AI-generated grocery/semiconductor/zoo.
+They are labeled **reference only**, not reconstructed 3D scenes.
 This is an illustrative scene viewer, not a live or engineering-certified
 digital twin. Public upload, import, editing, evidence review and pipeline
 execution are disabled; the demo sends no `/api` requests.
@@ -32,7 +34,9 @@ East US 2. The original Storage account remains provisioned, network-disabled
 and unused; it does not host the demo.
 
 The site is intentionally public. Publish only the allowlisted build output and
-never uploaded source images, tokens, runtime stores or a repository archive.
+never full original images, tokens, runtime stores or a repository archive.
+The only image publication authorization covers these eight WebP previews,
+not private originals, masks/crops or inference outputs.
 Do not expose the unauthenticated local API. The operator configured the
 repository secret `AZURE_STATIC_WEB_APPS_API_TOKEN_SCENE_POC` for this exact app;
 its value must never be copied into source, logs, frontend configuration or chat.
@@ -48,7 +52,9 @@ for Grocery (28 objects), Semiconductor (28) and Zoo (49), with no lost context.
 Case switching sent no `/api` requests, labels toggled successfully, and an
 explicit `/api/cases` probe returned 404. The public browser panel was only
 173 pixels wide; the earlier 390-pixel no-overflow check was a separate local
-verification, not a public-device/performance certification.
+verification, not a public-device/performance certification. This initial public
+check predates the reference-preview UI; do not treat it as verification of a
+later preview deployment.
 
 ## Build and inspect
 
@@ -72,15 +78,20 @@ python3 -m http.server 4173 --bind 127.0.0.1 --directory apps/web/dist-demo
 Inspect `http://127.0.0.1:4173/`. All static asset paths are same-origin root
 paths, compatible with the planned Azure website root (not a subpath).
 Check all three scenes, object selection/isolation, top/reset camera, labels,
-route pause/play, JSON export, missing-image states and a narrow viewport.
+route pause/play, JSON export, all eight reference images and provenance labels,
+preview-error/reload behavior and a narrow viewport.
 Network inspection must show no `/api` requests, uploads or mutation calls.
 
 **Artifact:** `apps/web/dist-demo/` contains `index.html`, bundled `assets/`,
-and `demo/{cases,P01,P02,P03}.json`. The separate `apps/web/dist/` is the
+`demo/{cases,P01,P02,P03}.json`, and exactly
+`references/{I01,I02,I03,I04,I05,G01,G02,G03}.webp`. The separate `apps/web/dist/` is the
 editable local frontend and must **not** be substituted for this artifact.
-Generated JSON includes no external assets, private sources or runtime data.
-The generator refuses unexpected files in its public output rather than
-silently bundling them.
+Generated JSON includes only root-relative authorized preview URLs, no private
+sources or runtime data. The generator explicitly copies only these eight files
+from `apps/web/public/references`; it never copies the general public tree or a
+runtime store. Missing allowlisted previews, output symlinks or unexpected output
+files fail the build rather than silently publishing partial/unreviewed content.
+No I/G scene JSON, masks, crops, PLY files or full originals are published.
 
 The **CPU toolchain checks** workflow also builds this artifact and uploads it
 as `static-demo-<full-commit-SHA>` for seven days, using only CPU workers. Its

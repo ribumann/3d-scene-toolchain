@@ -6,10 +6,11 @@ editable geometry, Idol creates selected Gaussian appearance assets, and a React
 Three Fiber/Spark workbench renders and edits the result.
 
 **Current milestone:** the three procedural scenarios run through real Blender
-exports. Eleven case slots are implemented. The five originals for I01-I05 have
-been validated and ingested privately by the coordinating operator; G01-G03
-generated references are still absent. Actual image reconstruction/Idol GPU
-inference has not yet been verified.
+exports. Eleven case slots are implemented. All eight image references
+(I01-I05 originals and G01-G03 AI-generated images) were supplied by the user and
+ingested privately by the coordinating operator. The user authorized eight
+metadata-stripped public WebP previews; full originals remain private.
+Actual image reconstruction/Idol GPU inference has not yet been verified.
 An operator-deployed Italy North Spot T4 now has verified driver/hardware access,
 not verified model execution. This is not a calibrated or telemetry-connected
 digital twin.
@@ -48,7 +49,9 @@ cross-origin mutation permission is granted.
 
 [Open the public read-only demo](https://red-wave-0c7bb6c0f.4.azurestaticapps.net/).
 The operator verified all three WebGL2 scenes on the real HTTPS origin. It has
-no API backend, uploaded image inputs or actual Idol inference results.
+no API backend or actual Idol inference results. The current source build adds
+the eight authorized previews with explicit original-vs-AI-generated provenance;
+the original public-origin verification covered the three procedural scenes.
 
 The separate static build needs no backend, Blender or inference GPU:
 
@@ -64,7 +67,9 @@ python3 -m http.server 4173 --bind 127.0.0.1 --directory apps/web/dist-demo
 Open `http://127.0.0.1:4173`. This is the existing workbench in explicitly
 read-only demo mode: browse three deterministic procedural scenes, select and
 isolate objects, inspect evidence, change camera/labels, play illustrative routes
-and download JSON. Eight image-input slots remain visibly unavailable.
+and download JSON. Select I01-I05 to view original-reference previews or G01-G03
+to view AI-generated-reference previews; open a preview in a new tab for detail.
+Each is labeled **reference only**, with no published 3D reconstruction.
 Uploads, imports, scene edits, job execution and all `/api` requests are disabled.
 The published geometry is compiled directly from the public templates; it does
 not include private runtime data, Blender exports, image reconstruction, splats
@@ -137,14 +142,17 @@ replaced with verified assets.
 | G01-G03 | Separately generated retail, semiconductor and zoo images | Same object-segmentation path |
 
 Upload the original JPEG, PNG or WebP to its case (12 MiB, 20 million pixels max).
-On 2026-11-11 the user supplied all five originals for I01-I05; the coordinating
-operator validated their bytes/checksums and ingested originals, previews and
-metadata privately through the existing upload API. They are available in that
-operator's local runtime, **not in this repository, cloud checkout or public
-demo**. Private intake is not extraction, reconstruction or publication.
-G01-G03 remain absent. Generated-image starter prompts are frozen in
-[`cases/manifest.json`](cases/manifest.json); create them elsewhere and upload
-their outputs. This package does not spend image-generation API credits.
+On 2026-11-11 the user supplied all eight image references. The coordinating
+operator validated and ingested originals, previews and metadata privately
+through the existing upload API. Full originals are available in that
+operator's private runtime, **not in this repository or public demo**.
+Only the eight separately authorized, metadata-stripped WebP previews live at
+`apps/web/public/references/{I01-I05,G01-G03}.webp`. G01/G02/G03 correspond to
+grocery/semiconductor/zoo. Private intake and public previews are not extraction
+or reconstruction. Frozen starter prompts remain in
+[`cases/manifest.json`](cases/manifest.json), but are not claimed as the exact
+generation prompts for the supplied images. No further image generation is
+needed; this package does not spend image-generation API credits.
 
 CPU diagram extraction:
 

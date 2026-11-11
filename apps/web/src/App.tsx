@@ -36,6 +36,8 @@ export default function App() {
   const jsonInput = useRef<HTMLInputElement>(null);
 
   const currentCase = cases.find(item => item.id === caseId);
+  const publicReference = readOnly && currentCase?.input_type !== "prompt" && !!currentCase?.source_url;
+  const referenceProvenance = currentCase?.input_type === "generated" ? "AI-generated reference" : "Original reference";
   const canUpload = !readOnly && !!currentCase && currentCase.input_type !== "prompt";
   const currentNode = scene?.nodes.find(node => node.id === selected);
   const currentJobs = jobs.filter(job => job.case_id === caseId);
@@ -79,7 +81,7 @@ export default function App() {
     api.scene(caseId).then(data => {
       if (active) { setScene(data); setDirty(false); setSelected(data.nodes[0]?.id ?? null); }
     }).catch(err => {
-      if (active) setSceneError(err instanceof ApiError && err.status === 409 ? `Scene awaiting input: ${message(err)}` : `Could not load scene: ${message(err)}`);
+      if (active) setSceneError(err instanceof ApiError && err.status === 409 ? `${readOnly ? "No published scene" : "Scene awaiting input"}: ${message(err)}` : `Could not load scene: ${message(err)}`);
     }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [caseId, refresh]);
@@ -173,7 +175,7 @@ export default function App() {
       <div className="header-context"><span>WORKSPACE</span><strong>{currentCase ? `${currentCase.id} / ${currentCase.title}` : "Case library"}</strong></div>
       <div className="header-actions"><span className="save-state" aria-live="polite">{dirty ? "Unsaved edits" : scene ? `Revision ${scene.revision}` : "No scene loaded"}</span>{readOnly ? <strong className="tag">Read-only demo</strong> : <button className="primary" onClick={save} disabled={!dirty || busy}>Save changes</button>}</div>
     </header>
-    {readOnly && <div className="demo-banner"><strong>Public read-only demo.</strong> Explore three procedural scenes, select objects and inspect evidence. No uploads, saved edits, backend or GPU inference. Eight image inputs are unavailable; layouts are illustrative, not live digital twins.</div>}
+    {readOnly && <div className="demo-banner"><strong>Public read-only demo.</strong> Explore three procedural scenes and eight reference previews. References are not reconstructed scenes; layouts are illustrative, not live digital twins. No uploads, saved edits or public backend.</div>}
     {(error || notice) && <div className={error ? "global-message error" : "global-message"} role={error ? "alert" : "status"}><span>{error || notice}</span><button aria-label="Dismiss message" onClick={() => { setError(""); setNotice(""); }}>×</button></div>}
     <div className="workspace">
       <aside className="library" aria-label="Case navigation">
@@ -182,9 +184,9 @@ export default function App() {
         {(["prompt", "reference", "generated"] as const).map(group => {
           const items = cases.filter(item => group === "prompt" ? item.input_type === "prompt" : group === "generated" ? item.input_type === "generated" : !["prompt", "generated"].includes(item.input_type));
           if (!items.length) return null;
-          return <div className="case-group" key={group}><h3>{group === "prompt" ? "Prompt scenarios" : group === "reference" ? "Reference inputs" : "Generated inputs"}</h3>
+          return <div className="case-group" key={group}><h3>{group === "prompt" ? "Prompt scenarios" : group === "reference" ? readOnly ? "Original references" : "Reference inputs" : readOnly ? "AI-generated references" : "Generated inputs"}</h3>
             {items.map(item => <button key={item.id} className={`case-item ${caseId === item.id ? "active" : ""}`} onClick={() => switchCase(item.id)} disabled={busy} aria-current={caseId === item.id ? "page" : undefined}>
-              <span className="case-id">{item.id}</span><span className="case-name">{item.title}<small>{item.status === "awaiting_input" ? "Awaiting input" : item.input_type}</small></span><span className={`status-dot ${item.status}`} aria-hidden="true" />
+              <span className="case-id">{item.id}</span><span className="case-name">{item.title}<small>{readOnly && item.source_url ? "Reference only" : item.status === "awaiting_input" ? "Awaiting input" : item.input_type}</small></span><span className={`status-dot ${item.status}`} aria-hidden="true" />
             </button>)}
           </div>;
         })}
@@ -194,15 +196,22 @@ export default function App() {
           <div className="scene-actions"><button onClick={exportScene} disabled={!scene || busy}>Export JSON</button>
             {!readOnly && <><input ref={jsonInput} className="visually-hidden" type="file" accept=".json,application/json" aria-label="Import scene JSON file" onChange={event => { const file = event.target.files?.[0]; if (file) void importScene(file); }} />
             <button onClick={() => jsonInput.current?.click()} disabled={!caseId || loading || busy || currentCase?.status === "awaiting_input"}>Import JSON</button></>}
-            <button onClick={reload} disabled={!caseId || loading || busy}>Reload scene</button></div>
+            <button onClick={reload} disabled={!caseId || loading || busy}>{publicReference ? "Reload reference" : "Reload scene"}</button></div>
         </div>
-        <section className="viewport-panel" aria-label="3D scene">
-          <div className="viewport-toolbar"><div className="segmented" aria-label="Display mode"><button aria-pressed={mode === "geometry"} onClick={() => setMode("geometry")}>Geometry</button><button aria-pressed={mode === "splat"} onClick={() => setMode("splat")} disabled={readOnly} title={readOnly ? "No GPU-generated splats are included in this demo." : undefined}>Splat</button></div>
+        <section className="viewport-panel" aria-label={publicReference ? "Reference preview" : "3D scene"}>
+          {!publicReference && <div className="viewport-toolbar"><div className="segmented" aria-label="Display mode"><button aria-pressed={mode === "geometry"} onClick={() => setMode("geometry")}>Geometry</button><button aria-pressed={mode === "splat"} onClick={() => setMode("splat")} disabled={readOnly} title={readOnly ? "No GPU-generated splats are included in this demo." : undefined}>Splat</button></div>
             <div className="toolbar-spacer" /><button onClick={() => setView("orbit")} disabled={!scene}>Orbit</button><button onClick={() => setView("top")} disabled={!scene}>Top</button><button onClick={() => setView("reset")} disabled={!scene}>Reset view</button><span className="divider" /><label className="check"><input type="checkbox" checked={labels} onChange={event => setLabels(event.target.checked)} /> Labels</label>
-          </div>
+          </div>}
           {scene ? <Suspense fallback={<div className="empty-viewport">Loading 3D viewport…</div>}><Viewport scene={scene} selected={selected} onSelect={select} mode={mode} isolated={isolated} labels={labels} playing={playing} speed={speed} cameraView={cameraView} /></Suspense> :
+            publicReference && currentCase ? <div className="reference-viewport">
+              <div className="reference-heading"><h2>{referenceProvenance}</h2><p>No reconstructed 3D scene is published for this reference.</p></div>
+              {sourceError ? <div className="source-placeholder" role="alert">Reference preview could not be loaded. Use Reload reference to try again.</div> :
+                <figure className="reference-figure"><img key={currentCase.id} src={`${currentCase.source_url}?v=${refresh}`} alt={`${referenceProvenance} for ${currentCase.title}, public WebP preview`} onError={() => setSourceError(true)} />
+                  <figcaption>Metadata-stripped public WebP preview. Full original kept private. <a href={currentCase.source_url ?? undefined} target="_blank" rel="noreferrer">Open reference preview (new tab)</a></figcaption>
+                </figure>}
+            </div> :
             <div className="empty-viewport"><div className="empty-symbol" aria-hidden="true">◇</div><h2>{loading ? "Loading scene…" : "Scene not available"}</h2><p>{loading ? "Fetching the current case." : sceneError || "Select a case to begin."}</p>{!loading && canUpload && currentCase?.status === "awaiting_input" && <button onClick={() => fileInput.current?.click()} disabled={busy}>Choose source image</button>}</div>}
-          <div className="viewport-footer"><span><span className="footer-dot" /> {scene ? `${scene.nodes.length} objects · ${scene.edges.length} routes` : "No scene"}</span><span>{scene ? `${scene.units} · Y up` : "Waiting for scene data"}</span></div>
+          <div className="viewport-footer"><span><span className="footer-dot" /> {scene ? `${scene.nodes.length} objects · ${scene.edges.length} routes` : publicReference ? "Reference only" : "No scene"}</span><span>{scene ? `${scene.units} · Y up` : publicReference ? "No published 3D reconstruction" : "Waiting for scene data"}</span></div>
         </section>
         <section className="flow-bar" aria-label="Illustrative flow controls"><div><h2>Illustrative flow</h2><p>Routes indicate relationships, not simulated activity.</p></div><div className="flow-controls"><button onClick={() => setPlaying(value => !value)} disabled={!scene || !scene.edges.length}>{playing ? "Pause" : "Play"}</button><label>Speed <select value={speed} onChange={event => setSpeed(Number(event.target.value))} disabled={!scene}><option value={0.5}>0.5×</option><option value={1}>1×</option><option value={2}>2×</option></select></label>{reducedMotion && <span className="muted">Reduced motion preferred</span>}</div></section>
       </main>
@@ -210,7 +219,7 @@ export default function App() {
         <section className="inspector-section"><div className="section-heading"><h2>Source</h2><span className="tag">{currentCase?.input_type || "—"}</span></div>
           {currentCase?.source_url && !sourceError ? <img className="source-image" src={`${currentCase.source_url}${currentCase.source_url.includes("?") ? "&" : "?"}v=${refresh}`} alt={`Source for ${currentCase.title}`} onError={() => setSourceError(true)} /> :
             <div className="source-placeholder">{currentCase?.input_type === "prompt" ? "Prompt-based scenario" : sourceError ? "Source image could not be loaded." : "Source image not supplied"}</div>}
-          <p className="source-copy">{currentCase?.prompt || currentCase?.source_filename || (currentCase?.input_type === "prompt" ? currentCase.summary : readOnly ? "The original image is not included in this public demo. Uploads and extraction are available only in the local workbench." : "Upload the original image to connect source evidence.")}</p>
+          <p className="source-copy">{publicReference ? `${referenceProvenance} supplied by the user. Public WebP preview, not original bytes or an inferred 3D result.` : currentCase?.prompt || currentCase?.source_filename || (currentCase?.input_type === "prompt" ? currentCase.summary : readOnly ? "No public reference preview is available for this case." : "Upload the original image to connect source evidence.")}</p>
           {sourceMetadata && <details className="source-copy"><summary>Source metadata for JSON import</summary><p>{sourceMetadata.filename}</p><p>SHA-256: {sourceMetadata.sha256}</p><p>Include this exact hash in scene.sources. Import saves immediately; export first to keep a local copy. Nodes and routes can be corrected in JSON while preserving semantic IDs.</p></details>}
           {metadataError && <p className="inline-error">{metadataError}</p>}
           {canUpload && <><input ref={fileInput} type="file" accept="image/*" className="visually-hidden" onChange={event => { const file = event.target.files?.[0]; if (file) void upload(file); }} aria-label="Source image file" />
