@@ -38,7 +38,8 @@ never full original images, tokens, runtime stores or a repository archive.
 Reference-image publication authorization covers these eight WebP previews,
 not private originals or masks/crops. The operator separately approved validated
 derived pilot scenes/PLY for the explicit package route below; the ordinary build
-still includes no inference output, and this new route is not yet deployed.
+still includes no inference output. An initial approved I01-I05 derived snapshot
+has since been deployed; final all-eight publication remains pending below.
 Do not expose the unauthenticated local API. The operator configured the
 repository secret `AZURE_STATIC_WEB_APPS_API_TOKEN_SCENE_POC` for this exact app;
 its value must never be copied into source, logs, frontend configuration or chat.
@@ -213,8 +214,25 @@ Local checks using explicitly **synthetic test PLYs** traversed all eight status
 loaded object appearances (including `Loaded 1/1` with WebGL2 context intact),
 and checked a 390-pixel no-overflow proposal/reference layout without `/api`
 requests. These are renderer/orchestration checks, not eight-case Idol execution
-or public-origin verification. Actual derived deployment and per-case fidelity
-acceptance remain pending the operator's output review.
+or public-origin verification.
+
+The operator subsequently verified actual hosted artifact review
+[43051735955](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43051735955)
+and initial derived deployment
+[43052193139](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43052193139).
+Live `/?case=I02` loaded 9/9 actual appearances with an intact WebGL context,
+no `/api` requests and no horizontal overflow. All 17 public derived-file hashes
+and eight reference hashes matched approved package `43051369124`; public
+`demo/pilots.json` exactly matched its manifest's case list. That snapshot exposed
+I01-I05, while G01-G03 were not yet published.
+
+GPU run `43043580373` has now completed all eight sources (31 real object
+appearances and 203 unreviewed diagram/plan proposals); the
+[runtime report](../../docs/benchmark-status.md#successful-eight-case-approved-preview-batch-2026-11-11)
+records individual counts, approved compressed-WebP provenance and limitations.
+Final CPU publisher `43079293375` was still running at this report;
+final all-eight artifact review/deployment/public rendering is **not yet verified**.
+Per-case fidelity acceptance remains separate from execution and publication.
 
 ## Opt-in Static Web Apps publication
 

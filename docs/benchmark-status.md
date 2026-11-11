@@ -3,8 +3,10 @@
 This records the development milestone, not full acceptance of the eleven-case
 toolchain. All eight I01-I05/G01-G03 references are privately ingested on the
 operator's host. Eight authorized public WebP previews are packaged separately.
-One private I02 tree-object Idol smoke succeeded; full-scene reconstruction and
-the eleven-case full pipeline benchmark remain pending.
+The eight-case approved-WebP pilot completed successfully: 31 validated real
+object appearances across five photo/generated sources, plus 203 unreviewed
+OCR/contour proposals across three diagrams/plans. Full-scene fidelity and the
+eleven-case full pipeline benchmark remain unaccepted.
 
 ## Original CPU batch (before private image intake)
 
@@ -149,10 +151,10 @@ reported.
 This reconstructs **one tree object**, not the outdoor plant, a room, a digital
 twin or all eight image cases. PLY validation establishes the output contract,
 not geometric fidelity or human quality acceptance. The original, segmentation
-crops, PLY and raw logs remain private on the VM. The eight public reference
-previews are unchanged; no inferred object or scene has been published.
+crops, PLY and raw logs from this original-input smoke remain private on the VM.
+The later preview-input batch and approved derived publication below are separate.
 
-### Eight-case private batch: source ready, execution in progress
+### Successful eight-case approved-preview batch (2026-11-11)
 
 The separate registered `smoke_mode=batch` route extracts each photo/generated case once, enumerates
 all usable approved non-person crops without the normal 48-box truncation, and
@@ -175,13 +177,43 @@ and `user-approved-public-webp-preview` / `not_original_bytes=true` provenance.
 This does not relabel previews as original bytes. All eight previews were
 checksum-verified on the worker; final-original transfer/comparison is independent.
 
-After Spot eviction/recovery, the operator dispatched
+After Spot eviction, the original host's redeployment failed. The operator
+recovered the persistent OS disk from a verified 128 GiB snapshot onto
+`scene-twin-recovery-1111`, verified actual T4 CUDA arithmetic, and retained all
+eight previews and the I02 object checkpoints. No completed output was inferred
+merely from a directory's presence; resume revalidated it.
+
+The operator then dispatched
 [43043580373](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43043580373)
-at `90e478cae3629232440abe7c7beef9b866666fc1`; it remained in progress at this
-source milestone. The recovered checkpoint contained one validated I02 preview
-tree object and an interrupted next object, not an accepted all-eight result.
-No actual multi-object completion, full-scene fidelity or other-case
-reconstruction is claimed here.
+at `90e478cae3629232440abe7c7beef9b866666fc1`. The run **succeeded**; its single
+GPU job lasted **1 hour 51 minutes 20 seconds** (14:58:26-16:49:46 UTC).
+The operator verified all eight completed guest checkpoints with zero failures
+and an idle T4 with zero VRAM usage after execution.
+
+| Source | Completed outcome | Validated appearances | Unreviewed region proposals |
+|---|---|---:|---:|
+| I01 Mineral flowsheet | `proposals` | 0 | 31 |
+| I02 Outdoor plant | `succeeded` | 9 | 0 |
+| I03 Vessel room | `succeeded` | 3 | 0 |
+| I04 Assembly diagram | `proposals` | 0 | 112 |
+| I05 Japanese factory plan | `proposals` | 0 | 60 |
+| G01 Generated grocery | `succeeded` | 2 | 0 |
+| G02 Generated semiconductor | `succeeded` | 1 | 0 |
+| G03 Generated zoo | `succeeded` | 16 | 0 |
+| Total | Eight completed sources | 31 | 203 |
+
+I02 reused one validated completed object and generated eight more; two invalid
+crops were explicitly rejected, not failed inference or fabricated substitutes.
+Each appearance has exactly 32,768 validated Gaussians, 50 steps and seed 42,
+using the successful smoke's same five immutable model revisions and pinned SDK.
+Inputs were the checksum-approved compressed public WebPs, **not original bytes**;
+G01-G03 remain AI-generated references. The job duration includes sequential
+extraction/inference/validation and is not a per-object latency guarantee.
+
+These are actual execution/output-contract outcomes, not accuracy or human
+quality scores. No complete facility, calibrated metric layout/depth, recovered
+diagram topology, identity/person reconstruction or engineering digital twin
+is established. Original-image comparison and fidelity review remain separate.
 
 ### Derived-only publication source support
 
@@ -206,8 +238,26 @@ cases with reference comparisons and inferred-layout warnings. Synthetic local
 fixtures verified all eight states and actual PLY loading, plus a 390-pixel
 no-overflow layout; those checks are **not actual inference evidence**.
 The generated default artifact was restored afterward to references/P01-P03 only.
-This export/viewer source is not deployed; the public site remains the previously
-verified procedural/reference build. See the
+The first derived deployment succeeded in
+[43052193139](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43052193139),
+after artifact-backed hosted web review
+[43051735955](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43051735955).
+The operator verified the live `/?case=I02` canvas loaded **9/9** actual
+appearances with an intact WebGL context, no `/api` requests and no horizontal
+overflow. Hosted artifact inspection also loaded I03 **3/3** and showed I01's
+honest proposal banner. All 17 public derived-file SHA256 values matched approved
+package `43051369124`; all eight reference SHA256 values matched, and public
+`demo/pilots.json` exactly equaled its manifest's `cases` list.
+That snapshot published I01-I05, not G01-G03.
+
+Final CPU-only publisher
+[43079293375](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43079293375)
+was running when these final execution facts were reported. **Final all-eight
+artifact review/deployment and public rendering verification remain pending**;
+batch completion alone does not establish their publication. Existing
+`/?case=I01` through `/?case=I05` links select the earlier published sources;
+the same G01-G03 links require the final package to expose their completed views.
+See the
 [publication contract](../infra/azure/static-demo.md#approved-derived-pilot-packages)
 for exact artifacts, commands and approval boundaries.
 
@@ -265,8 +315,9 @@ boundary, exact target and opt-in deployment controls.
 Use the privately ingested eight originals on the authorized operator host;
 no additional image generation is needed. Confirm per-worker
 private input access and use the readiness job's immutable model revisions.
-The one-object smoke is complete; original archive intake, eight-case batch
-completion and all eleven full pipeline cases remain pending. Review masks,
+The one-object smoke and eight-case approved-preview batch are complete;
+original archive intake/comparison and all eleven full pipeline acceptance
+remain pending. Review masks,
 labels, graph directions/loops, footprint layout and source-linked uncertainty.
 
 Directional diagram topology, translations and precise photo depth are currently

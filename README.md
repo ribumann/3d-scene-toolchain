@@ -10,11 +10,14 @@ exports. Eleven case slots are implemented. All eight image references
 (I01-I05 originals and G01-G03 AI-generated images) were supplied by the user and
 ingested privately by the coordinating operator. The user authorized eight
 metadata-stripped public WebP previews; full originals remain private.
-Actual Idol GPU inference succeeded privately for **one segmented tree object
-from I02**, producing 32,768 validated Gaussians on the Italy North Spot T4 in
-[run 43011155168](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43011155168).
-This is not a full plant/room reconstruction, an all-eight image benchmark or a
-calibrated or telemetry-connected digital twin. No inference output is public.
+The approved-WebP eight-case pilot subsequently completed on the Italy North
+Spot T4 in [run 43043580373](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43043580373):
+**31 validated real object appearances** across five photo/generated sources
+and **203 unreviewed region proposals** across three diagrams/plans. The GPU job
+took 1h 51m 20s; appearances used 32,768 Gaussians, 50 steps and seed 42.
+These are output-contract results, not full-facility reconstruction, metric
+accuracy or a calibrated/telemetry-connected digital twin. An initial I01-I05
+derived snapshot is public; final all-eight publication remains pending.
 
 ## Start locally
 
@@ -50,7 +53,7 @@ cross-origin mutation permission is granted.
 
 [Open the public read-only demo](https://red-wave-0c7bb6c0f.4.azurestaticapps.net/).
 The operator verified all three WebGL2 scenes on the real HTTPS origin. It has
-no API backend or actual Idol inference results. The eight authorized previews
+no API backend. The eight authorized previews
 are deployed with explicit original-vs-AI-generated provenance. The operator
 separately verified all eight public preview URLs and image decoding, G03's
 reference-only state, P01's 28 rendered objects and the absent API (404).
@@ -71,17 +74,19 @@ read-only demo mode: browse three deterministic procedural scenes, select and
 isolate objects, inspect evidence, change camera/labels, play illustrative routes
 and download JSON. Select I01-I05 to view original-reference previews or G01-G03
 to view AI-generated-reference previews; open a preview in a new tab for detail.
-Each is labeled **reference only**, with no published 3D reconstruction.
+The default build labels each **reference only**; an explicitly approved derived
+package adds actual available outputs as described below.
 Uploads, imports, scene edits, job execution and all `/api` requests are disabled.
-The published geometry is compiled directly from the public templates; it does
+The default build's geometry is compiled directly from the public templates; it does
 not include private runtime data, Blender exports, image reconstruction, splats
 or actual Idol results. `npm run build` remains the normal editable local build.
 
 An optional, explicitly approved pilot package can add validated object PLYs
 and diagram/plan proposals without exposing a backend. The viewer distinguishes
 successful, partial, failed and not-run cases, keeps reference comparisons, and
-never substitutes geometry for failed appearance loading. This source support
-is not deployed or evidence of completed eight-case inference.
+never substitutes geometry for failed appearance loading. The operator verified
+the initial I01-I05 derived deployment, including live I02 loading 9/9 appearances.
+Final all-eight publication/review is separate from completed GPU execution.
 See the [approved export/build route](infra/azure/static-demo.md#approved-derived-pilot-packages).
 
 Publish only `apps/web/dist-demo/`, not the repository or `.scene-data/`.
@@ -220,7 +225,8 @@ with fake geometry. I01/I04/I05 instead produce unreviewed OCR/contour region
 proposals, without the normal 100-region truncation or invented process topology;
 they are not Idol appearances. Placement/scale/depth are inferred, not metric.
 Select a unique subset with `pilot_cases`; its default remains I02.
-The eight-case run is in progress, not an accepted reconstruction result.
+The eight-case run completed successfully; counts and execution evidence are in
+[`docs/benchmark-status.md`](docs/benchmark-status.md), not an accuracy certificate.
 Setup, output/checkpoint paths and retry semantics are in the Azure guide.
 The user approved published previews for faster input intake, retaining originals
 for final comparison. This uses staged, authorized WebPs and records `user-approved-public-webp-preview` provenance,
