@@ -1,9 +1,13 @@
 # Benchmark status
 
 This records the development milestone, not full acceptance of the eleven-case
-toolchain. Original image bytes and GPU/model access remain external prerequisites.
+toolchain. I01-I05 originals are now privately ingested on the operator's host;
+G01-G03 references and verified gated-model execution remain pending.
 
-## Executed case batch
+## Original CPU batch (before private image intake)
+
+The results below describe the earlier batch, when original image bytes were
+missing. They are historical execution results, not current intake availability.
 
 Command:
 
@@ -44,6 +48,27 @@ Measured extraction/template + Blender stage seconds in one run:
 
 These are local observations, not latency guarantees. Blender output includes
 primitive geometry; no resemblance or physical accuracy score is implied.
+
+## Private original-image intake (2026-11-11)
+
+The user supplied all five originals. The coordinating operator verified their
+exact checksums against the attached bytes and ingested them privately through
+the existing FastAPI upload API, including originals, previews and metadata:
+
+| Case | Original dimensions | Current intake status |
+|---|---|---|
+| I01 Mineral flowsheet | 557 x 550 | Validated and ingested privately |
+| I02 Outdoor plant | 715 x 429 | Validated and ingested privately |
+| I03 Vessel room | 2000 x 1333 | Validated and ingested privately |
+| I04 Assembly diagram | 474 x 647 | Validated and ingested privately |
+| I05 Japanese factory plan | 720 x 1263 | Validated and ingested privately |
+
+All five satisfy the 12 MiB/20-million-pixel upload limits. The files are local
+to the operator's private runtime, not available in this cloud checkout and not
+committed or published. This intake is not extraction, reconstruction or actual
+Idol inference. G01-G03 remain absent; gated model access/execution is unverified.
+The public illustrative demo deliberately still excludes all eight image inputs
+until actual derived outputs and publication scope have been reviewed.
 
 ## Additional checks
 
@@ -88,7 +113,8 @@ and schedule-region blockers. See the [GPU operator guide](../infra/azure/README
 
 A separate `npm run build:demo` artifact now packages only public deterministic
 templates for P01-P03, with 28, 28 and 49 semantic objects respectively. The eight
-image-input cases remain explicitly unavailable. No runtime store, original
+image-input cases remain explicitly unavailable **in that public demo**, even
+though I01-I05 are now ingested privately. No runtime store, original
 image, Blender export or Gaussian inference result is included.
 
 Local Chromium/WebGL2 checks loaded and rendered all three JSON scenes and
@@ -117,8 +143,9 @@ boundary, exact target and opt-in deployment controls.
 
 ### Full pipeline
 
-Obtain the original five files and the three generated references. Confirm the
-intended GPU backend, gated encoder access and immutable model revisions. Run
+Use the privately ingested I01-I05 originals on the authorized operator host;
+obtain the three generated G01-G03 references separately. Confirm per-worker
+private input access, gated encoder access and immutable model revisions. Run
 one actual Idol object first, then all eleven full pipeline cases. Review masks,
 labels, graph directions/loops, footprint layout and source-linked uncertainty.
 

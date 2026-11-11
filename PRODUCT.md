@@ -24,21 +24,26 @@ manufacturing, industrial facilities and a zoo.
 Hybrid geometry and Gaussian appearance assets; source-linked interpretation,
 selection, labels, saved layout edits and illustrative process/path animations.
 No certified dimensions, physics/process simulation or guaranteed hidden geometry.
-Actual image bytes, model access and GPU execution remain explicit prerequisites.
+Per-runtime access to private image bytes, gated model access and verified GPU
+model execution remain explicit prerequisites.
 
 ## Operating Context
 
 React Three Fiber/Three.js browser, Python service and worker, headless Blender
 plus an authoring add-on. GPU inference runs separately from the browser.
-User authorizes an Italy North GPU VM on the intended external-tenant subscription,
-subject to verifying that target and access; no credentials have been exposed.
+The operator verified an Italy North Spot T4 on the intended external-tenant
+subscription; actual model execution remains unverified. No credentials have
+been exposed.
 
 ## Evidence on Hand
 
-Three scenario prompts and five images are visible in the conversation.
-File access to originals is not yet established. Three additional generated
-images may be supplied separately. Repository is public and MIT licensed;
-uploaded media must not be published without confirmed rights.
+Three scenario prompts are in the repository. On 2026-11-11 the user supplied
+all five originals for I01-I05; the coordinating operator validated and ingested
+them privately through the existing API. Their originals, previews and metadata
+are local to that operator's runtime, not this cloud checkout or public demo.
+G01-G03 generated references are still absent. Intake is not reconstruction.
+Repository is public and MIT licensed; uploaded media must not be published
+without confirmed rights and scope review.
 
 ## Product Principles
 

@@ -6,8 +6,10 @@ editable geometry, Idol creates selected Gaussian appearance assets, and a React
 Three Fiber/Spark workbench renders and edits the result.
 
 **Current milestone:** the three procedural scenarios run through real Blender
-exports. Eleven case slots are implemented. The eight image cases require their
-original files; actual segmentation/Idol GPU inference has not yet been verified.
+exports. Eleven case slots are implemented. The five originals for I01-I05 have
+been validated and ingested privately by the coordinating operator; G01-G03
+generated references are still absent. Actual image reconstruction/Idol GPU
+inference has not yet been verified.
 An operator-deployed Italy North Spot T4 now has verified driver/hardware access,
 not verified model execution. This is not a calibrated or telemetry-connected
 digital twin.
@@ -135,9 +137,12 @@ replaced with verified assets.
 | G01-G03 | Separately generated retail, semiconductor and zoo images | Same object-segmentation path |
 
 Upload the original JPEG, PNG or WebP to its case (12 MiB, 20 million pixels max).
-The five images displayed in the planning conversation are **not included**:
-conversation display does not automatically make their original bytes available
-to the checkout. Generated-image starter prompts are frozen in
+On 2026-11-11 the user supplied all five originals for I01-I05; the coordinating
+operator validated their bytes/checksums and ingested originals, previews and
+metadata privately through the existing upload API. They are available in that
+operator's local runtime, **not in this repository, cloud checkout or public
+demo**. Private intake is not extraction, reconstruction or publication.
+G01-G03 remain absent. Generated-image starter prompts are frozen in
 [`cases/manifest.json`](cases/manifest.json); create them elsewhere and upload
 their outputs. This package does not spend image-generation API credits.
 
