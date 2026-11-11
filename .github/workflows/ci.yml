@@ -3,6 +3,7 @@ name: CPU toolchain checks
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -43,6 +44,18 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - run: pip install -e .
       - run: npm ci
       - run: npm run build
       - run: npm test -- --run
+      - run: npm run build:demo
+      - name: Publish public read-only demo build
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: static-demo-${{ github.sha }}
+          path: apps/web/dist-demo/
+          if-no-files-found: error
+          retention-days: 7

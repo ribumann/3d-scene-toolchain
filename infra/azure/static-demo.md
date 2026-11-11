@@ -60,6 +60,20 @@ Generated JSON includes no external assets, private sources or runtime data.
 The generator refuses unexpected files in its public output rather than
 silently bundling them.
 
+The **CPU toolchain checks** workflow also builds this artifact and uploads it
+as `static-demo-<full-commit-SHA>` for seven days, using only CPU workers and no
+Azure/model credentials. If local package access is blocked, download the
+successful run's artifact rather than bypassing TLS verification:
+
+```sh
+gh run download <successful-run-id> --repo ribumann/3d-scene-toolchain \
+  --name static-demo-<full-commit-SHA> --dir apps/web/dist-demo
+```
+
+Verify the run's source SHA and artifact digest before publishing. The download
+contains the build root directly (`index.html`, `assets/`, `demo/`); do not
+substitute the separate procedural-report artifact or an unverified local build.
+
 ## Operator-only Azure publication
 
 These commands are a handoff, not an automatic deploy script. The operator must
