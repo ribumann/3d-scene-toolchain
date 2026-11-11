@@ -80,8 +80,13 @@ jobs:
               raise SystemExit("pilot_run_id must be an explicit numeric Actions run ID.")
           repository = os.environ["GITHUB_REPOSITORY"]
           run = json.loads(subprocess.check_output(
-              ["gh", "run", "view", run_id, "--repo", repository, "--json", "status,headBranch,workflowName"], text=True))
-          if run["status"] != "completed" or run["headBranch"] != os.environ["GITHUB_REF_NAME"] or run["workflowName"] != "Trusted GPU benchmark":
+              ["gh", "api", f"repos/{repository}/actions/runs/{run_id}"], text=True))
+          workflow = json.loads(subprocess.check_output(
+              ["gh", "api", f"repos/{repository}/actions/workflows/gpu-batch.yml"], text=True))
+          expected_path = ".github/workflows/gpu-batch.yml"
+          if (run["status"] != "completed" or run["head_branch"] != os.environ["GITHUB_REF_NAME"]
+              or run["path"] != expected_path or workflow["path"] != expected_path
+              or run["workflow_id"] != workflow["id"]):
               raise SystemExit("Select a completed trusted GPU workflow on this same branch.")
           destination = Path(os.environ["RUNNER_TEMP"]) / ("pilot-publication-" + run_id)
           subprocess.run(["gh", "run", "download", run_id, "--repo", repository,

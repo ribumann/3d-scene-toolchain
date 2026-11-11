@@ -177,6 +177,8 @@ gh workflow run ci.yml --repo ribumann/3d-scene-toolchain \
 It downloads only the exact named artifact, revalidates the allowlist/checksums,
 and builds the usual `static-demo-<source-SHA>` artifact. To publish after review,
 use that same command with `deploy=true`; deployment remains separately opt-in.
+A REST provenance check requires the run's exact `.github/workflows/gpu-batch.yml`
+path and matching registered workflow ID, not its mutable display name.
 A missing, expired, wrong-branch or invalid package fails rather than falling back.
 Omitting `pilot_run_id` preserves the reference/procedural-only build.
 
