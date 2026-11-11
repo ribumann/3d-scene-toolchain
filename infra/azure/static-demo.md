@@ -2,7 +2,7 @@
 
 ## Scope and status
 
-This deployment uses Azure Storage static website hosting, with no FastAPI
+This deployment uses a dedicated **Free Azure Static Web App**, with no FastAPI
 backend, GPU, container or model credentials. Three public procedural scene
 snapshots are generated directly from the repository's deterministic templates.
 The eight image-input cases are listed as unavailable, not reconstructed.
@@ -13,20 +13,29 @@ execution are disabled; the demo sends no `/api` requests.
 The coordinating operator reported creation of these dedicated resources.
 Resource creation is not deployment or public rendering verification:
 
-| Setting | Intended value |
+| Setting | Configured target |
 |---|---|
 | Tenant | `ecd6dfda-d2ce-47a8-9901-e35f31fe18dd` |
 | Subscription | `86677b6e-28fc-48e4-8988-5ab9e568eece` (`ME-MngEnvMCAP621318-ribumann-2`) |
 | Resource group | `rg-3d-scene-toolchain-poc` |
-| Storage account | `scene3dpoc86677b6e` |
-| Region / SKU | `swedencentral` / `Standard_LRS`, StorageV2 |
-| Planned endpoint | `https://scene3dpoc86677b6e.z1.web.core.windows.net/` |
+| Static Web App | `swa-3d-scene-toolchain-poc` |
+| Region / plan | `eastus2` / Free |
+| Public endpoint | `https://red-wave-0c7bb6c0f.4.azurestaticapps.net/` |
+| Original storage target (blocked) | `scene3dpoc86677b6e`, `swedencentral`, Standard_LRS |
 
-The account has HTTPS-only transport, minimum TLS 1.2 and blob public ACLs
-disabled. The **static website endpoint is nevertheless intentionally public**;
-disabling blob ACLs does not make `$web` website contents private. Publish only
-the allowlisted build output and never uploaded source images, tokens, runtime
-stores or a repository archive. Do not expose the unauthenticated local API.
+The original Storage website publication was blocked by enforced
+`publicNetworkAccess: Disabled`; a normal public-network update did not override
+the policy. No firewall, authentication or TLS bypass was used. A separate
+Free Static Web App was therefore created in the same dedicated resource group.
+West Europe returned a regional new-customer capacity refusal, so this app uses
+East US 2. Do not treat the original Storage endpoint as the deployed viewer.
+
+The site is intentionally public. Publish only the allowlisted build output and
+never uploaded source images, tokens, runtime stores or a repository archive.
+Do not expose the unauthenticated local API. The operator configured the
+repository secret `AZURE_STATIC_WEB_APPS_API_TOKEN_SCENE_POC` for this exact app;
+its value must never be copied into source, logs, frontend configuration or chat.
+Resource creation and workflow configuration do not prove public rendering.
 
 ## Build and inspect
 
@@ -61,8 +70,9 @@ The generator refuses unexpected files in its public output rather than
 silently bundling them.
 
 The **CPU toolchain checks** workflow also builds this artifact and uploads it
-as `static-demo-<full-commit-SHA>` for seven days, using only CPU workers and no
-Azure/model credentials. If local package access is blocked, download the
+as `static-demo-<full-commit-SHA>` for seven days, using only CPU workers. Its
+ordinary build/artifact path uses no Azure/model credentials. If local package
+access is blocked, download the
 successful run's artifact rather than bypassing TLS verification:
 
 ```sh
@@ -74,35 +84,39 @@ Verify the run's source SHA and artifact digest before publishing. The download
 contains the build root directly (`index.html`, `assets/`, `demo/`); do not
 substitute the separate procedural-report artifact or an unverified local build.
 
-## Operator-only Azure publication
+## Opt-in Static Web Apps publication
 
-These commands are a handoff, not an automatic deploy script. The operator must
-verify fresh ARM authorization and the exact tenant/subscription first. Do not
-change credentials, request model tokens or provision a GPU for this demo.
+Deployment is disabled by default. Pushes, pull requests and manual runs with
+`deploy=false` only build, test and publish the artifact. A manual run with
+`deploy=true` additionally invokes the official `Azure/static-web-apps-deploy@v1`
+action, using only the dedicated app's repository secret. It uploads
+`apps/web/dist-demo` directly with `skip_app_build=true`, empty output location
+and no API location/build. It does not publish the ordinary editable frontend,
+create Azure resources or request GPU/model access.
+
+The operator must verify the exact target and current authorization before
+dispatching; do not change resource policies or copy deployment keys:
 
 ```sh
 az account show --query '{subscription:id,tenant:tenantId,name:name,state:state}' -o json
-az storage account show \
+az staticwebapp show \
   --subscription 86677b6e-28fc-48e4-8988-5ab9e568eece \
-  --resource-group rg-3d-scene-toolchain-poc --name scene3dpoc86677b6e \
-  --query '{id:id,website:primaryEndpoints.web,https:enableHttpsTrafficOnly,tls:minimumTlsVersion,publicBlobACLs:allowBlobPublicAccess}'
+  --resource-group rg-3d-scene-toolchain-poc --name swa-3d-scene-toolchain-poc \
+  --query '{id:id,hostname:defaultHostname,sku:sku.name}'
 ```
 
-Stop on any identity/resource mismatch. Publishing with `--auth-mode login`
-requires an appropriate blob data-plane role, such as **Storage Blob Data
-Contributor** on this dedicated account; subscription Contributor alone does
-not imply blob data access. Role changes are a separate operator decision.
-Use the authenticated CLI environment; never put account keys or SAS tokens in
-source, frontend configuration or chat.
+Stop on an identity/resource mismatch. After verifying the approved source
+revision on the continuation branch, dispatch the CPU workflow explicitly:
 
 ```sh
-az storage blob service-properties update \
-  --account-name scene3dpoc86677b6e --auth-mode login \
-  --static-website --index-document index.html
-az storage blob upload-batch \
-  --account-name scene3dpoc86677b6e --auth-mode login \
-  --destination '$web' --source apps/web/dist-demo --overwrite true
+gh workflow run ci.yml --repo ribumann/3d-scene-toolchain \
+  --ref copilot/hybrid-scene-toolchain -f deploy=true
 ```
+
+The workflow sets the continuation branch as the app's production branch so
+this explicit run targets the main public hostname, not a preview environment.
+Check the deployment step's real outcome; a successful artifact upload alone is
+not a successful site deployment.
 
 The build is root-only and does not need SPA route fallbacks. Leave unknown
 paths, especially `/api/...`, as errors rather than mapping them to `index.html`.
@@ -112,7 +126,6 @@ failures.
 
 After publication, verify HTTPS, each JSON snapshot, browser WebGL rendering and
 no `/api` requests on the real public origin before claiming a deployed demo.
-Storage/egress have small but nonzero costs; apply an operator-managed budget
-and delete the dedicated resource group when the PoC is no longer needed.
-Upload-batch does not remove older hashed bundles; remove only known obsolete
-files if needed, never unrelated account contents.
+The app uses the Free plan, not a paid hosting tier. Other resources in the
+dedicated group can still incur charges; apply an operator-managed budget and
+delete only the verified dedicated resources when the PoC is no longer needed.
