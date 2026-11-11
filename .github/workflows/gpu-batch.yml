@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       smoke_mode:
-        description: "off: procedural benchmark; readiness: HF checks; gpu: one-object smoke; batch: resumable private I02 objects"
+        description: "off: benchmark; readiness: HF checks; gpu: smoke; batch: pilot processing; package: approved export only"
         default: "off"
         required: false
         type: choice
@@ -13,6 +13,7 @@ on:
           - readiness
           - gpu
           - batch
+          - package
       smoke_source:
         description: "Explicit smoke/batch input; public-preview records authorized WebP provenance, never original bytes"
         default: private-original
@@ -26,6 +27,10 @@ on:
         default: "I02"
         type: string
         required: false
+      publish_pilots:
+        description: "Explicitly approve validated derived pilot scenes/PLY for public packaging; never originals/crops/logs"
+        default: false
+        type: boolean
       cases:
         description: "Space-separated prompt case IDs (P01 P02 P03). Image uploads remain private until separate access is configured."
         default: "P01 P02 P03"
@@ -45,12 +50,14 @@ concurrency:
 
 jobs:
   private-smoke:
-    if: github.event_name == 'workflow_dispatch' && (inputs.smoke_mode == 'readiness' || inputs.smoke_mode == 'gpu' || inputs.smoke_mode == 'batch')
+    if: github.event_name == 'workflow_dispatch' && (inputs.smoke_mode == 'readiness' || inputs.smoke_mode == 'gpu' || inputs.smoke_mode == 'batch' || inputs.smoke_mode == 'package')
     uses: ./.github/workflows/gpu-smoke.yml
     with:
-      run_gpu: ${{ inputs.smoke_mode == 'gpu' || inputs.smoke_mode == 'batch' }}
-      object_batch: ${{ inputs.smoke_mode == 'batch' }}
+      run_gpu: ${{ inputs.smoke_mode == 'gpu' || inputs.smoke_mode == 'batch' || inputs.smoke_mode == 'package' }}
+      object_batch: ${{ inputs.smoke_mode == 'batch' || inputs.smoke_mode == 'package' }}
+      package_only: ${{ inputs.smoke_mode == 'package' }}
       pilot_cases: ${{ inputs.pilot_cases || 'I02' }}
+      publish_pilots: ${{ inputs.publish_pilots || false }}
       source: ${{ inputs.smoke_source || 'private-original' }}
     secrets:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}

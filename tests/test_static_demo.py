@@ -59,7 +59,7 @@ class StaticDemoTests(unittest.TestCase):
             self.assertEqual({path.name for path in output.iterdir()}, {"demo", "references"})
             self.assertEqual(
                 {path.name for path in (output / "demo").iterdir()},
-                {"cases.json", "P01.json", "P02.json", "P03.json"},
+                {"cases.json", "P01.json", "P02.json", "P03.json", "pilots.json"},
             )
             self.assertEqual(
                 {path.name for path in (output / "references").iterdir()},

@@ -67,6 +67,12 @@ def main():
     from requests.exceptions import RequestException
 
     token = os.environ.get("HF_TOKEN")
+    if os.environ.get("PACKAGE_ONLY") == "true" and os.environ.get("PUBLISH_PILOTS") != "true":
+        print("Package-only readiness failed: explicit publish_pilots approval is required.", file=sys.stderr)
+        return 1
+    if os.environ.get("PUBLISH_PILOTS") == "true" and os.environ.get("SMOKE_SOURCE") != "public-preview":
+        print("Publication readiness failed: select the explicitly approved public-preview source route.", file=sys.stderr)
+        return 1
     if not token:
         print("HF readiness failed: HF_TOKEN secret is missing.", file=sys.stderr)
         return 1

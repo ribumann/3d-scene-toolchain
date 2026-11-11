@@ -12,6 +12,7 @@ type Props = {
   scene: Scene; selected: string | null; onSelect: (id: string) => void;
   mode: "geometry" | "splat"; isolated: string | null; labels: boolean;
   playing: boolean; speed: number; cameraView: { kind: "orbit" | "top" | "reset"; serial: number };
+  strictAssets?: boolean;
 };
 
 function assetNode(asset: SceneAsset, nodes: SceneNode[]) {
@@ -99,7 +100,7 @@ function Spark({ assets, nodes, onError, onLoaded }: { assets: SceneAsset[]; nod
         onLoaded(asset.id, false);
         const node = assetNode(asset, nodes);
         const fit = node ? splatFit(asset, node) : null;
-        if (node && !fit) { onError(`Splat ${asset.id} has missing or invalid bounds; editable geometry remains visible.`); continue; }
+        if (node && !fit) { onError(`Splat ${asset.id} has missing or invalid bounds; its generated appearance is unavailable.`); continue; }
         const mesh = new SplatMesh({ url: asset.uri });
         mesh.name = asset.id;
         if (node && fit) {
@@ -171,9 +172,12 @@ function Route({ points, playing, speed }: { points: Vec3[]; playing: boolean; s
   </>;
 }
 
-function SceneContent(props: Props & { onError: (message: string) => void; labelElements: Map<string, HTMLSpanElement> }) {
+function SceneContent(props: Props & { onError: (message: string) => void; onAssetLoaded: (id: string, value: boolean) => void; labelElements: Map<string, HTMLSpanElement> }) {
   const [loaded, setLoaded] = useState<Record<string, boolean>>({});
-  const onLoaded = useMemo(() => (id: string, value: boolean) => setLoaded(previous => previous[id] === value ? previous : { ...previous, [id]: value }), []);
+  const onLoaded = useMemo(() => (id: string, value: boolean) => {
+    setLoaded(previous => previous[id] === value ? previous : { ...previous, [id]: value });
+    props.onAssetLoaded(id, value);
+  }, [props.onAssetLoaded]);
   const nodes = useMemo(() => visibleNodes(props.scene, props.isolated), [props.scene.nodes, props.isolated]);
   const ids = useMemo(() => new Set(nodes.map(n => n.id)), [nodes]);
   const assets = useMemo(() => props.scene.assets.filter(asset => {
@@ -191,7 +195,7 @@ function SceneContent(props: Props & { onError: (message: string) => void; label
     {models.map(asset => <ModelAsset key={asset.id} asset={asset} node={assetNode(asset, nodes)} onError={props.onError} onLoaded={onLoaded} />)}
     {props.labels && <LabelProjection nodes={nodes} elements={props.labelElements} />}
     {nodes.map(node => <NodeMesh key={node.id} node={node} selected={props.selected === node.id} onSelect={() => props.onSelect(node.id)}
-      proxy={models.some(a => assetNode(a, nodes)?.id === node.id && loaded[a.id]) ||
+      proxy={(props.strictAssets && splats.some(a => assetNode(a, nodes)?.id === node.id)) || models.some(a => assetNode(a, nodes)?.id === node.id && loaded[a.id]) ||
         (props.mode === "splat" && splats.some(a => assetNode(a, nodes)?.id === node.id && loaded[a.id] && splatFit(a, node)))} />)}
     {props.scene.edges.filter(edge => ids.has(edge.source) && ids.has(edge.target)).map(edge => <Route key={edge.id} points={routePoints(edge, props.scene)} playing={props.playing} speed={props.speed} />)}
   </>;
@@ -199,18 +203,21 @@ function SceneContent(props: Props & { onError: (message: string) => void; label
 
 export default function Viewport(props: Props) {
   const [errors, setErrors] = useState<string[]>([]);
+  const [loadedAssets, setLoadedAssets] = useState<Record<string, boolean>>({});
   const labelElements = useMemo(() => new Map<string, HTMLSpanElement>(), []);
   const onError = useMemo(() => (message: string) => setErrors(previous => previous.includes(message) ? previous : [...previous, message]), []);
-  useEffect(() => { setErrors([]); }, [props.scene.id, props.mode]);
+  const onAssetLoaded = useMemo(() => (id: string, value: boolean) => setLoadedAssets(previous => previous[id] === value ? previous : { ...previous, [id]: value }), []);
+  useEffect(() => { setErrors([]); setLoadedAssets({}); }, [props.scene.id, props.mode]);
   return <div className="canvas-wrap">
     <CanvasBoundary key={props.scene.id}><Canvas style={{ position: "absolute", inset: 0 }} gl={{ antialias: false }} camera={{ position: [18, 18, 18], fov: 45 }}>
-      <Suspense fallback={null}><SceneContent key={`${props.scene.id}-${props.mode}`} {...props} onError={onError} labelElements={labelElements} /></Suspense>
+      <Suspense fallback={null}><SceneContent key={`${props.scene.id}-${props.mode}`} {...props} onError={onError} onAssetLoaded={onAssetLoaded} labelElements={labelElements} /></Suspense>
     </Canvas></CanvasBoundary>
     <div className="scene-label-overlay" aria-hidden="true">{props.labels && visibleNodes(props.scene, props.isolated).map(node =>
       <span key={node.id} ref={element => { if (element) labelElements.set(node.id, element); else labelElements.delete(node.id); }} className={`scene-label ${props.selected === node.id ? "selected" : ""}`}>{node.label}</span>
     )}</div>
     {props.mode === "splat" && !props.scene.assets.some(a => a.kind === "ply") && <div className="viewport-note">No splat asset for this scene. Showing editable geometry.</div>}
     {errors.length > 0 && <div className="viewport-error" role="alert">{errors.map(error => <div key={error}>{error}</div>)}</div>}
+    {props.strictAssets && <div className="viewport-note" role="status">Loaded {props.scene.assets.filter(asset => loadedAssets[asset.id]).length}/{props.scene.assets.length} object appearances · Inferred layout · No geometry substitute on load failure</div>}
     <div className="viewport-hint">Drag to orbit · Scroll to zoom</div>
   </div>;
 }

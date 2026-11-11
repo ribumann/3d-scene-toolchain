@@ -95,6 +95,10 @@ select, input[type="number"] { color: #253f52; background: #fff; border: 1px sol
 .reference-figure img { display: block; width: 100%; max-height: 560px; object-fit: contain; background: #fff; border: 1px solid #c7d7e1; }
 .reference-figure figcaption { margin-top: 12px; color: #526c7c; line-height: 1.5; }
 .reference-figure a { color: #165f9e; text-underline-offset: 3px; }
+.pilot-status { padding: 14px; background: #fff; border: 1px solid #c7d7e1; color: #29455a; }
+.pilot-status p { margin-top: 6px; max-width: 75ch; }
+.reference-link { color: #165f9e; text-underline-offset: 3px; }
+.reference-link:focus-visible { outline: 2px solid #1767b5; outline-offset: 2px; }
 .wide { width: 100%; }
 .object-list { max-height: 240px; overflow: auto; margin: 0 -7px; }
 .object-item { display: flex; gap: 9px; width: 100%; text-align: left; border: 1px solid transparent; background: transparent; padding: 7px; }

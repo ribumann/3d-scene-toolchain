@@ -10,6 +10,11 @@ on:
         required: false
         default: false
         type: boolean
+      pilot_run_id:
+        description: "Optional reviewed GPU run ID containing explicitly approved pilot-publication-<runID> artifact"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -42,6 +47,9 @@ jobs:
   web:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -57,6 +65,31 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm test -- --run
+      - name: Download explicitly selected approved pilot package
+        if: github.event_name == 'workflow_dispatch' && inputs.pilot_run_id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PILOT_RUN_ID: ${{ inputs.pilot_run_id }}
+        run: |
+          python - <<'PY'
+          import json, os, re, subprocess
+          from pathlib import Path
+          from scripts.package_pilots import validate_package
+          run_id = os.environ["PILOT_RUN_ID"]
+          if not re.fullmatch(r"[0-9]+", run_id):
+              raise SystemExit("pilot_run_id must be an explicit numeric Actions run ID.")
+          repository = os.environ["GITHUB_REPOSITORY"]
+          run = json.loads(subprocess.check_output(
+              ["gh", "run", "view", run_id, "--repo", repository, "--json", "status,headBranch,workflowName"], text=True))
+          if run["status"] != "completed" or run["headBranch"] != os.environ["GITHUB_REF_NAME"] or run["workflowName"] != "Trusted GPU benchmark":
+              raise SystemExit("Select a completed trusted GPU workflow on this same branch.")
+          destination = Path(os.environ["RUNNER_TEMP"]) / ("pilot-publication-" + run_id)
+          subprocess.run(["gh", "run", "download", run_id, "--repo", repository,
+                          "--name", "pilot-publication-" + run_id, "--dir", str(destination)], check=True)
+          validate_package(destination)
+          with open(os.environ["GITHUB_ENV"], "a") as stream:
+              stream.write("SCENE_PILOT_PUBLIC_PACKAGE=" + str(destination) + "\n")
+          PY
       - run: npm run build:demo
       - name: Publish public read-only demo build
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

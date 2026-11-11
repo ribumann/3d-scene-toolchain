@@ -22,6 +22,14 @@ on:
         type: string
         default: "I02"
         required: false
+      publish_pilots:
+        type: boolean
+        default: false
+        required: false
+      package_only:
+        type: boolean
+        default: false
+        required: false
     secrets:
       HF_TOKEN:
         required: true
@@ -60,12 +68,14 @@ jobs:
           I02_OBJECT_BATCH: ${{ inputs.object_batch }}
           SMOKE_SOURCE: ${{ inputs.source }}
           PILOT_CASES: ${{ inputs.pilot_cases }}
+          PACKAGE_ONLY: ${{ inputs.package_only }}
+          PUBLISH_PILOTS: ${{ inputs.publish_pilots }}
         run: python scripts/resolve_smoke_models.py
   infer:
     if: inputs.run_gpu
     needs: readiness
     runs-on: ${{ vars.SCENE_GPU_RUNNER }}
-    timeout-minutes: ${{ inputs.object_batch && 360 || 90 }}
+    timeout-minutes: ${{ inputs.package_only && 30 || inputs.object_batch && 360 || 90 }}
     env:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       SCENE_IDOL_MODEL_REVISION: ${{ needs.readiness.outputs.idol_revision }}
@@ -92,6 +102,7 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
       - name: Verify prepared runtime and actual CUDA
+        if: ${{ !inputs.package_only }}
         run: |
           nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader
           /home/scene/scene-vision-venv/bin/python - <<'PY'
@@ -145,7 +156,7 @@ jobs:
             --data-dir /home/scene/scene-private-data \
             --output /home/scene/scene-private-data/smoke-output "${args[@]}"
       - name: Process selected private pilot cases sequentially with resume
-        if: inputs.object_batch
+        if: inputs.object_batch && !inputs.package_only
         run: |
           umask 077
           case "$SMOKE_SOURCE" in
@@ -163,3 +174,20 @@ jobs:
           signal.signal(signal.SIGTERM, interrupt)
           raise SystemExit(run_cases(Path("/home/scene/scene-private-data"), os.environ["PILOT_CASES"].split(), os.environ["SMOKE_SOURCE"]))
           PY
+      - name: Package explicitly approved validated public pilot outputs
+        id: package_public
+        if: always() && !cancelled() && inputs.object_batch && inputs.publish_pilots
+        run: |
+          umask 077
+          /home/scene/scene-worker-venv/bin/python -m scripts.package_pilots \
+            --data-dir /home/scene/scene-private-data \
+            --out "$RUNNER_TEMP/pilot-publication-$GITHUB_RUN_ID" \
+            --approve-derived-publication
+      - name: Upload only approved public package
+        if: always() && !cancelled() && steps.package_public.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pilot-publication-${{ github.run_id }}
+          path: ${{ runner.temp }}/pilot-publication-${{ github.run_id }}/
+          if-no-files-found: error
+          retention-days: 7

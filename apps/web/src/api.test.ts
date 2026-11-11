@@ -12,7 +12,9 @@ describe("API contract", () => {
 
   describe("public static demo", () => {
     it("loads the public case catalog and real procedural scene JSON, without using /api", async () => {
-      const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(new Response("{}")));
+      const fetchMock = vi.fn().mockImplementation((path: string) => Promise.resolve(new Response(
+        path.endsWith("cases.json") ? "[]" : JSON.stringify({ case_id: path.match(/(P0[1-3])\.json/)?.[1], assets: [] }),
+      )));
       vi.stubGlobal("fetch", fetchMock);
       const demo = createApi(true);
       await demo.cases();
@@ -38,6 +40,29 @@ describe("API contract", () => {
     it("surfaces missing snapshot files rather than substituting an empty scene", async () => {
       vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("not found", { status: 404 })));
       await expect(createApi(true).scene("P01")).rejects.toMatchObject({ status: 404 });
+    });
+    it("loads only catalog-approved pilot scenes and maps approved PLY paths without /api requests", async () => {
+      const fetchMock = vi.fn().mockImplementation((path: string) => Promise.resolve(new Response(JSON.stringify(
+        path.endsWith("cases.json") ? [{ id: "I02", status: "ready" }] :
+          { case_id: "I02", assets: [{ id: "idol-object-000", uri: "/api/assets/pilot/I02/object-000.ply" }] },
+      ))));
+      vi.stubGlobal("fetch", fetchMock);
+      const demo = createApi(true);
+      await demo.cases();
+      const scene = await demo.scene("I02");
+      expect(scene.assets[0].uri).toBe("/pilot-assets/pilot/I02/object-000.ply");
+      expect(fetchMock.mock.calls.map(call => call[0])).toEqual(["/demo/cases.json", "/demo/I02.json"]);
+      await expect(demo.scene("I03")).rejects.toMatchObject({ status: 409 });
+    });
+    it("rejects unpublished asset paths rather than loading a backend or external resource", async () => {
+      const fetchMock = vi.fn().mockImplementation((path: string) => Promise.resolve(new Response(JSON.stringify(
+        path.endsWith("cases.json") ? [{ id: "I02", status: "ready" }] :
+          { case_id: "I02", assets: [{ uri: "/api/assets/private/original.png" }] },
+      ))));
+      vi.stubGlobal("fetch", fetchMock);
+      const demo = createApi(true);
+      await demo.cases();
+      await expect(demo.scene("I02")).rejects.toMatchObject({ status: 422 });
     });
   });
   it("reports non-JSON HTTP failures", async () => {

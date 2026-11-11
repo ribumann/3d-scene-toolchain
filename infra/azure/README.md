@@ -222,7 +222,7 @@ one-object inference on the operator's Spot variant does not validate that
 template, every model/input combination or full-scene quality; local guard tests
 are separate from the actual execution evidence above.
 
-### Private I02 multi-object batch (implemented; execution pending)
+### Private object batch and I02 original-input route
 
 Use the same prepared two environments, unique ephemeral runner label and
 checksum-verified I02 original. Full archive intake for the other seven cases
@@ -286,10 +286,9 @@ original-input batch. No original Store intake is required for this route.
 
 All eight authorized previews may be staged privately with an operator
 `intake-report.json`; seven retain their original dimensions, while I03 was
-resized from 2000 x 1333 to 1600 x 1066. All are compressed WebPs. This first
-batch implementation still targets **I02 only**; other photo/generated cases
-can adopt the explicit provenance route later. Diagrams/plans retain their
-diagram pipeline. Full-original transfer and final comparison remain separate.
+resized from 2000 x 1333 to 1600 x 1066. All are compressed WebPs. The generalized
+eight-case selector below uses this same explicit input contract. Diagrams/plans
+retain their diagram pipeline. Full-original transfer and final comparison remain separate.
 
 `batch.json` is an atomic checkpoint binding original/preview SHA, five pins,
 SDK, settings and a hashed extraction snapshot. It retains the full parent/crop
@@ -321,7 +320,8 @@ Each child has a bounded timeout (20 minutes extraction, 60 minutes per Idol
 object); the single batch job allows 360 minutes. These are execution bounds,
 not an object cap. Interruptions leave readable checkpoints and never claim
 success; Spot eviction still requires an operator-managed retry. The workflow
-uploads no batch artifacts, originals, crops, PLY or raw logs. The public demo,
+uploads no batch artifacts by default, and never originals, crops or raw logs.
+The separate derived-publication opt-in below is required for public PLY packaging. The public demo,
 public reference previews, default benchmark route and local API behavior are
 unchanged. Actual multi-object execution/quality remains pending; the earlier
 successful result still establishes only the single-tree smoke.
@@ -362,9 +362,66 @@ The existing local API and single-object smoke retain their previous defaults.
 
 All eight previews must match the committed authorized bytes. Original Store
 records are unchanged; actual original-image transfer/comparison is independent.
-No batch artifacts or media are uploaded. Actual eight-case results and quality
-acceptance remain pending operator execution; source support is not evidence
-that eight scenes were reconstructed.
+No batch artifacts or media are uploaded by default. The operator dispatched
+[43043580373](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43043580373)
+at `90e478cae3629232440abe7c7beef9b866666fc1` on the recovered Spot T4;
+it was still in progress at this source milestone. Actual eight-case completion
+and quality acceptance remain pending; source support is not evidence that eight
+scenes were reconstructed.
+
+### Explicit derived-only export
+
+The operator approved derived pilot scenes for publication, not private inputs
+or logs. `publish_pilots` defaults to **false**. Use
+`smoke_mode=batch -f smoke_source=public-preview -f publish_pilots=true`
+to package after processing selected cases. A failed batch still fails the job;
+packaging may separately export revalidated successful objects with honest partial
+statuses. It does not mask inference or package failures.
+
+To export existing **stopped** preview checkpoints without repeating extraction
+or inference, register a fresh ephemeral runner, then:
+
+```sh
+gh workflow run gpu-batch.yml --repo ribumann/3d-scene-toolchain \
+  --ref copilot/hybrid-scene-toolchain -f smoke_mode=package \
+  -f smoke_source=public-preview -f publish_pilots=true
+```
+
+This still uses the registered parent and exactly one prepared self-hosted job.
+It skips CUDA/inference stages; readiness retains its pinned-config check.
+It refuses an active case lock or `running` checkpoint. A stale running checkpoint
+after an abrupt eviction must first be recovered by the normal batch resume route,
+not manually marked successful. Stopped interrupted/partial checkpoints may export
+only independently revalidated successful objects. It always inventories all eight
+cases; `pilot_cases` selects execution, not export scope. Missing checkpoints
+remain `not_run`.
+
+The package step runs the **current Actions checkout**, not the stale editable
+`/home/scene/scene-worker/source`. Equivalent operator command:
+
+```sh
+cd "$GITHUB_WORKSPACE"
+PYTHONPATH="$GITHUB_WORKSPACE/services/pipeline" \
+  /home/scene/scene-worker-venv/bin/python -m scripts.package_pilots \
+  --data-dir /home/scene/scene-private-data \
+  --out "$RUNNER_TEMP/pilot-publication-$GITHUB_RUN_ID" \
+  --approve-derived-publication
+```
+
+The destination must be new. Source/preview SHA, immutable models/SDK/settings,
+extraction hashes, parent/crop mapping and actual successful PLYs are revalidated.
+Original-input checkpoints are not implicitly approved. Only the dedicated
+`$RUNNER_TEMP/pilot-publication-$GITHUB_RUN_ID/` directory uploads after package
+validation succeeds, as **`pilot-publication-<runID>`**, retained seven days.
+The private data root is never an upload path. Portable contents are exactly
+`pilots.json`, declared `scenes/{ID}.json`, and `assets/{ID}/{parent}.ply`.
+No originals, masks/crops, raw logs, generation journals or credentials are copied.
+Scene/asset provenance is allowlisted; PLY header comments are removed.
+
+The [static demo guide](static-demo.md#approved-derived-pilot-packages) documents
+the portable manifest, optional CPU artifact ingestion and separately explicit
+deployment. Export success establishes validated file contracts, not human
+fidelity acceptance, metric placement or a complete facility.
 
 ## Cleanup
 

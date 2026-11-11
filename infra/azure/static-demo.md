@@ -35,8 +35,10 @@ and unused; it does not host the demo.
 
 The site is intentionally public. Publish only the allowlisted build output and
 never full original images, tokens, runtime stores or a repository archive.
-The only image publication authorization covers these eight WebP previews,
-not private originals, masks/crops or inference outputs.
+Reference-image publication authorization covers these eight WebP previews,
+not private originals or masks/crops. The operator separately approved validated
+derived pilot scenes/PLY for the explicit package route below; the ordinary build
+still includes no inference output, and this new route is not yet deployed.
 Do not expose the unauthenticated local API. The operator configured the
 repository secret `AZURE_STATIC_WEB_APPS_API_TOKEN_SCENE_POC` for this exact app;
 its value must never be copied into source, logs, frontend configuration or chat.
@@ -104,7 +106,7 @@ preview-error/reload behavior and a narrow viewport.
 Network inspection must show no `/api` requests, uploads or mutation calls.
 
 **Artifact:** `apps/web/dist-demo/` contains `index.html`, bundled `assets/`,
-`demo/{cases,P01,P02,P03}.json`, and exactly
+`demo/{cases,pilots,P01,P02,P03}.json`, and exactly
 `references/{I01,I02,I03,I04,I05,G01,G02,G03}.webp`. The separate `apps/web/dist/` is the
 editable local frontend and must **not** be substituted for this artifact.
 Generated JSON includes only root-relative authorized preview URLs, no private
@@ -112,7 +114,8 @@ sources or runtime data. The generator explicitly copies only these eight files
 from `apps/web/public/references`; it never copies the general public tree or a
 runtime store. Missing allowlisted previews, output symlinks or unexpected output
 files fail the build rather than silently publishing partial/unreviewed content.
-No I/G scene JSON, masks, crops, PLY files or full originals are published.
+By default `demo/pilots.json` is empty: no I/G scene JSON, masks, crops, PLY files
+or full originals are published.
 
 The **CPU toolchain checks** workflow also builds this artifact and uploads it
 as `static-demo-<full-commit-SHA>` for seven days, using only CPU workers. Its
@@ -128,6 +131,75 @@ gh run download <successful-run-id> --repo ribumann/3d-scene-toolchain \
 Verify the run's source SHA and artifact digest before publishing. The download
 contains the build root directly (`index.html`, `assets/`, `demo/`); do not
 substitute the separate procedural-report artifact or an unverified local build.
+
+## Approved derived pilot packages
+
+The private GPU workflow has a separate explicit `publish_pilots=true` approval
+flag, default **false**, and a `smoke_mode=package` route for stopped checkpoints
+without repeating inference. See the [operator export command](README.md#explicit-derived-only-export).
+Only validated preview-input results enter **`pilot-publication-<GPUrunID>`**
+with seven-day retention; no upload ever targets the private data root.
+The portable allowlist is:
+
+| File | Contract |
+|---|---|
+| `pilots.json` | Schema version 1, explicit derived approval, ordered eight-case status entries, exact declared-file SHA256 map |
+| `scenes/{ID}.json` | Existing Scene schema; only successful appearances or unreviewed diagram/plan proposals |
+| `assets/{ID}/{parent}.ply` | Revalidated 32,768-Gaussian object output, sanitized header/provenance |
+
+Each case records `status` (`not_run`, `failed`, `partial`, `succeeded`, `proposals`),
+published parent-object count, `failed_objects` (failed **or unfinished** distinct
+crops), optional rejected count and extraction/object Git `source_revisions`.
+It retains original-vs-generated reference origin, authorized preview SHA,
+`input_kind=user-approved-public-webp-preview`, `not_original_bytes=true`, and
+`layout=inferred-not-metric`. It never relabels compressed/generated input as
+original photography. `scene=null` is required for no-result cases. Scene assets
+retain parent IDs, crop hashes, pixel bounding boxes, duplicate aliases and
+model/SDK settings; crop bytes, private paths, raw logs and tokens are excluded.
+File validation is not human fidelity acceptance.
+
+The CPU workflow can consume an explicitly selected completed GPU run on this
+same branch, including a failed run that successfully exported partial results:
+
+```sh
+gh workflow run ci.yml --repo ribumann/3d-scene-toolchain \
+  --ref copilot/hybrid-scene-toolchain \
+  -f pilot_run_id=<GPUrunID> -f deploy=false
+```
+
+It downloads only the exact named artifact, revalidates the allowlist/checksums,
+and builds the usual `static-demo-<source-SHA>` artifact. To publish after review,
+use that same command with `deploy=true`; deployment remains separately opt-in.
+A missing, expired, wrong-branch or invalid package fails rather than falling back.
+Omitting `pilot_run_id` preserves the reference/procedural-only build.
+
+Local equivalent, from the **current checked-out source** with the Python
+environment activated:
+
+```sh
+gh run download <GPUrunID> --repo ribumann/3d-scene-toolchain \
+  --name pilot-publication-<GPUrunID> --dir <new-approved-package-directory>
+SCENE_PILOT_PUBLIC_PACKAGE=<approved-package-directory> npm run build:demo
+```
+
+The optional build adds `/demo/pilots.json` status entries, declared `/demo/{ID}.json`
+and `/pilot-assets/pilot/{ID}/{parent}.ply`. Private `/api/assets/...` schema URIs
+are remapped only to these allowlisted same-origin static paths; no API is exposed.
+To change/remove a package in a reused build directory, remove only the known old
+generated pilot files first; stale/unapproved output is intentionally rejected.
+
+The viewer separates actual object splats from unreviewed diagram boxes and
+reference-only/failed cases, shows partial/unfinished counts, and keeps reference
+comparisons. Actual appearances have **no geometry substitute** while loading or
+on failure; loading/errors are explicit. Layout/depth/scale remain inferred.
+The default P01-P03 demos and local editable API behavior are unchanged.
+
+Local checks using explicitly **synthetic test PLYs** traversed all eight statuses,
+loaded object appearances (including `Loaded 1/1` with WebGL2 context intact),
+and checked a 390-pixel no-overflow proposal/reference layout without `/api`
+requests. These are renderer/orchestration checks, not eight-case Idol execution
+or public-origin verification. Actual derived deployment and per-case fidelity
+acceptance remain pending the operator's output review.
 
 ## Opt-in Static Web Apps publication
 

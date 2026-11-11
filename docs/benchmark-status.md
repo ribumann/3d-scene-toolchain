@@ -152,9 +152,9 @@ not geometric fidelity or human quality acceptance. The original, segmentation
 crops, PLY and raw logs remain private on the VM. The eight public reference
 previews are unchanged; no inferred object or scene has been published.
 
-### Next private I02 object batch: implementation ready, execution pending
+### Eight-case private batch: source ready, execution in progress
 
-The separate registered `smoke_mode=batch` route extracts I02 once, enumerates
+The separate registered `smoke_mode=batch` route extracts each photo/generated case once, enumerates
 all usable approved non-person crops without the normal 48-box truncation, and
 runs distinct crops sequentially at the successful smoke's exact model pins and
 32,768 Gaussians / 50 steps / seed 42. Exact duplicates retain all parent-node
@@ -162,18 +162,49 @@ aliases. Individual failures are explicit; validated outputs/extraction are
 resumable with source/pin/settings/hash checks, and only successful assets enter
 private scene assembly with approximate/inferred layout.
 
-This is source preparation, **not an executed multi-object result**. It needs
-only the already-ingested I02 original on the worker, not completion of the
-all-eight archive transfer. No images, masks, PLY, logs or assembled scene are
-published; the public reference demo and normal local API are unchanged.
+The default selector remains I02; an explicit `pilot_cases` subset or all eight
+IDs is supported. I01/I04 diagrams and I05 plan use uncapped OCR/contour region
+proposals, not Idol appearance reconstruction or recovered process topology.
+The normal local API and single-object smoke retain their previous defaults.
 See the [private batch operator guide](../infra/azure/README.md) for dispatch,
 checkpoint paths, retry behavior and bounded execution.
 The user subsequently approved published WebP previews as explicit batch inputs,
-with originals retained for final comparison. The I02 batch now supports that
+with originals retained for final comparison. All eight cases support that
 choice using an authorized-asset checksum check, separate preview checkpoints
 and `user-approved-public-webp-preview` / `not_original_bytes=true` provenance.
-This does not relabel previews as original bytes or generalize the batch to
-other cases; no actual preview-input multi-object result is established here.
+This does not relabel previews as original bytes. All eight previews were
+checksum-verified on the worker; final-original transfer/comparison is independent.
+
+After Spot eviction/recovery, the operator dispatched
+[43043580373](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43043580373)
+at `90e478cae3629232440abe7c7beef9b866666fc1`; it remained in progress at this
+source milestone. The recovered checkpoint contained one validated I02 preview
+tree object and an interrupted next object, not an accepted all-eight result.
+No actual multi-object completion, full-scene fidelity or other-case
+reconstruction is claimed here.
+
+### Derived-only publication source support
+
+The operator explicitly approved derived pilot scenes/PLY for publication, not
+originals, segmentation crops, raw logs or tokens. The new `publish_pilots=true`
+flag (default false) packages only independently revalidated stopped preview
+checkpoints into a fresh allowlisted `pilot-publication-<runID>` artifact,
+retained seven days. `smoke_mode=package` avoids repeating inference.
+Running checkpoints/locks, mismatched source/pins/settings, modified crops/PLY
+or unexpected package files fail explicitly. Batch failures remain failures;
+valid partial objects may be exported with failed/unfinished counts, never
+replaced with fabricated geometry.
+
+An optional CPU `pilot_run_id` build consumes this package and the read-only
+viewer distinguishes proposals, partial/successful splats, failed and not-run
+cases with reference comparisons and inferred-layout warnings. Synthetic local
+fixtures verified all eight states and actual PLY loading, plus a 390-pixel
+no-overflow layout; those checks are **not actual inference evidence**.
+The generated default artifact was restored afterward to references/P01-P03 only.
+This export/viewer source is not deployed; the public site remains the previously
+verified procedural/reference build. See the
+[publication contract](../infra/azure/static-demo.md#approved-derived-pilot-packages)
+for exact artifacts, commands and approval boundaries.
 
 ## Remaining acceptance work
 
@@ -229,8 +260,8 @@ boundary, exact target and opt-in deployment controls.
 Use the privately ingested eight originals on the authorized operator host;
 no additional image generation is needed. Confirm per-worker
 private input access and use the readiness job's immutable model revisions.
-The one-object smoke is complete; full VM intake and all eleven full pipeline
-cases remain pending. Review masks,
+The one-object smoke is complete; original archive intake, eight-case batch
+completion and all eleven full pipeline cases remain pending. Review masks,
 labels, graph directions/loops, footprint layout and source-linked uncertainty.
 
 Directional diagram topology, translations and precise photo depth are currently

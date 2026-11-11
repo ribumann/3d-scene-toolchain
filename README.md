@@ -77,6 +77,13 @@ The published geometry is compiled directly from the public templates; it does
 not include private runtime data, Blender exports, image reconstruction, splats
 or actual Idol results. `npm run build` remains the normal editable local build.
 
+An optional, explicitly approved pilot package can add validated object PLYs
+and diagram/plan proposals without exposing a backend. The viewer distinguishes
+successful, partial, failed and not-run cases, keeps reference comparisons, and
+never substitutes geometry for failed appearance loading. This source support
+is not deployed or evidence of completed eight-case inference.
+See the [approved export/build route](infra/azure/static-demo.md#approved-derived-pilot-packages).
+
 Publish only `apps/web/dist-demo/`, not the repository or `.scene-data/`.
 Azure static website preparation and deployment commands are in
 [`infra/azure/static-demo.md`](infra/azure/static-demo.md).
@@ -195,31 +202,35 @@ described in [`infra/azure/README.md`](infra/azure/README.md), not this cloud
 development host. `smoke_mode=readiness` checks real gated-config access on CPU
 before `smoke_mode=gpu` can request the private worker.
 
-The next opt-in route is a **private I02 multi-object batch**, not another
-highest-confidence crop smoke:
+The opt-in **private eight-case batch** is separate from the single-object smoke:
 
 ```sh
 gh workflow run gpu-batch.yml --repo ribumann/3d-scene-toolchain \
   --ref copilot/hybrid-scene-toolchain -f smoke_mode=batch \
-  -f smoke_source=private-original
+  -f smoke_source=public-preview \
+  -f 'pilot_cases=I01 I02 I03 I04 I05 G01 G02 G03'
 ```
 
-It extracts I02 once without the local adapter's 48-box truncation, enumerates
-every usable building/conveyor/truck/tree crop, and reconstructs distinct crops
+It extracts each photo/generated case once without the local adapter's 48-box
+truncation, enumerates every usable approved non-person crop, and reconstructs distinct crops
 sequentially with the successful smoke's immutable model pins and 32,768/50/42
 settings. Exact duplicate crops retain every parent mapping. Completed outputs
 are revalidated before resume; failures are isolated and reported, never filled
-with fake geometry. Only I02 must be ingested on the worker; all-eight archive
-transfer is not a prerequisite. Outputs and assembled scene snapshots stay
-private, with inferred image-plane layout, not metric truth. This route is
-implemented but has **not yet completed an actual multi-object GPU run**.
+with fake geometry. I01/I04/I05 instead produce unreviewed OCR/contour region
+proposals, without the normal 100-region truncation or invented process topology;
+they are not Idol appearances. Placement/scale/depth are inferred, not metric.
+Select a unique subset with `pilot_cases`; its default remains I02.
+The eight-case run is in progress, not an accepted reconstruction result.
 Setup, output/checkpoint paths and retry semantics are in the Azure guide.
-The user also approved `-f smoke_source=public-preview` for faster input intake,
-retaining originals for final comparison. This explicitly uses the staged,
-authorized I02 WebP and records `user-approved-public-webp-preview` provenance,
+The user approved published previews for faster input intake, retaining originals
+for final comparison. This uses staged, authorized WebPs and records `user-approved-public-webp-preview` provenance,
 actual SHA/dimensions and `not_original_bytes=true` in a separate checkpoint
 tree. It never overwrites original Store records or silently falls back.
-Other-case batch generalization remains pending; diagrams use the diagram path.
+The original-input I02 route remains available as `smoke_source=private-original`.
+Outputs remain private by default. `publish_pilots=true` explicitly approves only
+revalidated derived preview-input scenes/PLY for a separate allowlisted artifact;
+`smoke_mode=package` exports stopped checkpoints without repeating inference.
+Neither option uploads originals, masks/crops or raw logs.
 
 Pin full **40-character commit SHAs** in the worker environment:
 
@@ -246,8 +257,8 @@ Only the FLUX VAE is downloaded. PLY output is checked for Gaussian attributes,
 finite values, normalized rotations and nondegenerate bounds before publication.
 Generated hidden surfaces remain guesses. The unchanged normal local API adapter
 attaches an appearance asset to its first suitable visible object; the private
-I02 batch is a separate explicit route. Automatic per-object quality ranking,
-cross-case batching and metric calibration remain future improvements.
+pilot batch is a separate explicit route. Automatic per-object quality ranking
+and metric calibration remain future improvements.
 
 ### Where to run
 
@@ -268,8 +279,9 @@ incomplete; I02 was transferred and checksum-verified separately, while all eigh
 originals remain valid in the operator's local runtime.
 See the Azure guide for the observed status and source-template
 limitations. Do not queue against a guessed GPU runner or reuse another project's
-cloud identities/resources. GPU artifact upload is opt-in and limited to the
-procedural benchmark; uploaded source images are excluded.
+cloud identities/resources. GPU artifacts are opt-in: the original procedural
+report and the separately approved derived pilot package have distinct allowlists.
+Uploaded original images, segmentation crops and raw inference logs are excluded.
 
 ## Validation
 
