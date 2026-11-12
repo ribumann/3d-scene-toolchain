@@ -90,6 +90,19 @@ describe("API contract", () => {
       await expect(demo.trials()).resolves.toMatchObject([{ status: "not_run" }]);
       expect(vi.mocked(fetch).mock.calls.every(([path]) => !String(path).startsWith("/api/"))).toBe(true);
     });
+    it("loads catalog-approved real-photo splats but rejects cross-case asset substitution", async () => {
+      let uri = "/api/assets/trials/R03/optimized/object-001.ply";
+      vi.stubGlobal("fetch", vi.fn().mockImplementation((path: string) => Promise.resolve(new Response(JSON.stringify(
+        path.endsWith("cases.json") ? [{ id: "R03-optimized", status: "ready" }] :
+          { case_id: "R03-optimized", assets: [{ uri }] },
+      )))));
+      const demo = createApi(true);
+      await demo.cases();
+      await expect(demo.scene("R03-optimized")).resolves.toMatchObject({ assets: [{ uri: "/trial-assets/R03/optimized/object-001.ply" }] });
+      uri = "/api/assets/trials/R01/optimized/object-001.ply";
+      await expect(demo.scene("R03-optimized")).rejects.toMatchObject({ status: 422 });
+      await expect(demo.scene("R03-baseline")).rejects.toMatchObject({ status: 409 });
+    });
   });
   it("reports non-JSON HTTP failures", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("unavailable", { status: 503, statusText: "Unavailable" })));

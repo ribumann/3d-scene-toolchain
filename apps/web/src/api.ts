@@ -34,7 +34,7 @@ export type PilotStatus = {
   scene: string | null;
 };
 export type TrialStatus = {
-  trial_id: "T01" | "T02" | "T03";
+  trial_id: "T01" | "T02" | "T03" | "R01" | "R02" | "R03";
   variant: "baseline" | "optimized";
   status: "not_run" | "processing" | "failed" | "partial" | "succeeded" | "interrupted";
   scene: string | null;
@@ -49,7 +49,11 @@ export type TrialStatus = {
   } | null;
   definition: {
     title: string;
-    source: { kind: string; generator: string; prompt: string; sha256: string };
+    source: { kind: "generated-photographic-scene"; generator: string; prompt: string; sha256: string } | {
+      kind: "licensed-real-photograph"; sha256: string; creator: string; source_page: string;
+      original_sha256: string; license: "CC-BY-SA-4.0"; license_url: string;
+      changes: string; derivative_license: "CC-BY-SA-4.0"; derivative_changes: string; limitations: string;
+    };
     expected_inventory: { identity: string; category: string; count: number }[];
     layout_kind: string;
   };
@@ -67,7 +71,7 @@ export function createApi(staticDemo = false) {
     cases: async () => {
       const cases = await call<Case[]>(staticDemo ? "/demo/cases.json" : "/api/cases");
       if (staticDemo) for (const item of cases) {
-        if (/^(I0[1-5]|G0[1-3]|T0[1-3]-(baseline|optimized))$/.test(item.id) && item.status === "ready") publishedScenes.add(item.id);
+        if (/^(I0[1-5]|G0[1-3]|[TR]0[1-3]-(baseline|optimized))$/.test(item.id) && item.status === "ready") publishedScenes.add(item.id);
       }
       return cases;
     },
@@ -81,7 +85,7 @@ export function createApi(staticDemo = false) {
       if (staticDemo) {
         if (scene.case_id !== id) throw new ApiError(422, "Published scene identity does not match the selected case.");
         return { ...scene, assets: scene.assets.map(asset => {
-          const trial = /^T0[1-3]-(baseline|optimized)$/.test(id);
+          const trial = /^[TR]0[1-3]-(baseline|optimized)$/.test(id);
           const match = trial
             ? new RegExp(`^/api/assets/trials/${id.slice(0, 3)}/${id.slice(4)}/[A-Za-z0-9_.-]+\\.ply$`).test(asset.uri)
             : /^\/api\/assets\/pilot\/(I0[1-5]|G0[1-3])\/[A-Za-z0-9_.-]+\.ply$/.test(asset.uri);

@@ -2,12 +2,14 @@ import type { TrialStatus } from "./api";
 
 export default function TrialPanel({ trial, onVariant }: { trial: TrialStatus; onVariant: (id: string) => void }) {
   const report = trial.report;
+  const source = trial.definition.source;
   return <section className="pilot-status trial-panel" aria-label="Trial comparison">
     <div className="section-heading"><h2>{trial.trial_id} trial: {trial.status === "processing" ? "processing at snapshot" : trial.status.replace("_", " ")}</h2>
       <div className="segmented" aria-label="Trial variant">{(["baseline", "optimized"] as const).map(variant =>
         <button key={variant} aria-pressed={variant === trial.variant} onClick={() => onVariant(`${trial.trial_id}-${variant}`)}>{variant === "baseline" ? "Detector baseline" : "Reviewed-box comparison"}</button>)}</div>
     </div>
-    <p>Synthetic photographic input, not a real-site photograph. Optimized uses manual semantic boxes when supplied; this is a supervised workflow comparison, not proof automatic detection or 3D accuracy improved.</p>
+    <p>{source.kind === "licensed-real-photograph" ? <>Real photograph by {source.creator}: <a href={source.source_page} target="_blank" rel="noreferrer">original source</a>. Photograph and source-derived crops/splats: <a href={source.license_url} target="_blank" rel="noreferrer">{source.license}</a>, not the software MIT license.</> : "Synthetic photographic input, not a real-site photograph."} Optimized uses manual semantic boxes when supplied; this is a supervised workflow comparison, not proof automatic detection or 3D accuracy improved.</p>
+    {source.kind === "licensed-real-photograph" && <p>{source.limitations}</p>}
     {report ? <>
       <dl className="trial-measurements">
         <div><dt>Target equipment</dt><dd>{report.expected_objects}</dd></div>
@@ -28,9 +30,12 @@ export default function TrialPanel({ trial, onVariant }: { trial: TrialStatus; o
       <details><summary>Method and frozen model revisions</summary><p>{JSON.stringify(report.settings)}</p></details>
     </> : <p>{trial.status === "processing" ? "This variant was active at publication. No in-progress objects are published." : "No completed execution report is published for this variant yet."}</p>}
     <details><summary>Input provenance and expected inventory</summary>
-      <p>{trial.definition.source.generator}</p>
+      {source.kind === "licensed-real-photograph" ? <>
+        <p>Preparation: {source.changes}</p><p>Adaptations: {source.derivative_changes}</p>
+        <p>Original SHA256: {source.original_sha256}</p>
+      </> : <><p>{source.generator}</p><p>{source.prompt}</p></>}
       <p>{trial.definition.expected_inventory.map(item => `${item.count} ${item.category} (${item.identity})`).join("; ")}</p>
-      <p>Source SHA256: {trial.definition.source.sha256}</p><p>{trial.definition.source.prompt}</p>
+      <p>Prepared source SHA256: {source.sha256}</p>
       <p>Exact crop/settings cache hits reuse one validated generation, not independent reconstructions. Explicit repeated placements are authored instances only. {trial.definition.layout_kind}.</p>
     </details>
   </section>;

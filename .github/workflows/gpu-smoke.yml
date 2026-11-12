@@ -205,7 +205,7 @@ jobs:
           trials = {trial.id: trial for trial in manifest.trials}
           selected = os.environ["PILOT_CASES"].split()
           if not selected or len(selected) != len(set(selected)) or any(case not in trials for case in selected):
-              raise SystemExit("Select unique approved T01/T02/T03 trials using pilot_cases.")
+              raise SystemExit("Select unique approved T01-T03 or R01-R03 trials using pilot_cases.")
           variants = ("baseline", "optimized") if os.environ["TRIAL_VARIANTS"] == "both" else (os.environ["TRIAL_VARIANTS"],)
           stage_sources(directory, manifest_path)
           failed = False

@@ -1,27 +1,25 @@
-"""Strict, generated-only inputs for the bounded T01-T03 reconstruction trials."""
+"""Strict, explicitly approved photographic reconstruction inputs."""
 
 import hashlib
 import json
 import re
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import Field, model_validator
 
 from scene_pipeline.models import Identifier, StrictModel, Vec3
 
-TRIAL_IDS = ("T01", "T02", "T03")
+GENERATED_TRIAL_IDS = ("T01", "T02", "T03")
+TRIAL_IDS = (*GENERATED_TRIAL_IDS, "R01", "R02", "R03")
 VARIANTS = ("baseline", "optimized")
 CATEGORIES = Literal["pump", "motor", "tank", "control cabinet", "conveyor", "industrial machine"]
 
 
-class TrialSource(StrictModel):
-    filename: str = Field(pattern=r"^T0[1-3]\.png$")
+class RepositorySource(StrictModel):
+    filename: str = Field(pattern=r"^[TR]0[1-3]\.png$")
     sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     url: str
-    kind: Literal["generated-photographic-scene"]
-    generator: Literal["Copilot image_generation tool; underlying image model/version not exposed"]
-    prompt: str = Field(min_length=1, max_length=12000)
     publication_approved: Literal[True]
 
     @model_validator(mode="after")
@@ -30,8 +28,27 @@ class TrialSource(StrictModel):
             r"https://raw\.githubusercontent\.com/ribumann/3d-scene-toolchain/[a-f0-9]{40}/[A-Za-z0-9_./-]+\.png",
             self.url,
         ) or any(part in (".", "..") for part in self.url.split("/")[3:]):
-            raise ValueError("Trial sources require immutable generated-only repository URLs")
+            raise ValueError("Trial sources require immutable approved repository URLs")
         return self
+
+
+class TrialSource(RepositorySource):
+    kind: Literal["generated-photographic-scene"]
+    generator: Literal["Copilot image_generation tool; underlying image model/version not exposed"]
+    prompt: str = Field(min_length=1, max_length=12000)
+
+
+class RealPhotoSource(RepositorySource):
+    kind: Literal["licensed-real-photograph"]
+    creator: str = Field(min_length=1, max_length=200)
+    source_page: str = Field(pattern=r"^https://commons\.wikimedia\.org/wiki/File:[^\s]+$")
+    original_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    license: Literal["CC-BY-SA-4.0"]
+    license_url: Literal["https://creativecommons.org/licenses/by-sa/4.0/"]
+    changes: str = Field(min_length=1, max_length=2000)
+    derivative_license: Literal["CC-BY-SA-4.0"]
+    derivative_changes: str = Field(min_length=1, max_length=2000)
+    limitations: str = Field(min_length=1, max_length=2000)
 
 
 class ExpectedObject(StrictModel):
@@ -71,19 +88,23 @@ class TrialInstance(StrictModel):
 
 
 class Trial(StrictModel):
-    id: Literal["T01", "T02", "T03"]
+    id: Literal["T01", "T02", "T03", "R01", "R02", "R03"]
     title: str = Field(min_length=1, max_length=120)
-    source: TrialSource
+    source: Annotated[TrialSource | RealPhotoSource, Field(discriminator="kind")]
     detector_phrases: list[CATEGORIES] = Field(min_length=1, max_length=6)
     expected_inventory: list[ExpectedObject] = Field(min_length=1, max_length=12)
     reviewed_objects: list[ReviewedObject] = Field(default_factory=list, max_length=12)
     instances: list[TrialInstance] = Field(default_factory=list, max_length=12)
-    layout_kind: Literal["manual-relative-not-metric"] = "manual-relative-not-metric"
+    layout_kind: Literal["manual-relative-not-metric", "inferred-not-metric"] = "manual-relative-not-metric"
 
     @model_validator(mode="after")
     def reviewed_references(self):
         if self.source.filename != f"{self.id}.png" or not self.source.url.endswith("/" + self.source.filename):
             raise ValueError("Trial source identity must match its allowlisted filename")
+        if self.id.startswith("R") != isinstance(self.source, RealPhotoSource):
+            raise ValueError("Real photographs and generated trials require distinct source identities")
+        if self.instances and self.layout_kind != "manual-relative-not-metric":
+            raise ValueError("Authored instances require an explicit manual layout")
         for records in (self.reviewed_objects, self.instances):
             if len({item.id for item in records}) != len(records):
                 raise ValueError("Duplicate reviewed object or instance IDs")
@@ -100,7 +121,7 @@ class Trial(StrictModel):
 
 class TrialManifest(StrictModel):
     schema_version: Literal[1]
-    trials: list[Trial] = Field(min_length=1, max_length=3)
+    trials: list[Trial] = Field(min_length=1, max_length=6)
 
     @model_validator(mode="after")
     def unique_trials(self):

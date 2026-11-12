@@ -14,6 +14,17 @@ class PrerequisiteError(RuntimeError):
     pass
 
 
+def masked_crop(image: Image.Image, mask_array: np.ndarray, box: tuple[int, int, int, int]):
+    x1, y1, x2, y2 = box
+    if mask_array.shape != (image.height, image.width) or not (
+        0 <= x1 < x2 <= image.width and 0 <= y1 < y2 <= image.height
+    ):
+        raise ValueError("Masked crop requires a source-sized mask and an in-bounds box")
+    crop = image.crop(box).convert("RGBA")
+    crop.putalpha(Image.fromarray((mask_array[y1:y2, x1:x2] > 0).astype(np.uint8) * 255))
+    return crop
+
+
 def source_scene(case: Case, source: dict):
     return Scene(
         id=case.id, case_id=case.id, name=case.title,
@@ -164,10 +175,7 @@ def extract_photo(
             raise ValueError("Detector produced an invalid bounding box")
         identifier = f"object-{index:03d}"
         mask_array = masks_array[index].reshape(height, width)
-        mask = Image.fromarray((mask_array > 0).astype(np.uint8) * 255)
-        crop = image.convert("RGBA")
-        crop.putalpha(mask)
-        crop = crop.crop((x1, y1, x2, y2))
+        crop = masked_crop(image, mask_array, (x1, y1, x2, y2))
         crop.save(output / f"{identifier}.png")
         extent = max(.3, (x2 - x1) / width * 30)
         vertical = max(.3, (y2 - y1) / height * 8)

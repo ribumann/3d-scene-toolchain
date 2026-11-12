@@ -16,7 +16,7 @@ from scripts.package_pilots import APPROVED_PINS
 from scripts.private_gpu_batch import digest, write_json
 from scripts.private_gpu_smoke import SmokeError
 from scripts.private_gpu_trials import SETTINGS, crop_plan, generation_key, run_trial, stage_sources
-from scripts.trial_contracts import Trial, TrialManifest
+from scripts.trial_contracts import Trial, TrialManifest, load_manifest
 import tests.test_private_gpu_batch as fixtures
 
 
@@ -52,8 +52,8 @@ class TrialTests(unittest.TestCase):
         measurement["seconds"] = 1.0
         if "extract" in arguments:
             folder = Path(arguments[arguments.index("--output") + 1])
-            self.worker.case_id = "T01"
-            scene, report = self.worker.extraction(folder, {"filename": "T01.png", "sha256": self.trial.source.sha256}, ["pump"])
+            self.worker.case_id = self.trial.id
+            scene, report = self.worker.extraction(folder, {"filename": self.trial.source.filename, "sha256": self.trial.source.sha256}, ["pump"])
             report["annotations"][0].update(identity="pump-a", reviewed_id="pump-a")
             if arguments[arguments.index("--variants") + 1] == "optimized":
                 report["method"] = "reviewed-boxes+sam2"
@@ -159,6 +159,25 @@ class TrialTests(unittest.TestCase):
             ]
             with self.assertRaisesRegex(ValueError, "explicit reusable asset"):
                 Trial.model_validate(data)
+
+    def test_real_photo_contract_requires_attribution_sharealike_and_distinct_identity(self):
+        from scripts.private_gpu_smoke import ROOT
+        real = next(trial for trial in load_manifest(ROOT / "cases/trials.json").trials if trial.id == "R01")
+        for field in ("creator", "license", "original_sha256", "changes", "derivative_changes"):
+            data = real.model_dump()
+            del data["source"][field]
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                Trial.model_validate(data)
+        data = real.model_dump()
+        data["source"]["derivative_license"] = "MIT"
+        with self.assertRaises(ValueError):
+            Trial.model_validate(data)
+        data = real.model_dump()
+        data["id"] = "T01"
+        data["source"]["filename"] = "T01.png"
+        data["source"]["url"] = data["source"]["url"].replace("R01.png", "T01.png")
+        with self.assertRaisesRegex(ValueError, "distinct source identities"):
+            Trial.model_validate(data)
 
     def test_staging_rejects_wrong_hash_redirect_and_oversize_without_partial_publication(self):
         with tempfile.TemporaryDirectory() as temporary:

@@ -1,4 +1,6 @@
 import hashlib
+import io
+import json
 import importlib.util
 import json
 import shutil
@@ -8,13 +10,74 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
+import numpy as np
 from PIL import Image, ImageDraw
 
-from scene_pipeline.extract import PrerequisiteError, extract_diagram, extract_photo
+from scene_pipeline.extract import PrerequisiteError, extract_diagram, extract_photo, masked_crop
 from scene_pipeline.store import Store
 
 
 class ExtractionTests(unittest.TestCase):
+    def test_benchmark_uses_saved_alpha_and_offset_xywh_boxes(self):
+        from scripts.benchmark_masked_crop import benchmark
+        from scripts.private_gpu_batch import digest, snapshot_extraction, write_json
+        from scripts.private_gpu_smoke import ROOT
+        from scripts.trial_contracts import load_manifest
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            sources = root / "approved-trials"
+            sources.mkdir()
+            image = Image.new("RGB", (40, 30), "blue")
+            image.save(sources / "R01.png")
+            data = next(trial for trial in load_manifest(ROOT / "cases/trials.json").trials if trial.id == "R01").model_dump(mode="json")
+            data["source"]["sha256"] = digest(sources / "R01.png")
+            manifest = root / "manifest.json"
+            write_json(manifest, {"schema_version": 1, "trials": [data]})
+            folder = root / "trials/R01/optimized/extraction-000"
+            folder.mkdir(parents=True)
+            mask = np.zeros((30, 40), dtype=np.uint8)
+            mask[8:17, 7:25] = 1
+            masked_crop(image, mask, (5, 6, 30, 20)).save(folder / "object-000.png")
+            write_json(folder / "extraction.json", {"annotations": [{"node_id": "object-000", "crop": "object-000.png", "bbox_pixels": [5, 6, 25, 14]}]})
+            checkpoint = folder.parent / "trial.json"
+            write_json(checkpoint, {"status": "succeeded", "extraction": {"directory": folder.name, "files": snapshot_extraction(folder)}})
+            result = benchmark(root, manifest, repeats=5)["results"][0]
+            self.assertTrue(result["pixels_and_png_identical"])
+            self.assertEqual(result["crop_pixels"], 25 * 14)
+            state = json.loads(checkpoint.read_text())
+            state["status"] = "running"
+            write_json(checkpoint, state)
+            with self.assertRaisesRegex(ValueError, "completed successful"):
+                benchmark(root, manifest, repeats=5)
+
+    def test_crop_first_matches_full_frame_rgba_pixels_and_encoded_png_at_edges(self):
+        image = Image.fromarray(np.arange(19 * 23 * 3, dtype=np.uint8).reshape(19, 23, 3))
+        for mask in (
+            np.ones((19, 23), dtype=bool),
+            np.zeros((19, 23), dtype=bool),
+            np.arange(19 * 23).reshape(19, 23) % 3 - 1,
+        ):
+            for box in ((0, 0, 23, 19), (0, 0, 1, 1), (22, 18, 23, 19), (3, 5, 17, 16)):
+                with self.subTest(box=box, foreground=int(np.count_nonzero(mask > 0))):
+                    legacy = image.convert("RGBA")
+                    legacy.putalpha(Image.fromarray((mask > 0).astype(np.uint8) * 255))
+                    legacy = legacy.crop(box)
+                    optimized = masked_crop(image, mask, box)
+                    self.assertEqual(optimized.tobytes(), legacy.tobytes())
+                    encoded = [io.BytesIO(), io.BytesIO()]
+                    legacy.save(encoded[0], format="PNG")
+                    optimized.save(encoded[1], format="PNG")
+                    self.assertEqual(encoded[0].getvalue(), encoded[1].getvalue())
+
+    def test_masked_crop_rejects_mismatched_mask_and_invalid_boxes(self):
+        image = Image.new("RGB", (20, 10))
+        with self.assertRaisesRegex(ValueError, "source-sized mask"):
+            masked_crop(image, np.zeros((9, 20)), (0, 0, 5, 5))
+        for box in ((-1, 0, 3, 3), (0, 0, 21, 10), (2, 2, 2, 3)):
+            with self.assertRaisesRegex(ValueError, "in-bounds box"):
+                masked_crop(image, np.zeros((10, 20)), box)
+
     @unittest.skipUnless(importlib.util.find_spec("cv2"), "OCR extra required")
     def test_pilot_diagrams_can_include_more_than_100_regions_without_invented_topology(self):
         with tempfile.TemporaryDirectory() as temporary:

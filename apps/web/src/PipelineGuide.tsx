@@ -12,7 +12,7 @@ export default function PipelineGuide() {
         <li><strong>Compose + publish</strong><span>Attach provenance and inferred or manually authored layout; publish only approved references and validated outputs.</span></li>
       </ol>
       <div className="pipeline-notes">
-        <p><strong>What is optimized?</strong> Invalid-crop rejection avoids unusable generations. Conservative deduplication avoids repeated proposals; exact successful-output caching avoids identical work. Reuse is not another independent reconstruction. Reviewed-box comparisons change the supervision, not just the algorithm; counts and timings do not establish accuracy or causal speedup.</p>
+        <p><strong>What is optimized?</strong> Crop before RGBA conversion to avoid full-frame temporary images for each object; output pixels stay identical. Invalid-crop rejection avoids unusable generations. Conservative deduplication avoids repeated proposals; exact successful-output caching avoids identical work. Reuse is not another independent reconstruction. Reviewed-box comparisons change the supervision, not just the algorithm; counts and timings do not establish accuracy or causal speedup.</p>
         <p><strong>Appearance is not layout.</strong> Generated shape/texture is separate from manually authored placements and inferred depth/scale. Prompt cases use deterministic procedural layouts; diagram/plan cases show unreviewed OCR/contour proposals, not reconstructed appearances or recovered process topology. This public viewer runs no inference and accepts no uploads.</p>
       </div>
     </div>

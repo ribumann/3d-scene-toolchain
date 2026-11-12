@@ -11,11 +11,40 @@ from scripts.private_gpu_smoke import SmokeError
 from scripts.build_static_demo import build_demo
 from scripts.package_pilots import APPROVED_PINS, package_pilots
 from scripts.private_gpu_smoke import ROOT
+from scripts.private_gpu_batch import digest, write_json
+from scripts.trial_contracts import Trial, TrialManifest, load_manifest
 import tests.test_private_gpu_trials as fixtures
 import tests.test_private_gpu_batch as pilot_fixtures
 
 
 class TrialPublicationTests(unittest.TestCase):
+    def test_real_photo_publication_binds_source_license_and_rejects_credit_tampering(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            worker = fixtures.TrialTests()
+            worker.setUp()
+            worker.prepare(root)
+            real = next(trial for trial in load_manifest(ROOT / "cases/trials.json").trials if trial.id == "R01")
+            source = root / "approved-trials/R01.png"
+            source.write_bytes((root / "approved-trials/T01.png").read_bytes())
+            data = real.model_dump()
+            data["source"]["sha256"] = digest(source)
+            worker.trial = Trial.model_validate(data)
+            manifest = root / "real-manifest.json"
+            write_json(manifest, TrialManifest(schema_version=1, trials=[worker.trial]).model_dump())
+            report = worker.run_variant(root, manifest, "optimized")
+            self.assertEqual(report["status"], "succeeded")
+            destination = root / "real-publication"
+            package = package_trials(root, destination, manifest, approve=True)
+            validate_trial_package(destination, manifest)
+            scene_path = destination / package["trials"][1]["scene"]
+            scene = json.loads(scene_path.read_text())
+            self.assertEqual(scene["assets"][0]["provenance"]["source_credit"], worker.trial.source.model_dump(mode="json"))
+            scene["assets"][0]["provenance"]["source_credit"]["derivative_license"] = "MIT"
+            write_json(scene_path, scene)
+            with self.assertRaisesRegex(SmokeError, "invalid_trial_source_credit"):
+                validate_trial_package(destination, manifest)
+
     def prepare(self, root):
         worker = fixtures.TrialTests()
         worker.setUp()

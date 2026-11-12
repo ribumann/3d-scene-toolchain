@@ -1,4 +1,42 @@
-# Opt-in generated industrial trials
+# Opt-in photographic industrial trials
+
+## Licensed real photographs and crop preparation
+
+R01-R03 are real, whole-frame photographs found on Wikimedia Commons, not generated
+images or isolated product cutouts. The committed `cases/trials.json` adds these to
+the unchanged T01-T03 definitions. Immutable prepared PNGs and original provenance
+are at input commit `073aa63dc4428aea5080b3c4ae93ecc17aa44c1b`, under
+`research/real-photos/`. The source model requires creator, source page, original
+and prepared hashes, preparation changes, limitations, and CC BY-SA 4.0 licensing
+for both the source and source-derived adaptations. That license is separate from
+the software MIT license; credits and modification notices accompany public scenes.
+
+R01 targets one foreground horizontal pump/motor assembly; R02 one foreground
+vertical pump/motor; R03 two distinct central blue pump assemblies. Reviewed boxes
+are manual semantic supervision, not ground-truth masks. R01 has background
+overlap; R02 is cut at the lower image edge; R03 intentionally stresses wider-site
+occlusion. None establishes optimal capture or recovered hidden geometry.
+
+The additional optimization crops RGB pixels and the SAM mask **before** creating
+RGBA buffers, instead of allocating full-frame RGBA/mask images per object.
+Regression cases check exact pixels and PNG bytes at image edges and with empty,
+full and signed masks. The model pins, seed, sampling steps, crop policy, and
+exact-cache keys are unchanged. This is a CPU preparation optimization, not a
+claim of faster GPU sampling or improved 3D accuracy.
+
+Run only the four reviewed targets with:
+
+```sh
+gh workflow run gpu-batch.yml --repo ribumann/3d-scene-toolchain \
+  --ref copilot/hybrid-scene-toolchain \
+  -f smoke_mode=trials -f smoke_source=public-preview \
+  -f 'pilot_cases=R01 R02 R03' -f trial_variants=optimized
+```
+
+The existing isolated trial publisher exports the additive six-input package.
+Original three-input packages remain accepted only when their complete T01-T03
+definitions exactly match the registered originals. Publication must retain pilot
+package `43079293375`; unexecuted real-photo baselines stay explicitly `not_run`.
 
 These trials are separate from the frozen eight-source pilot and its approved
 publication `43079293375`. Primary T01-T03 inputs are synthetic photographic
@@ -82,8 +120,8 @@ Fable alone performs better is supported by this experiment.
 
 ## Protected sequential workflow
 
-The committed `cases/trials.json` is the approved primary photographic manifest,
-semantically identical to immutable input manifest
+The original T01-T03 subset of committed `cases/trials.json` is semantically
+identical to immutable synthetic input manifest
 [`6ebc4cc.../manifest.json`](https://raw.githubusercontent.com/ribumann/3d-scene-toolchain/6ebc4ccc49a0db48c9cfa6c3cbf038ae67db6dde/experiments/overnight-20261111/manifest.json)
 (upstream byte SHA256 `793c0057baaae75363c663839bfda910e9c67f79b1b2c30de41ba5a9d8eb4cb2`).
 The three PNGs decode to **1448 x 1086**, independently checked rather than assumed.

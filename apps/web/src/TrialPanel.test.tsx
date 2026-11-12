@@ -14,6 +14,26 @@ const pending: TrialStatus = {
 };
 
 describe("trial evidence panel", () => {
+  it("credits real photographs and adaptations without synthetic-input or MIT claims", () => {
+    const real: TrialStatus = { ...pending, trial_id: "R01", definition: {
+      ...pending.definition,
+      source: {
+        kind: "licensed-real-photograph", creator: "Test photographer",
+        source_page: "https://commons.wikimedia.org/wiki/File:Example.jpg",
+        sha256: "a".repeat(64), original_sha256: "b".repeat(64),
+        license: "CC-BY-SA-4.0", license_url: "https://creativecommons.org/licenses/by-sa/4.0/",
+        derivative_license: "CC-BY-SA-4.0", changes: "Whole-frame resize",
+        derivative_changes: "Segmentation and generated geometry, no endorsement.",
+        limitations: "Pipework partially occludes the pump.",
+      },
+    } };
+    const html = renderToStaticMarkup(createElement(TrialPanel, { trial: real, onVariant: () => {} }));
+    for (const text of ["Test photographer", "CC-BY-SA-4.0", "not the software MIT license", "Whole-frame resize", "partially occludes"]) {
+      expect(html).toContain(text);
+    }
+    expect(html).toContain('href="https://creativecommons.org/licenses/by-sa/4.0/"');
+    expect(html).not.toContain("Synthetic photographic input");
+  });
   it("labels pending photographic inputs and supervised variants without claiming results", () => {
     const html = renderToStaticMarkup(createElement(TrialPanel, { trial: pending, onVariant: () => {} }));
     expect(html).toContain("processing at snapshot");

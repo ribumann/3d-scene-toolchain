@@ -14,7 +14,7 @@ from scripts.package_pilots import pinned_environment, public_ply
 from scripts.private_gpu_batch import digest, private_path, snapshot_extraction, write_json
 from scripts.private_gpu_smoke import ROOT, SmokeError
 from scripts.private_gpu_trials import SETTINGS, assemble, checked_result, crop_plan, generation_key, source_path
-from scripts.trial_contracts import VARIANTS, TrialManifest, load_manifest
+from scripts.trial_contracts import GENERATED_TRIAL_IDS, TRIAL_IDS, VARIANTS, TrialManifest, load_manifest
 
 APPROVED_MANIFEST = ROOT / "cases/trials.json"
 STATUSES = {"not_run", "processing", "failed", "partial", "succeeded", "interrupted"}
@@ -30,7 +30,7 @@ def safe_report(report):
     required = SUMMARY_FIELDS - {"objects_succeeded", "objects_failed", "published_instances"}
     if not required <= set(report) <= SUMMARY_FIELDS or report["status"] not in STATUSES:
         raise SmokeError("invalid_trial_public_report")
-    if report["trial_id"] not in ("T01", "T02", "T03") or report["variant"] not in VARIANTS or report["supervision"] not in ("manual-reviewed-boxes", "detector-proposals"):
+    if report["trial_id"] not in TRIAL_IDS or report["variant"] not in VARIANTS or report["supervision"] not in ("manual-reviewed-boxes", "detector-proposals"):
         raise SmokeError("invalid_trial_public_report")
     for field in ("expected_objects", "detected_objects", "usable_crops", "cache_hits", "cache_misses", "resumed", "independent_generations", "objects_succeeded", "objects_failed", "published_instances"):
         if field in report and (type(report[field]) is not int or not 0 <= report[field] <= 10000):
@@ -135,6 +135,7 @@ def package_trials(directory, destination, manifest_path=APPROVED_MANIFEST, appr
                                 "trial_id", "variant", "parent_node_id", "crop_sha256", "source_sha256",
                                 "bbox_pixels", "cache_key", "reused", "reusable_asset_id", "instance", "layout",
                             )},
+                            **({"source_credit": trial.source.model_dump(mode="json")} if trial.source.kind == "licensed-real-photograph" else {}),
                         }
                         package["files"][relative] = validated["sha256"]
                     entry["scene"] = f"scenes/{trial.id}-{variant}.json"
@@ -150,6 +151,9 @@ def package_trials(directory, destination, manifest_path=APPROVED_MANIFEST, appr
 def validate_trial_package(directory, manifest_path=None):
     approved = load_manifest(manifest_path or APPROVED_MANIFEST)
     manifest = TrialManifest.model_validate_json(private_path(directory, "trial-manifest.json").read_text())
+    # Retain the already approved three-trial package alongside the additive six-trial publication.
+    if manifest_path is None and tuple(trial.id for trial in manifest.trials) == GENERATED_TRIAL_IDS:
+        approved = TrialManifest(schema_version=1, trials=[trial for trial in approved.trials if trial.id in GENERATED_TRIAL_IDS])
     if manifest != approved or directory.is_symlink():
         raise SmokeError("unapproved_trial_manifest")
     package = json.loads(private_path(directory, "trials.json").read_text())
@@ -208,6 +212,10 @@ def validate_trial_package(directory, manifest_path=None):
                 "trial_id", "variant", "parent_node_id", "crop_sha256", "source_sha256",
                 "bbox_pixels", "cache_key", "reused", "reusable_asset_id", "instance", "layout",
             }
+            if trial.source.kind == "licensed-real-photograph":
+                expected_fields.add("source_credit")
+                if provenance.get("source_credit") != trial.source.model_dump(mode="json"):
+                    raise SmokeError("invalid_trial_source_credit")
             if (set(provenance) != expected_fields
                 or any(provenance[key] != value for key, value in validated.items())
                 or provenance["trial_id"] != case or provenance["variant"] != variant

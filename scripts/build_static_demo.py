@@ -85,7 +85,8 @@ def build_demo(public: Path, pilot_package: Path | None = None, trial_package: P
             for entry in (item for item in trial_entries if item["trial_id"] == trial.id):
                 cases.append(Case(
                     id=f"{trial.id}-{entry['variant']}", title=f"{trial.title} / {entry['variant']}",
-                    input_type="generated", summary="Synthetic photographic trial; supervised comparison, not accuracy certification.",
+                    input_type="photo" if trial.source.kind == "licensed-real-photograph" else "generated",
+                    summary="Licensed real-photo trial; reviewed-box supervision, inferred geometry." if trial.source.kind == "licensed-real-photograph" else "Synthetic photographic trial; supervised comparison, not accuracy certification.",
                     status="ready" if entry["scene"] else "awaiting_input", source_filename=trial.source.filename,
                     source_url=f"/trial-references/{trial.source.filename}",
                 ))

@@ -1,4 +1,4 @@
-"""Opt-in sequential generated-input trials; never modify frozen pilot checkpoints."""
+"""Opt-in sequential photographic trials; never modify frozen pilot checkpoints."""
 
 import argparse
 import json
@@ -39,7 +39,7 @@ def source_path(directory, trial):
 
 
 def stage_sources(directory, manifest_path):
-    """Fetch only hash-bound, explicitly approved generated PNGs."""
+    """Fetch only hash-bound, explicitly approved photographic PNGs."""
     manifest = load_manifest(manifest_path)
     target = private_path(directory, "approved-trials")
     target.mkdir(parents=True, exist_ok=True)
@@ -77,7 +77,11 @@ def extract_trial(directory, output, manifest, case_id, variant):
     trial = next(item for item in load_manifest(manifest).trials if item.id == case_id)
     source = source_path(directory, trial)
     reviewed = trial.reviewed_objects if variant == "optimized" else []
-    case = Case(id=trial.id, title=trial.title, input_type="generated", summary="Synthetic photographic-scene trial; inferred layout.")
+    real_photo = trial.source.kind == "licensed-real-photograph"
+    case = Case(
+        id=trial.id, title=trial.title, input_type="photo" if real_photo else "generated",
+        summary="Licensed real-photograph trial; inferred layout." if real_photo else "Synthetic photographic-scene trial; inferred layout.",
+    )
     scene, report = extract_photo(
         case, {"preview_path": str(source), "filename": trial.source.filename, "sha256": trial.source.sha256},
         output, max_objects=None, caption=". ".join(trial.detector_phrases) + ".",
@@ -202,7 +206,12 @@ def save_cache(directory, key, result, candidate):
 def assemble(trial, variant, extracted, candidates, successes):
     scene = extracted.model_copy(deep=True)
     scene.id = scene.case_id = f"{trial.id}-{variant}"
-    scene.description = "Synthetic photographic-scene trial. Appearance generated; layout/scale/depth are inferred, not metric."
+    real_photo = trial.source.kind == "licensed-real-photograph"
+    scene.description = (
+        "Licensed real-photograph trial." if real_photo else "Synthetic photographic-scene trial."
+    ) + " Appearance generated; layout/scale/depth are inferred, not metric."
+    if real_photo:
+        scene.description += f" Source: {trial.source.creator}, {trial.source.source_page}. Source-derived adaptations: {trial.source.license}, {trial.source.license_url}. {trial.source.derivative_changes}"
     nodes = {node.id: node for node in extracted.nodes}
     scene.nodes, scene.assets, scene.edges = [], [], []
     for candidate in candidates:
@@ -233,6 +242,7 @@ def assemble(trial, variant, extracted, candidates, successes):
                     "cache_key": result["cache_key"], "reused": result["reused"],
                     "reusable_asset_id": candidate.get("reusable_asset_id"),
                     "instance": placement is not None, "layout": trial.layout_kind,
+                    **({"source_credit": trial.source.model_dump(mode="json")} if real_photo else {}),
                 },
             ))
     return Scene.model_validate(scene.model_dump())

@@ -25,7 +25,7 @@ on:
           - private-original
           - public-preview
       pilot_cases:
-        description: "Batch: I01-I05/G01-G03; trials: explicit T01 T02 T03 selection. Default preserves I02."
+        description: "Batch: I01-I05/G01-G03; trials: explicit T01-T03 or licensed R01-R03 selection. Default preserves I02."
         default: "I02"
         type: string
         required: false
@@ -46,7 +46,7 @@ on:
           - baseline
           - optimized
       publish_trials:
-        description: "Explicitly approve additive generated trial package; requires retained pilot package for public build"
+        description: "Explicitly approve additive photographic trial package, including licensed source-derived adaptations"
         default: false
         type: boolean
       cases:
