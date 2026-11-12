@@ -45,6 +45,12 @@ PNG decoding and a 20-million-pixel ceiling before atomic placement.
 
 ## Direct backend execution
 
+Private trial execution and export are **Linux/POSIX-only**: both require real
+`fcntl.flock` checkpoint locks on the prepared worker. Windows supports downloaded
+package validation and static builds, not private inference/export. The Linux
+test suite exercises locking and symlink protection; missing Windows flock or
+symlink privileges are not grounds to weaken those checks.
+
 Use the **current checkout**, the existing two prepared interpreters, and stage
 approved generated PNGs at
 `/home/scene/scene-private-data/approved-trials/{T01,T02,T03}.png`.
