@@ -25,6 +25,8 @@ simulation assumptions. Actual D01 SAM2/Idol reconstruction is blocked by
 unavailable Italy North Spot T4 capacity; no Gaussian result is claimed.
 The [telemetry / Fabric demo specification](docs/diamond-plant-demo.md) defines
 the 56 sensors, a 30/60-second generation profile and a focused operational app.
+The [agent Definition of Done](docs/mining-twin-agent-dod.md) defines how to
+implement that twin as an efficient extension of the existing Fabric triathlon app.
 
 **Initial baseline:** the three procedural scenarios run through real Blender
 exports. Eleven case slots are implemented. All eight image references
