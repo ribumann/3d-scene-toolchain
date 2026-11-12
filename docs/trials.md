@@ -13,6 +13,62 @@ and failures still require explicit review. No persons or private reference imag
 inputs. Synthetic photographic inputs, manually authored semantics/layout and generated
 3D appearances are distinct evidence.
 
+## Completed photographic comparison
+
+Actual protected GPU run
+[`43164397173`](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43164397173)
+completed successfully on the existing T4, with sequential baseline/optimized
+execution at source `546ba7ee4332ccbf345171f88e7cc9bf9dff1197`.
+Final isolated publication
+[`43171067330`](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43171067330)
+contains all six stopped variants, 13 independently generated appearances and
+23 hash-bound files. All outputs use the frozen settings below. No cache hit,
+resume, fabricated appearance or shared-identity instancing occurred in this run.
+
+| Input | Target equipment | Baseline proposals / validated appearances | Reviewed-box proposals / validated appearances | Baseline wall seconds | Reviewed-box wall seconds |
+|---|---:|---:|---:|---:|---:|
+| T01 utility-room pump | 1 | 1 / 1 | 1 / 1 | 407.548 | 223.110 |
+| T02 pump, tank and cabinet | 3 | 5 / 5 | 3 / 3 | 1088.790 | 652.884 |
+| T03 two separate pumps | 2 | 1 / 1 | 2 / 2 | 225.102 | 440.168 |
+
+`Succeeded` means generation and validation succeeded for the usable proposals,
+not that the declared equipment inventory was recovered accurately. T02's baseline
+labels include two cabinet and two tank proposals; supervised boxes targeted the
+three declared assemblies instead. T03's baseline produced only one proposal for
+two target pumps, whereas supervised boxes produced two. These observations support
+reviewing equipment identities before spending inference on every proposal; they
+do not establish automatic detector accuracy or geometric fidelity.
+
+The comparison is ordered and not repeated: T01's first generation took 340.577
+seconds versus roughly 215 seconds for subsequent individual generations, so
+startup/order effects confound its apparent speed difference. T02's lower wall
+time accompanies two fewer generations; T03's more complete target inventory
+costs an additional generation. Manual annotation time is not included.
+Exact-cache correctness is covered by regression tests, but these photographic
+variants did not demonstrate a cache speedup because their crop bytes differed.
+
+### Next input and pipeline improvements
+
+- Capture complete equipment with some separation from pipes/backgrounds, diffuse
+  light, sharp detail and several overlapping views of the **same** identified
+  equipment. Avoid cut-off silhouettes, glare and heavy occlusion. Preserve useful
+  real context; isolated studio objects are controls, not extraction benchmarks.
+- Supply an equipment inventory and reviewed masks/boxes, with explicit identities
+  for genuine repeated instances. Keep appearance crops separate from semantic
+  connections and authored layout. Dimensions or calibrated views are needed for
+  metric scale; a plausible generated photograph is not physical ground truth.
+- Review mask leakage, missed targets and duplicate identities before Idol.
+  Add orientation checks at each exporter/viewer boundary. Measure model loading
+  separately from sampling before trying a persistent warmed reconstruction worker;
+  preserve the vision/reconstruction VRAM separation and exact-cache provenance.
+- For a stronger reconstruction comparison, test multiview capture/photogrammetry
+  for measured facilities, and separately evaluate SAM 3D Objects or TRELLIS.2
+  within their hardware and licensing constraints. Those alternatives were not run
+  in this T4 comparison.
+
+No authorized Fable endpoint was available, so no Fable trial or claim that
+Fable alone performs better is supported by this experiment.
+
 ## Protected sequential workflow
 
 The committed `cases/trials.json` is the approved primary photographic manifest,
