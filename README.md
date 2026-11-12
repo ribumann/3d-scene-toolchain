@@ -79,7 +79,7 @@ are deployed with explicit original-vs-AI-generated provenance. The operator
 separately verified all eight public preview URLs and image decoding, G03's
 reference-only state, P01's 28 rendered objects and the absent API (404).
 
-The latest retained-package deployment is
+The pre-plant retained-package deployment was
 [43248833819](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43248833819),
 source `01ca61d0810d35cda6562aedf9132ea49ccd3b25`. All 121 packaged public-file
 hashes, including the four application files, match its artifact. Its 29 catalog entries
@@ -90,6 +90,16 @@ geometry. Rejected appearances stay hidden unless explicitly enabled for review;
 invalid bounds and failed loads remain blocked.
 Desktop/mobile browser checks and their limits are recorded in
 [the trial report](docs/trials.md#actual-illustrated-object-results).
+
+The latest deployment,
+[43257118267](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43257118267),
+adds the [D01 diamond recovery twin](https://red-wave-0c7bb6c0f.4.azurestaticapps.net/?case=D01)
+at source `fbde9b0b02628b3d9de076c5bffde567e629b632`, preserving all three
+retained packages. All 139 public-file hashes match the approved build; its
+30 catalog entries include the three not-run baselines. D01's 24 authored
+module models load on desktop and mobile. Its image, geometry, metadata and
+pending Gaussian reconstruction are documented in the
+[plant handoff](docs/diamond-plant.md#verified-live-delivery).
 
 The separate static build needs no backend, Blender or inference GPU:
 

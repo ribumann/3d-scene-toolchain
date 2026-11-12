@@ -108,6 +108,36 @@ retained packages are required. The CI dispatch uses `include_plant=true` with
 `pilot_run_id=43079293375`, `trial_run_id=43185525449`,
 `illustration_run_id=43237905142`; the default build remains unchanged.
 
+## Verified live delivery
+
+[Open D01 in the workbench](https://red-wave-0c7bb6c0f.4.azurestaticapps.net/?case=D01).
+Downloads: [original PNG](https://red-wave-0c7bb6c0f.4.azurestaticapps.net/plant/D01.png),
+[scaled layout SVG](https://red-wave-0c7bb6c0f.4.azurestaticapps.net/plant/layout.svg),
+[metadata JSON](https://red-wave-0c7bb6c0f.4.azurestaticapps.net/plant/metadata.json)
+and [whole-plant GLB](https://red-wave-0c7bb6c0f.4.azurestaticapps.net/plant/plant.glb).
+
+Deployment
+[43257118267](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43257118267)
+succeeded at source `fbde9b0b02628b3d9de076c5bffde567e629b632`.
+The Python/Blender and web jobs both passed, including full tests, a real Blender
+import and the opt-in static build. The frozen pilot, photographic-trial and
+illustration publications above were retained.
+
+Live verification matched 139 public-file hashes to the approved candidate,
+including four application files and the plant receipts. The 30 catalog entries
+include three explicitly not-run photographic baselines, not 30 successful
+reconstructions. Desktop (1600 px) and mobile (390 px) browser checks loaded all
+24 authored module models, decoded the original 1536 by 1024 image and verified
+all 16 plant deliverable hashes. Seven collapsible groups, line/shared/utility
+visibility, view controls and downloads worked without page errors or horizontal
+overflow. Hiding Line A reduced visible labels from 24 to 18; restoring it
+returned 24.
+
+These checks establish publication and authored-layout consistency, not
+photographic reconstruction accuracy. Actual D01 SAM2/Idol inference is still
+blocked by unavailable retained-worker GPU capacity. No Fabric infrastructure or
+telemetry simulator has been deployed.
+
 ## Pending Gaussian reconstruction
 
 `cases/diamond-plant-trial.json` isolates D01 from the six frozen photographic
