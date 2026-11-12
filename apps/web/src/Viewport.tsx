@@ -27,21 +27,22 @@ class CanvasBoundary extends Component<{ children: ReactNode }, { error: string 
   }
 }
 
-function Camera({ scene, view }: { scene: Scene; view: Props["cameraView"] }) {
+function Camera({ scene, isolated, view }: { scene: Scene; isolated: string | null; view: Props["cameraView"] }) {
   const { camera } = useThree();
   const controls = useRef<React.ComponentRef<typeof OrbitControls>>(null);
   const framing = useMemo(() => {
-    if (!scene.nodes.length) return { center: new THREE.Vector3(), distance: 18 };
+    const nodes = visibleNodes(scene, isolated);
+    if (!nodes.length) return { center: new THREE.Vector3(), distance: 18 };
     const box = new THREE.Box3();
-    scene.nodes.forEach(node => {
+    nodes.forEach(node => {
       const p = new THREE.Vector3(...node.position);
       const half = new THREE.Vector3(...node.size).multiplyScalar(0.5);
       box.expandByPoint(p.clone().sub(half)); box.expandByPoint(p.clone().add(half));
     });
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
-    return { center, distance: Math.max(12, size.length() * 1.1) };
-  }, [scene.id]); // Editing a position should not move the camera.
+    return { center, distance: Math.max(isolated ? 3 : 12, size.length() * 1.1) };
+  }, [scene.id, isolated]); // Editing a position should not move the camera.
   useEffect(() => {
     const { center, distance } = framing;
     camera.position.copy(center).add(view.kind === "top"
@@ -208,7 +209,7 @@ function SceneContent(props: Props & { onError: (message: string) => void; onAss
     <color attach="background" args={["#edf3f7"]} />
     <ambientLight intensity={1.8} /><directionalLight position={[10, 20, 10]} intensity={2} />
     <Grid infiniteGrid fadeDistance={120} cellSize={1} sectionSize={5} cellColor="#c8d7e1" sectionColor="#a8bfce" position={[0, -0.02, 0]} />
-    <Camera scene={props.scene} view={props.cameraView} />
+    <Camera scene={props.scene} isolated={props.isolated} view={props.cameraView} />
     {props.mode === "splat" && splats.length > 0 && <Spark assets={splats} nodes={nodes} onError={props.onError} onLoaded={onLoaded} />}
     {models.map(asset => <ModelAsset key={asset.id} asset={asset} node={assetNode(asset, nodes)} onError={props.onError} onLoaded={onLoaded} />)}
     {props.labels && <LabelProjection nodes={nodes} elements={props.labelElements} />}
