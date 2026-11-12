@@ -38,6 +38,10 @@ on:
         type: string
         default: both
         required: false
+      publish_trials:
+        type: boolean
+        default: false
+        required: false
       illustration_batch:
         type: boolean
         default: false
@@ -213,12 +217,12 @@ jobs:
               raise SystemExit(128 + signum)
           signal.signal(signal.SIGTERM, interrupt)
           directory = Path("/home/scene/scene-private-data")
-          manifest_path = ROOT / "cases/trials.json"
+          selected = os.environ["PILOT_CASES"].split()
+          manifest_path = ROOT / ("cases/diamond-plant-trial.json" if selected == ["D01"] else "cases/trials.json")
           manifest = load_manifest(manifest_path)
           trials = {trial.id: trial for trial in manifest.trials}
-          selected = os.environ["PILOT_CASES"].split()
           if not selected or len(selected) != len(set(selected)) or any(case not in trials for case in selected):
-              raise SystemExit("Select unique approved T01-T03 or R01-R03 trials using pilot_cases.")
+              raise SystemExit("Select approved T/R trials, or D01 alone, using pilot_cases.")
           variants = ("baseline", "optimized") if os.environ["TRIAL_VARIANTS"] == "both" else (os.environ["TRIAL_VARIANTS"],)
           stage_sources(directory, manifest_path)
           failed = False
@@ -230,6 +234,23 @@ jobs:
                   failed |= report["status"] != "succeeded"
           raise SystemExit(int(failed))
           PY
+      - name: Package separately approved plant Gaussian results
+        if: always() && !cancelled() && inputs.trial_batch && inputs.pilot_cases == 'D01' && inputs.publish_trials
+        run: |
+          umask 077
+          /home/scene/scene-worker-venv/bin/python -m scripts.package_trials \
+            --data-dir /home/scene/scene-private-data \
+            --manifest "$GITHUB_WORKSPACE/cases/diamond-plant-trial.json" \
+            --out "$RUNNER_TEMP/plant-splats-$GITHUB_RUN_ID" \
+            --approve-generated-trial-publication
+      - name: Upload validated plant splats separately from frozen trials
+        if: always() && !cancelled() && inputs.trial_batch && inputs.pilot_cases == 'D01' && inputs.publish_trials
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: plant-splats-${{ github.run_id }}
+          path: ${{ runner.temp }}/plant-splats-${{ github.run_id }}/
+          if-no-files-found: error
+          retention-days: 7
       - name: Generate photographic illustrative candidates for inspection
         if: inputs.illustration_batch
         env:

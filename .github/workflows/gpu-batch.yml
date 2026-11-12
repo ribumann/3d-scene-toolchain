@@ -27,7 +27,7 @@ on:
           - private-original
           - public-preview
       pilot_cases:
-        description: "Batch: I01-I05/G01-G03; trials: explicit T01-T03 or licensed R01-R03 selection. Default preserves I02."
+        description: "Batch: I01-I05/G01-G03; trials: T01-T03/R01-R03, or D01 alone for the plant."
         default: "I02"
         type: string
         required: false
@@ -80,6 +80,7 @@ jobs:
       object_batch: ${{ inputs.smoke_mode == 'batch' || inputs.smoke_mode == 'trials' }}
       trial_batch: ${{ inputs.smoke_mode == 'trials' }}
       trial_variants: ${{ inputs.trial_variants || 'both' }}
+      publish_trials: ${{ inputs.publish_trials || false }}
       pilot_cases: ${{ inputs.pilot_cases || 'I02' }}
       publish_pilots: ${{ inputs.publish_pilots || false }}
       source: ${{ inputs.smoke_source || 'private-original' }}
