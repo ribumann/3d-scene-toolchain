@@ -13,7 +13,7 @@ from PIL import Image
 from pydantic import ValidationError
 
 from scene_pipeline.api import create_app
-from scene_pipeline.gaussians import validate_ply
+from scene_pipeline.gaussians import assess_ply, validate_ply
 from scene_pipeline.jobs import Runner
 from scene_pipeline.models import JobRequest, Scene
 from scene_pipeline.store import ConflictError, Store
@@ -244,17 +244,20 @@ class JobTests(Fixture):
 
 
 class GaussianTests(unittest.TestCase):
-    def create_ply(self, path, bad=False):
+    def create_ply(self, path, bad=False, **updates):
         names = ["x", "y", "z", "f_dc_0", "f_dc_1", "f_dc_2", "opacity", "scale_0", "scale_1", "scale_2", "rot_0", "rot_1", "rot_2", "rot_3"]
-        values = np.zeros(2, dtype=[(name, "<f4") for name in names])
+        count = len(updates.get("x", [-.1, .1]))
+        values = np.zeros(count, dtype=[(name, "<f4") for name in names])
         for name in ("x", "y", "z"):
-            values[name] = [-.1, .1]
+            values[name] = np.resize([-.1, .1], count)
         for name in ("scale_0", "scale_1", "scale_2"):
             values[name] = -4
         values["rot_0"] = 1
         if bad:
             values["opacity"][0] = float("nan")
-        header = "ply\nformat binary_little_endian 1.0\nelement vertex 2\n" + "".join(f"property float {name}\n" for name in names) + "end_header\n"
+        for name, value in updates.items():
+            values[name] = value
+        header = f"ply\nformat binary_little_endian 1.0\nelement vertex {count}\n" + "".join(f"property float {name}\n" for name in names) + "end_header\n"
         path.write_bytes(header.encode() + values.tobytes())
 
     def test_validated_gaussian_bounds(self):
@@ -269,6 +272,45 @@ class GaussianTests(unittest.TestCase):
             self.create_ply(path, bad=True)
             with self.assertRaisesRegex(ValueError, "Nonfinite"):
                 validate_ply(path)
+
+    def test_quality_uses_rotated_covariance_and_does_not_change_ply_bytes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "object.ply"
+            self.create_ply(path, scale_0=np.log(.01), scale_1=np.log(.04), scale_2=np.log(.02),
+                            rot_0=np.sqrt(.5), rot_3=np.sqrt(.5))
+            original = path.read_bytes()
+            report = assess_ply(path)
+            self.assertEqual(report["status"], "accepted")
+            np.testing.assert_allclose(report["render_bounds"]["min"], [-.26, -.14, -.18], atol=1e-7)
+            np.testing.assert_allclose(report["render_bounds"]["max"], [.26, .14, .18], atol=1e-7)
+            self.assertEqual(path.read_bytes(), original)
+            self.assertEqual(report["sha256"], validate_ply(path)["sha256"])
+
+    def test_valid_centers_do_not_hide_giant_gaussian_radii(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "object.ply"
+            self.create_ply(path, scale_0=0)
+            self.assertEqual(validate_ply(path)["gaussian_count"], 2)
+            report = assess_ply(path)
+            self.assertEqual(report["status"], "excluded")
+            self.assertIn("gaussian_support_over_four_times_center_extent", report["reasons"])
+
+    def test_invisible_gaussian_does_not_inflate_render_bounds(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "object.ply"
+            self.create_ply(path, x=[-.1, .1, 50], y=[-.1, .1, 50], z=[-.1, .1, 50],
+                            opacity=[0, 0, -100], scale_0=[-4, -4, 10])
+            report = assess_ply(path)
+            self.assertEqual(report["status"], "accepted")
+            self.assertLess(max(report["render_bounds"]["max"]), .2)
+
+    def test_extreme_center_outliers_are_explicitly_excluded(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "object.ply"
+            positions = np.resize([-.1, .1], 1000)
+            positions[-1] = 5
+            self.create_ply(path, x=positions, y=positions, z=positions)
+            self.assertIn("extreme_center_outliers", assess_ply(path)["reasons"])
 
 
 if __name__ == "__main__":

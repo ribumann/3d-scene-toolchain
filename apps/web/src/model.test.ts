@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { caseFromQuery, pointOnRoute, routePoints, splatFit, updateNode, visibleNodes } from "./model";
+import { caseFromQuery, pointOnRoute, routePoints, splatFit, splatIssue, updateNode, visibleNodes } from "./model";
 import type { Scene } from "../../../packages/scene/types";
 
 const scene: Scene = {
@@ -42,7 +42,32 @@ describe("scene view model", () => {
   });
   it("fits y-up splat bounds to a node without changing axes", () => {
     const asset = { id: "p", kind: "ply" as const, uri: "/api/assets/a.ply", sha256: "", provenance: { bounds: { min: [0, -1, 0], max: [2, 1, 4] } } };
-    expect(splatFit(asset, { ...scene.nodes[0], size: [4, 6, 8] })).toEqual({ center: [1, 0, 2], scale: [2, 3, 2] });
+    expect(splatFit(asset, { ...scene.nodes[0], size: [4, 6, 8] })).toEqual({ center: [1, 0, 2], scale: [2, 2, 2] });
     expect(splatFit({ ...asset, provenance: {} }, scene.nodes[0])).toBeNull();
+  });
+  it("fits visible covariance support rather than centers and preserves proportions", () => {
+    const asset = {
+      id: "p", kind: "ply" as const, uri: "/object.ply", sha256: "", provenance: {
+        bounds: { min: [0, 0, 0], max: [1, 1, 1] },
+        geometry_quality: { status: "accepted", render_bounds: { min: [-1, -2, -3], max: [3, 2, 5] } },
+      },
+    };
+    const fit = splatFit(asset, { ...scene.nodes[0], size: [8, 12, 16] });
+    expect(fit).toEqual({ center: [1, 0, 1], scale: [2, 2, 2] });
+  });
+  it("excludes rejected, malformed and severely disproportionate appearances with a reason", () => {
+    const asset = {
+      id: "p", kind: "ply" as const, uri: "/object.ply", sha256: "",
+      provenance: { bounds: { min: [-.5, -.5, -.5], max: [.5, .5, .5] } },
+    };
+    expect(splatFit(asset, { ...scene.nodes[0], size: [1, 8, 1] })).not.toBeNull();
+    expect(splatFit(asset, { ...scene.nodes[0], size: [1, 8.001, 1] })).toBeNull();
+    expect(splatIssue(asset, { ...scene.nodes[0], size: [1, 80, 1] })).toContain("aspect distortion");
+    const rejected = { ...asset, provenance: { ...asset.provenance, geometry_quality: {
+      status: "excluded", reasons: ["extreme_center_outliers"],
+    } } };
+    expect(splatFit(rejected, scene.nodes[0])).toBeNull();
+    expect(splatIssue(rejected, scene.nodes[0])).toContain("extreme_center_outliers");
+    expect(splatFit({ ...asset, provenance: { ...asset.provenance, geometry_quality: {} } }, scene.nodes[0])).toBeNull();
   });
 });

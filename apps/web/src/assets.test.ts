@@ -23,8 +23,8 @@ describe("splat source-coordinate normalization", () => {
     const center = object.localToWorld(new THREE.Vector3(2, 4, 6));
     expect(center.distanceTo(new THREE.Vector3(...node.position))).toBeLessThan(1e-10);
     const point = object.localToWorld(new THREE.Vector3(2.2, 3.6, 6.6));
-    expect(point.x).toBeCloseTo(7.6);
-    expect(point.y).toBeCloseTo(5.2);
+    expect(point.x).toBeCloseTo(8.8);
+    expect(point.y).toBeCloseTo(4.8);
     expect(point.z).toBeCloseTo(-2.4);
     expect(object.matrixWorld.determinant()).toBeGreaterThan(0);
     const up = new THREE.Vector3(0, -1, 0).applyQuaternion(object.quaternion);
@@ -38,8 +38,8 @@ describe("splat source-coordinate normalization", () => {
     ]) {
       const object = transform(provenance);
       const point = object.localToWorld(new THREE.Vector3(2.2, 3.6, 6.6));
-      expect(point.x).toBeCloseTo(12.4);
-      expect(point.y).toBeCloseTo(2.8);
+      expect(point.x).toBeCloseTo(11.2);
+      expect(point.y).toBeCloseTo(3.2);
       expect(point.z).toBeCloseTo(-2.4);
     }
   });

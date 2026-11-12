@@ -61,6 +61,7 @@ export type TrialStatus = {
 
 export function createApi(staticDemo = false) {
   const publishedScenes = new Set(["P01", "P02", "P03"]);
+  let quality: Promise<{ version: number; assets: Record<string, unknown> }> | undefined;
   const call = <T>(path: string, init?: RequestInit): Promise<T> => {
     if (staticDemo && path.startsWith("/api/")) {
       return Promise.reject(new ApiError(403, "The public demo is read-only. Run the local workbench for edits, uploads and pipeline jobs."));
@@ -84,15 +85,26 @@ export function createApi(staticDemo = false) {
       const scene = await call<Scene>(staticDemo ? `/demo/${id}.json` : `${casePath(id)}/scene`);
       if (staticDemo) {
         if (scene.case_id !== id) throw new ApiError(422, "Published scene identity does not match the selected case.");
+        const assessments = scene.assets.length ? await (quality ??= call<{ version: number; assets: Record<string, unknown> }>("/demo/quality.json")) : null;
+        if (assessments && (assessments.version !== 1 || !assessments.assets || typeof assessments.assets !== "object")) {
+          throw new ApiError(422, "Published geometry quality report is invalid.");
+        }
         return { ...scene, assets: scene.assets.map(asset => {
           const trial = /^[TR]0[1-3]-(baseline|optimized)$/.test(id);
           const match = trial
             ? new RegExp(`^/api/assets/trials/${id.slice(0, 3)}/${id.slice(4)}/[A-Za-z0-9_.-]+\\.ply$`).test(asset.uri)
-            : /^\/api\/assets\/pilot\/(I0[1-5]|G0[1-3])\/[A-Za-z0-9_.-]+\.ply$/.test(asset.uri);
+            : new RegExp(`^/api/assets/pilot/${id}/[A-Za-z0-9_.-]+\\.ply$`).test(asset.uri);
           if (!match) {
             throw new ApiError(422, "Published scene has an unapproved asset path.");
           }
-          return { ...asset, uri: trial ? asset.uri.replace("/api/assets/trials/", "/trial-assets/") : asset.uri.replace("/api/assets/", "/pilot-assets/") };
+          const assessment = assessments?.assets[asset.sha256];
+          if (!assessment || typeof assessment !== "object" || !("sha256" in assessment) || assessment.sha256 !== asset.sha256) {
+            throw new ApiError(422, "Published appearance has no matching hash-bound geometry assessment.");
+          }
+          return {
+            ...asset, provenance: { ...asset.provenance, geometry_quality: assessment },
+            uri: trial ? asset.uri.replace("/api/assets/trials/", "/trial-assets/") : asset.uri.replace("/api/assets/", "/pilot-assets/"),
+          };
         }) };
       }
       return scene;

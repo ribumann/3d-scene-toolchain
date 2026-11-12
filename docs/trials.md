@@ -1,5 +1,23 @@
 # Opt-in photographic industrial trials
 
+## Scene-wide geometry screening
+
+The static builder assesses every approved original and interim PLY without
+changing its bytes or the frozen publication. A separate `demo/quality.json`
+binds assessments to exact PLY hashes. Missing or mismatched assessments fail
+explicitly. Covariance-aware bounds include four-sigma support for Gaussians
+whose opacity is at least 1/255; essentially invisible tails do not set scale.
+Exclusions cover support over four times the visible center extent and center
+outliers over six times the 1st-to-99th-percentile extent.
+
+The viewer now fits these extents **uniformly** instead of independently stretching
+all three axes. It also excludes appearances requiring over 8x aspect distortion
+against the provisional semantic box, with visible reasons and no representative
+box substitute. Existing layouts and source credits remain unchanged.
+These are conservative geometric heuristics, not semantic acceptance, proof of
+bad source dimensions, recovered scale or accuracy certification. An excluded
+object can need a better crop, corrected semantic dimensions or a new generation.
+
 ## Licensed real photographs and crop preparation
 
 R01-R03 are real, whole-frame photographs found on Wikimedia Commons, not generated

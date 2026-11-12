@@ -15,6 +15,7 @@ REFERENCE_SOURCE = ROOT / "apps/web/public/references"
 
 def build_demo(public: Path, pilot_package: Path | None = None, trial_package: Path | None = None):
     from scripts.package_pilots import validate_package
+    from scene_pipeline.gaussians import assess_ply
 
     pilots = validate_package(pilot_package) if pilot_package is not None else None
     trials = None
@@ -29,7 +30,7 @@ def build_demo(public: Path, pilot_package: Path | None = None, trial_package: P
     destination, references = public / "demo", public / "references"
     for directory, allowed in (
         (public, {"demo", "references"} | ({"pilot-assets"} if pilots else set()) | ({"trial-assets", "trial-references"} if trials else set())),
-        (destination, {"cases.json", "P01.json", "P02.json", "P03.json", "pilots.json", "trials.json"} | {f"{case}.json" for case in trial_ids} | ({*(f"{case}.json" for case, item in entries.items() if item["scene"])} if pilots else set())),
+        (destination, {"cases.json", "P01.json", "P02.json", "P03.json", "pilots.json", "trials.json", "quality.json"} | {f"{case}.json" for case in trial_ids} | ({*(f"{case}.json" for case, item in entries.items() if item["scene"])} if pilots else set())),
         (references, {f"{identifier}.webp" for identifier in REFERENCE_IDS}),
     ):
         if directory.is_symlink() or (directory.exists() and not directory.is_dir()):
@@ -60,6 +61,18 @@ def build_demo(public: Path, pilot_package: Path | None = None, trial_package: P
     cases = [Case.model_validate(item) for item in json.loads((ROOT / "cases/manifest.json").read_text())]
     destination.mkdir(parents=True, exist_ok=True)
     references.mkdir(parents=True, exist_ok=True)
+    quality = {}
+    for package, manifest in ((pilot_package, pilots), (trial_package, trials[0] if trials else None)):
+        if manifest is not None:
+            for name in manifest["files"]:
+                if name.startswith("assets/") and name.endswith(".ply"):
+                    assessment = assess_ply(package / name)
+                    quality[assessment["sha256"]] = assessment
+    (destination / "quality.json").write_text(json.dumps({
+        "version": 1,
+        "policy": "Four-sigma support above 1/255 opacity; heuristic geometry screening, not semantic acceptance.",
+        "assets": quality,
+    }, indent=2) + "\n")
     for case in cases:
         case.source_filename = f"{case.id}.webp" if case.id in REFERENCE_IDS else None
         case.source_url = f"/references/{case.id}.webp" if case.id in REFERENCE_IDS else None

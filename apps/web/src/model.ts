@@ -45,15 +45,40 @@ export function pointOnRoute(points: Vec3[], fraction: number): Vec3 {
   return points[points.length - 1];
 }
 
-export function splatFit(asset: SceneAsset, node: SceneNode): { center: Vec3; scale: Vec3 } | null {
-  const bounds = asset.provenance.bounds;
+function splatBounds(asset: SceneAsset): { min: Vec3; max: Vec3 } | null {
+  const quality = asset.provenance.geometry_quality;
+  if (quality !== undefined && (!quality || typeof quality !== "object" ||
+      !("status" in quality) || quality.status !== "accepted" || !("render_bounds" in quality))) return null;
+  const bounds = quality && typeof quality === "object" && "render_bounds" in quality ? quality.render_bounds : asset.provenance.bounds;
   if (!bounds || typeof bounds !== "object" || !("min" in bounds) || !("max" in bounds)) return null;
   const { min, max } = bounds as { min: unknown; max: unknown };
   if (!Array.isArray(min) || !Array.isArray(max) || min.length !== 3 || max.length !== 3 ||
       !min.every(Number.isFinite) || !max.every(Number.isFinite) ||
       min.some((value, i) => max[i] <= value)) return null;
+  return { min: min as Vec3, max: max as Vec3 };
+}
+
+export function splatIssue(asset: SceneAsset, node: SceneNode): string | null {
+  const quality = asset.provenance.geometry_quality;
+  if (quality && typeof quality === "object" && "status" in quality && quality.status === "excluded") {
+    const reasons = "reasons" in quality && Array.isArray(quality.reasons) ? quality.reasons.filter((reason): reason is string => typeof reason === "string") : [];
+    return `Excluded by geometry screening: ${reasons.join(", ") || "invalid visible extent"}.`;
+  }
+  const bounds = splatBounds(asset);
+  if (!bounds || !node.size.every(value => Number.isFinite(value) && value > 0)) return "Missing or invalid visible Gaussian bounds.";
+  const fits = bounds.min.map((value, i) => node.size[i] / (bounds.max[i] - value));
+  if (Math.max(...fits) / Math.min(...fits) > 8) return "Excluded: fitting this appearance would require over 8x aspect distortion against its provisional object box.";
+  return null;
+}
+
+export function splatFit(asset: SceneAsset, node: SceneNode): { center: Vec3; scale: Vec3 } | null {
+  if (splatIssue(asset, node)) return null;
+  const bounds = splatBounds(asset);
+  if (!bounds) return null;
+  const { min, max } = bounds;
+  const scale = Math.min(...min.map((value, i) => node.size[i] / (max[i] - value)));
   return {
     center: min.map((value, i) => (value + max[i]) / 2) as Vec3,
-    scale: min.map((value, i) => node.size[i] / (max[i] - value)) as Vec3,
+    scale: [scale, scale, scale],
   };
 }

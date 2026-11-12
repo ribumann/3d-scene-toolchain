@@ -2,6 +2,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { api, ApiError, createApi } from "./api";
 import type { Scene } from "../../../packages/scene/types";
 
+const sha256 = "0".repeat(64);
+const quality = { version: 1, assets: { [sha256]: {
+  sha256, status: "accepted", render_bounds: { min: [-1, -1, -1], max: [1, 1, 1] }, reasons: [],
+} } };
+
 afterEach(() => vi.unstubAllGlobals());
 describe("API contract", () => {
   it("reports a revision conflict without substituting a scene", async () => {
@@ -56,15 +61,16 @@ describe("API contract", () => {
     });
     it("loads only catalog-approved pilot scenes and maps approved PLY paths without /api requests", async () => {
       const fetchMock = vi.fn().mockImplementation((path: string) => Promise.resolve(new Response(JSON.stringify(
-        path.endsWith("cases.json") ? [{ id: "I02", status: "ready" }] :
-          { case_id: "I02", assets: [{ id: "idol-object-000", uri: "/api/assets/pilot/I02/object-000.ply" }] },
+        path.endsWith("cases.json") ? [{ id: "I02", status: "ready" }] : path.endsWith("quality.json") ? quality :
+          { case_id: "I02", assets: [{ id: "idol-object-000", sha256, uri: "/api/assets/pilot/I02/object-000.ply" }] },
       ))));
       vi.stubGlobal("fetch", fetchMock);
       const demo = createApi(true);
       await demo.cases();
       const scene = await demo.scene("I02");
       expect(scene.assets[0].uri).toBe("/pilot-assets/pilot/I02/object-000.ply");
-      expect(fetchMock.mock.calls.map(call => call[0])).toEqual(["/demo/cases.json", "/demo/I02.json"]);
+      expect(scene.assets[0].provenance.geometry_quality).toEqual(quality.assets[sha256]);
+      expect(fetchMock.mock.calls.map(call => call[0])).toEqual(["/demo/cases.json", "/demo/I02.json", "/demo/quality.json"]);
       await expect(demo.scene("I03")).rejects.toMatchObject({ status: 409 });
     });
     it("rejects unpublished asset paths rather than loading a backend or external resource", async () => {
@@ -79,9 +85,9 @@ describe("API contract", () => {
     });
     it("loads only approved trial variants with isolated static appearance paths", async () => {
       vi.stubGlobal("fetch", vi.fn().mockImplementation((path: string) => Promise.resolve(new Response(JSON.stringify(
-        path.endsWith("cases.json") ? [{ id: "T01-baseline", status: "ready" }, { id: "T01-optimized", status: "awaiting_input" }] :
+        path.endsWith("quality.json") ? quality : path.endsWith("cases.json") ? [{ id: "T01-baseline", status: "ready" }, { id: "T01-optimized", status: "awaiting_input" }] :
           path.endsWith("trials.json") ? [{ trial_id: "T01", variant: "optimized", status: "not_run", scene: null }] :
-            { case_id: "T01-baseline", assets: [{ uri: "/api/assets/trials/T01/baseline/object-000.ply" }] },
+            { case_id: "T01-baseline", assets: [{ sha256, uri: "/api/assets/trials/T01/baseline/object-000.ply" }] },
       )))));
       const demo = createApi(true);
       await demo.cases();
@@ -93,8 +99,8 @@ describe("API contract", () => {
     it("loads catalog-approved real-photo splats but rejects cross-case asset substitution", async () => {
       let uri = "/api/assets/trials/R03/optimized/object-001.ply";
       vi.stubGlobal("fetch", vi.fn().mockImplementation((path: string) => Promise.resolve(new Response(JSON.stringify(
-        path.endsWith("cases.json") ? [{ id: "R03-optimized", status: "ready" }] :
-          { case_id: "R03-optimized", assets: [{ uri }] },
+        path.endsWith("quality.json") ? quality : path.endsWith("cases.json") ? [{ id: "R03-optimized", status: "ready" }] :
+          { case_id: "R03-optimized", assets: [{ sha256, uri }] },
       )))));
       const demo = createApi(true);
       await demo.cases();
@@ -102,6 +108,16 @@ describe("API contract", () => {
       uri = "/api/assets/trials/R01/optimized/object-001.ply";
       await expect(demo.scene("R03-optimized")).rejects.toMatchObject({ status: 422 });
       await expect(demo.scene("R03-baseline")).rejects.toMatchObject({ status: 409 });
+    });
+    it("refuses an appearance whose content hash has no quality assessment", async () => {
+      vi.stubGlobal("fetch", vi.fn().mockImplementation((path: string) => Promise.resolve(new Response(JSON.stringify(
+        path.endsWith("cases.json") ? [{ id: "I02", status: "ready" }] :
+          path.endsWith("quality.json") ? { version: 1, assets: {} } :
+            { case_id: "I02", assets: [{ sha256, uri: "/api/assets/pilot/I02/object-000.ply" }] },
+      )))));
+      const demo = createApi(true);
+      await demo.cases();
+      await expect(demo.scene("I02")).rejects.toMatchObject({ status: 422, message: expect.stringContaining("hash-bound") });
     });
   });
   it("reports non-JSON HTTP failures", async () => {
