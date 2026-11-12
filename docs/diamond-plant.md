@@ -92,6 +92,12 @@ contract. JSON Schema enum membership alone cannot enforce those cross-field
 joins. Fabric resources, ingestion, a simulator and dashboards are **not**
 provisioned by this change.
 
+The [telemetry and Fabric demo specification](diamond-plant-demo.md) defines
+every tag's meaning, normal range, low-volume 30/60-second cadence and generation
+behavior, plus a focused set of Fabric calculations, alerts and app views.
+It is a proposal for the next implementation, not a claim that live sensor data
+or a Fabric connection has been added to this viewer.
+
 ## Provenance and reproducible publication
 
 `cases/diamond-plant-source.json` records the original prompt, factual generator
