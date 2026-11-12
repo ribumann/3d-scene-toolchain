@@ -2,7 +2,7 @@ import type { Scene, SceneAsset, SceneEdge, SceneNode, Vec3 } from "../../../pac
 
 export function caseFromQuery(search: string, knownIds: readonly string[]): { caseId: string; error?: string } {
   const requested = new URLSearchParams(search).getAll("case");
-  const fallback = knownIds[0] ?? "";
+  const fallback = knownIds.includes("P01-illustrated") ? "P01-illustrated" : knownIds[0] ?? "";
   if (!requested.length) return { caseId: fallback };
   if (requested.length === 1 && knownIds.includes(requested[0])) return { caseId: requested[0] };
   return {

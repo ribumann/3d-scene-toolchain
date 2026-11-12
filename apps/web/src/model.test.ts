@@ -16,6 +16,12 @@ describe("scene view model", () => {
     expect(caseFromQuery("?case=I03", ids)).toEqual({ caseId: "I03" });
     expect(caseFromQuery("?other=value", ids)).toEqual({ caseId: "P01" });
   });
+  it("opens available illustrated objects by default without redirecting original case links", () => {
+    const ids = ["P01", "I01", "P01-illustrated"];
+    expect(caseFromQuery("", ids)).toEqual({ caseId: "P01-illustrated" });
+    expect(caseFromQuery("?case=P01", ids)).toEqual({ caseId: "P01" });
+    expect(caseFromQuery("", [])).toEqual({ caseId: "" });
+  });
   it("reports invalid or ambiguous case links rather than silently selecting the wrong scene", () => {
     for (const search of ["?case=unknown", "?case=", "?case=../P01", "?case=I02&case=I01"]) {
       expect(caseFromQuery(search, ["P01", "I01", "I02"])).toEqual({

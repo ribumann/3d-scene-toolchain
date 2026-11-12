@@ -190,28 +190,6 @@ The reviewed T02 pump, tank and cabinet were also visually checked upright.
 Open the [reviewed T02 scene](https://red-wave-0c7bb6c0f.4.azurestaticapps.net/?case=T02-optimized)
 and use the trial controls to compare its detector baseline.
 
-### Next input and pipeline improvements
-
-- Capture complete equipment with some separation from pipes/backgrounds, diffuse
-  light, sharp detail and several overlapping views of the **same** identified
-  equipment. Avoid cut-off silhouettes, glare and heavy occlusion. Preserve useful
-  real context; isolated studio objects are controls, not extraction benchmarks.
-- Supply an equipment inventory and reviewed masks/boxes, with explicit identities
-  for genuine repeated instances. Keep appearance crops separate from semantic
-  connections and authored layout. Dimensions or calibrated views are needed for
-  metric scale; a plausible generated photograph is not physical ground truth.
-- Review mask leakage, missed targets and duplicate identities before Idol.
-  Add orientation checks at each exporter/viewer boundary. Measure model loading
-  separately from sampling before trying a persistent warmed reconstruction worker;
-  preserve the vision/reconstruction VRAM separation and exact-cache provenance.
-- For a stronger reconstruction comparison, test multiview capture/photogrammetry
-  for measured facilities, and separately evaluate SAM 3D Objects or TRELLIS.2
-  within their hardware and licensing constraints. Those alternatives were not run
-  in this T4 comparison.
-
-No authorized Fable endpoint was available, so no Fable trial or claim that
-Fable alone performs better is supported by this experiment.
-
 The additional illustrative-reference review selects 25 concepts with exact PNG
 hashes and normalized boxes in `cases/illustration-reviews.json`. Factory-interior
 and cropped-tank candidates were rejected. A replacement exterior was accepted;
@@ -224,6 +202,63 @@ Generated machines illustrate equipment roles and do not verify their engineerin
 G03 outputs (pond 2 and enclosure 3) whose disconnected fragments passed numeric
 screening. Overrides bind exact public PLY SHA256 values, never categories or
 mutable asset IDs; the frozen input packages and PLY bytes remain unchanged.
+
+### Next comparisons and better input capture
+
+The highest-value improvement is better observation, not a larger generation
+step count. Use complete objects including feet/baseplates, sharp textures,
+diffuse and consistent exposure, margins for masks, and visible gaps between
+neighboring objects. Record identity and a real scale reference separately.
+Avoid motion, heavy occlusion, strong reflections and transparent surfaces.
+For multiview reconstruction, photograph the same stationary object or facility
+from overlapping views at several elevations, with consistent focus and lighting;
+do not mix independently generated viewpoints and call them calibrated evidence.
+
+For prompt-only illustrations, specify equipment role, broad shape/material,
+complete silhouette, a three-quarter photographic view and a realistic installed
+background. Do not request a finished 3D render. Review the image before masking:
+reject wrong equipment types, cut-off objects and ambiguous overlapping subjects.
+Generated reference scale, unseen sides, labels and mechanical details remain
+invented even when the picture looks realistic.
+
+For schemata and plans, prefer straight, high-resolution scans or vector exports,
+readable component IDs, a declared equipment inventory, explicit ports and arrow
+directions, a legend and a scale where actually known. Keep appearance generation
+separate from the connectivity graph; no relation follows just from nearby boxes.
+Next evaluate mask coverage, recognizable identity, aspect/extent failures and
+held-out-view consistency separately from syntax-valid PLY counts. Report model
+loading, extraction, sampling, annotation and publication time separately.
+Profile model loading before introducing a persistent warmed worker; preserve
+vision/reconstruction VRAM separation, exact-cache contracts and exporter/viewer
+orientation checks. A warmed worker is a proposed improvement, not a measured
+speedup in these runs.
+
+| Candidate | Most useful comparison | Constraint from primary documentation |
+| --- | --- | --- |
+| [SAM 3D Objects](https://github.com/facebookresearch/sam-3d-objects) | Mask-conditioned objects in cluttered/occluded natural photographs, including pose/layout | [Setup](https://github.com/facebookresearch/sam-3d-objects/blob/main/doc/setup.md) requires Linux, at least 32 GB VRAM and authorized checkpoint access. Not a drop-in for this 16 GB T4. |
+| [TRELLIS.2](https://github.com/microsoft/TRELLIS.2) | Textured mesh/PBR alternatives for individual objects and thin/open surfaces | Official setup requires at least 24 GB VRAM; its published seconds are H100 measurements, not T4 predictions. GLB output is not itself a Gaussian splat. |
+| [Hunyuan3D-2.1](https://github.com/Tencent-Hunyuan/Hunyuan3D-2.1) | Image-to-shape and textured mesh comparison | Official figures are 10 GB for shape, 21 GB for texture and 29 GB combined. Shape-only merits a separate T4 trial; full texture and licensing need separate evaluation. |
+| [Nerfstudio Splatfacto](https://docs.nerf.studio/nerfology/methods/splat.html) | Actual multiview site/object reconstruction rather than single-view completion | Uses photographs and camera/SfM information; documentation recommends COLMAP initialization and lists about 6 GB for default/12 GB for big. Capture quality and a scale anchor still determine evidence and units. |
+
+These are researched candidates, not executed head-to-head benchmarks or quality
+winners. Keep new dependencies and hardware trials isolated from the frozen Idol
+environment.
+
+### Would Fable 5.2 alone be better?
+
+The [official Bedrock model card](https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-fable-5-2.html)
+documents image/text inputs and text output, not native image or 3D output.
+Fable could help interpret OCR, normalize object descriptions, propose a
+connectivity graph and produce procedural scene code. That is a useful semantic
+front end, not evidence that it replaces masking, trained image-to-3D generation,
+multiview reconstruction or a renderer. Code-generated geometry would remain
+procedural interpretation, not recovered photographic appearance.
+
+No authorized Fable inference endpoint was available in this work, so no Fable
+trial was run and no measured superiority is claimed. The recommended comparison
+is a language-model-assisted inventory/graph stage feeding the same validated
+appearance backend, measured against the current reviewed inputs; it is not
+replacing the reconstruction pipeline with a language model alone.
 
 ## Protected sequential workflow
 

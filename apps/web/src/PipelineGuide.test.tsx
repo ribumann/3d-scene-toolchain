@@ -8,7 +8,7 @@ it("offers an unobtrusive semantic pipeline with actual optimization limits", ()
   expect(html).toContain("<summary>");
   expect(html).not.toContain("<details open");
   expect(html.match(/<li>/g)).toHaveLength(6);
-  for (const text of ["SAM2", "Grounding DINO", "Idol", "seed 42", "exact crop-and-settings", "human supervision", "Appearance is not layout", "unreviewed OCR/contour", "no inference"]) {
+  for (const text of ["SAM2", "Grounding DINO", "Idol", "seed 42", "exact crop-and-settings", "human supervision", "Appearance is not layout", "unreviewed region proposals", "generated photographs", "scale reference", "no inference"]) {
     expect(html).toContain(text);
   }
 });
