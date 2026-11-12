@@ -47,6 +47,17 @@ costs an additional generation. Manual annotation time is not included.
 Exact-cache correctness is covered by regression tests, but these photographic
 variants did not demonstrate a cache speedup because their crop bytes differed.
 
+Deployment
+[`43171802129`](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43171802129)
+published source `a56985176963ace74d5e9d9ee1de3932eca45f59`, including the
+orientation correction below. Live verification matched all 69 data/reference
+hashes and four app files, retaining the eight original pilots and all six trial
+variants in the 17-case catalog. The public browser loaded the six variants with
+appearance counts 1, 1, 5, 3, 1 and 2, respectively, and original I02 with 9/9.
+The reviewed T02 pump, tank and cabinet were also visually checked upright.
+Open the [reviewed T02 scene](https://red-wave-0c7bb6c0f.4.azurestaticapps.net/?case=T02-optimized)
+and use the trial controls to compare its detector baseline.
+
 ### Next input and pipeline improvements
 
 - Capture complete equipment with some separation from pipes/backgrounds, diffuse
