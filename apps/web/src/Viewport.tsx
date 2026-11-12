@@ -86,7 +86,7 @@ function LabelProjection({ nodes, elements }: { nodes: SceneNode[]; elements: Ma
   return null;
 }
 
-function Spark({ assets, nodes, onError, onLoaded }: { assets: SceneAsset[]; nodes: SceneNode[]; onError: (message: string) => void; onLoaded: (id: string, value: boolean) => void }) {
+export function Spark({ assets, nodes, onError, onLoaded }: { assets: SceneAsset[]; nodes: SceneNode[]; onError: (message: string) => void; onLoaded: (id: string, value: boolean) => void }) {
   const { gl, scene } = useThree();
   useEffect(() => {
     let active = true;
@@ -119,9 +119,10 @@ function Spark({ assets, nodes, onError, onLoaded }: { assets: SceneAsset[]; nod
         sources.push(source);
         source.initialized.then(() => {
           if (!active) return;
-          if (!source.splats) throw new Error("Loaded splat has no shared source");
+          const shared = source.splats;
+          if (!shared) throw new Error("Loaded splat has no shared source");
           accepted.forEach((node, index) => {
-            const mesh = index === 0 ? source : new SplatMesh({ splats: source.splats });
+            const mesh = index === 0 ? source : new SplatMesh({ splats: shared });
             mesh.name = `${asset.id}/${node?.id ?? "scene"}`;
             if (node) fitSplatToNode(mesh, asset, node);
             scene.add(mesh); meshes.push(mesh);

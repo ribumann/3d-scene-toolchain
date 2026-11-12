@@ -66,7 +66,7 @@ export function splatIssue(asset: SceneAsset, node: SceneNode): string | null {
   const quality = asset.provenance.geometry_quality;
   if (quality && typeof quality === "object" && "status" in quality && quality.status === "excluded") {
     const reasons = "reasons" in quality && Array.isArray(quality.reasons) ? quality.reasons.filter((reason): reason is string => typeof reason === "string") : [];
-    return `Excluded by geometry screening: ${reasons.join(", ") || "invalid visible extent"}.`;
+    return `Excluded by quality screening: ${reasons.join(", ") || "invalid visible extent"}.`;
   }
   const bounds = splatBounds(asset);
   if (!bounds || !node.size.every(value => Number.isFinite(value) && value > 0)) return "Missing or invalid visible Gaussian bounds.";
