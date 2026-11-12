@@ -38,6 +38,39 @@ Original three-input packages remain accepted only when their complete T01-T03
 definitions exactly match the registered originals. Publication must retain pilot
 package `43079293375`; unexecuted real-photo baselines stay explicitly `not_run`.
 
+### Completed real-photo run and measured preparation
+
+Protected GPU run
+[`43183250475`](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43183250475)
+succeeded at source `7af4cd6a55e4b5290bad68bd8405d2076e19be3d`:
+R01 produced one validated appearance in 215.010 seconds, R02 one in 221.060
+seconds, and R03 two in 440.043 seconds. These were four independent generations
+with no exact-cache hits. The boxes were reviewed manually; the counts do not
+measure automatic detection, complete assemblies or reconstruction accuracy.
+R03's occluded, cropped assemblies remain a difficult partial-visibility example.
+The isolated publisher
+[`43185525449`](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43185525449)
+retains all six synthetic variants and adds the three successful real-photo
+variants plus three explicitly unexecuted baselines: 33 hash-bound files.
+
+The actual saved SAM alpha crops passed exact pixel and encoded-PNG equivalence
+against the legacy preparation. On the same VM, after three warmups and 25
+alternating paired repetitions per crop:
+
+| Actual crop | Legacy median ms | Crop-first median ms | Source pixels | Crop pixels |
+|---|---:|---:|---:|---:|
+| R01 object-000 | 5.3906 | 4.1087 | 2,430,000 | 1,588,248 |
+| R02 object-000 | 4.9547 | 3.3165 | 2,160,000 | 1,179,900 |
+| R03 object-000 | 5.0628 | 0.5813 | 2,430,000 | 167,670 |
+| R03 object-001 | 5.0451 | 0.5987 | 2,430,000 | 172,431 |
+
+This is approximately 24-89% less **CPU crop-preparation time only**, saving
+milliseconds rather than the roughly 215 seconds of object inference. It is not
+an end-to-end speedup claim. Pixel areas describe the RGBA working region, not
+measured peak process memory. Segmentation, PNG encoding, annotation and GPU
+sampling are excluded. Reproduce with `scripts.benchmark_masked_crop` against
+completed, unchanged private trial checkpoints.
+
 These trials are separate from the frozen eight-source pilot and its approved
 publication `43079293375`. Primary T01-T03 inputs are synthetic photographic
 equipment-room scenes with backgrounds, clutter, shadows and modest occlusion,

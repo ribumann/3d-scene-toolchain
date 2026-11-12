@@ -98,6 +98,11 @@ explicitly supervised reviewed-box/SAM2 extraction and exact validated asset reu
 Their generated inputs and outputs remain separate from the frozen pilot;
 additive trial publication requires its unchanged approved final package.
 Preparation is not evidence of reconstruction quality or a measured speedup.
+The additional licensed real-photo run produced four validated appearances from
+three Wikimedia Commons photographs, retaining CC BY-SA 4.0 source/adaptation
+credits. Actual-mask checks measured 24-89% lower CPU crop-preparation time with
+identical pixels and PNG bytes; this saves milliseconds, not GPU inference time.
+See the trial report for exact runs, timings, supervision and occlusion limits.
 
 Publish only `apps/web/dist-demo/`, not the repository or `.scene-data/`.
 Azure static website preparation and deployment commands are in
