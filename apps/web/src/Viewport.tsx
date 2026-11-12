@@ -1,0 +1,252 @@
+import { Component, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Grid, Line, OrbitControls } from "@react-three/drei";
+import { SparkRenderer, SplatMesh } from "@sparkjsdev/spark";
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import type { Scene, SceneAsset, SceneNode, Vec3 } from "../../../packages/scene/types";
+import { assetNodes, pointOnRoute, renderableNodes, routePoints, splatFit, splatIssue, visibleNodes } from "./model";
+import { fitModelToNode, fitSplatToNode } from "./assets";
+
+type Props = {
+  scene: Scene; selected: string | null; onSelect: (id: string) => void;
+  mode: "geometry" | "splat"; isolated: string | null; labels: boolean;
+  playing: boolean; speed: number; cameraView: { kind: "orbit" | "top" | "reset"; serial: number };
+  strictAssets?: boolean;
+  showScreenedOut?: boolean;
+};
+
+function assetNode(asset: SceneAsset, nodes: SceneNode[]) {
+  return nodes.find(node => asset.node_id === node.id || node.asset_id === asset.id);
+}
+
+class CanvasBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
+  state = { error: null as string | null };
+  static getDerivedStateFromError(error: Error) { return { error: error.message }; }
+  render() {
+    return this.state.error ? <div className="viewport-message" role="alert">3D viewport unavailable: {this.state.error}. Check WebGL support and reload.</div> : this.props.children;
+  }
+}
+
+function Camera({ scene, isolated, view }: { scene: Scene; isolated: string | null; view: Props["cameraView"] }) {
+  const { camera, size: viewport } = useThree();
+  const controls = useRef<React.ComponentRef<typeof OrbitControls>>(null);
+  const framing = useMemo(() => {
+    const nodes = visibleNodes(scene, isolated);
+    if (!nodes.length) return { center: new THREE.Vector3(), distance: 18 };
+    const box = new THREE.Box3();
+    nodes.forEach(node => {
+      const p = new THREE.Vector3(...node.position);
+      const half = new THREE.Vector3(...node.size).multiplyScalar(0.5);
+      box.expandByPoint(p.clone().sub(half)); box.expandByPoint(p.clone().add(half));
+    });
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const portrait = Math.max(1, viewport.height / Math.max(1, viewport.width));
+    return { center, distance: Math.max(isolated ? 3 : 12, size.length() * 1.1) * portrait };
+  }, [scene.id, isolated, viewport.width, viewport.height]); // Editing a position should not move the camera.
+  useEffect(() => {
+    const { center, distance } = framing;
+    camera.position.copy(center).add(view.kind === "top"
+      ? new THREE.Vector3(0, distance, 0.001)
+      : new THREE.Vector3(distance * 0.7, distance * 0.65, distance * 0.7));
+    camera.near = 0.1; camera.far = Math.max(1000, distance * 10);
+    camera.updateProjectionMatrix();
+    if (controls.current) { controls.current.target.copy(center); controls.current.update(); }
+  }, [camera, framing, view]);
+  return <OrbitControls ref={controls} makeDefault enableDamping />;
+}
+
+function NodeMesh({ node, selected, proxy, onSelect }: { node: SceneNode; selected: boolean; proxy: boolean; onSelect: () => void }) {
+  return <group position={node.position} rotation={node.rotation}>
+    <mesh scale={node.shape === "plane" ? [node.size[0], node.size[2], 1] : node.size} rotation={node.shape === "plane" ? [-Math.PI / 2, 0, 0] : [0, 0, 0]} onClick={event => { event.stopPropagation(); onSelect(); }}>
+      {node.shape === "cylinder" ? <cylinderGeometry args={[0.5, 0.5, 1, 24]} /> :
+       node.shape === "sphere" ? <sphereGeometry args={[0.5, 24, 16]} /> :
+       node.shape === "cone" ? <coneGeometry args={[0.5, 1, 24]} /> :
+       node.shape === "plane" ? <planeGeometry args={[1, 1]} /> :
+       <boxGeometry args={[1, 1, 1]} />}
+      <meshStandardMaterial color={selected ? "#397bc2" : node.color} transparent={proxy} opacity={proxy ? 0 : 1} depthWrite={!proxy} side={THREE.DoubleSide} />
+    </mesh>
+    {selected && <lineSegments scale={node.size}><edgesGeometry args={[new THREE.BoxGeometry(1.02, 1.02, 1.02)]} /><lineBasicMaterial color="#1761aa" /></lineSegments>}
+  </group>;
+}
+
+// Labels belong to the existing DOM root. Drei Html creates a separate root per
+// label, whose synchronous teardown races React's StrictMode effect replay.
+function LabelProjection({ nodes, elements }: { nodes: SceneNode[]; elements: Map<string, HTMLSpanElement> }) {
+  const { camera, size } = useThree();
+  const position = useMemo(() => new THREE.Vector3(), []);
+  useFrame(() => {
+    for (const node of nodes) {
+      const element = elements.get(node.id);
+      if (!element) continue;
+      position.set(0, node.size[1] / 2 + 0.25, 0).applyEuler(new THREE.Euler(...node.rotation)).add(new THREE.Vector3(...node.position)).project(camera);
+      const visible = position.z >= -1 && position.z <= 1 && Math.abs(position.x) <= 1.2 && Math.abs(position.y) <= 1.2;
+      element.style.display = visible ? "block" : "none";
+      element.style.transform = `translate(-50%, -50%) translate(${(position.x + 1) * size.width / 2}px, ${(1 - position.y) * size.height / 2}px)`;
+    }
+  });
+  return null;
+}
+
+export function Spark({ assets, nodes, onError, onLoaded, showScreenedOut = false }: { assets: SceneAsset[]; nodes: SceneNode[]; onError: (message: string) => void; onLoaded: (id: string, value: boolean) => void; showScreenedOut?: boolean }) {
+  const { gl, scene } = useThree();
+  useEffect(() => {
+    let active = true;
+    let renderer: SparkRenderer | undefined;
+    const meshes: SplatMesh[] = [];
+    const sources: SplatMesh[] = [];
+    const dispose = () => {
+      meshes.forEach(mesh => {
+        scene.remove(mesh);
+        if (!sources.includes(mesh)) { mesh.splats = undefined; mesh.dispose(); }
+      });
+      sources.forEach(mesh => { void mesh.initialized.then(() => mesh.dispose(), () => mesh.dispose()); });
+      if (renderer) { scene.remove(renderer); renderer.dispose(); }
+    };
+    try {
+      renderer = new SparkRenderer({ renderer: gl });
+      renderer.name = "SparkRenderer";
+      scene.add(renderer);
+      for (const asset of assets) {
+        onLoaded(asset.id, false);
+        const linked = assetNodes(asset, nodes);
+        const placements: (SceneNode | undefined)[] = linked.length ? linked : [undefined];
+        const accepted = placements.filter(node => !node || splatFit(asset, node, showScreenedOut));
+        if (!accepted.length) continue;
+        const source = new SplatMesh({ url: asset.uri });
+        sources.push(source);
+        source.initialized.then(() => {
+          if (!active) return;
+          const shared = source.splats;
+          if (!shared) throw new Error("Loaded splat has no shared source");
+          accepted.forEach((node, index) => {
+            const mesh = index === 0 ? source : new SplatMesh({ splats: shared });
+            mesh.name = `${asset.id}/${node?.id ?? "scene"}`;
+            if (node) fitSplatToNode(mesh, asset, node, showScreenedOut);
+            scene.add(mesh); meshes.push(mesh);
+          });
+          onLoaded(asset.id, true);
+        }).catch((error: unknown) => { if (active) onError(`Splat ${asset.id} failed to load: ${String(error)}`); });
+      }
+    } catch (error) {
+      onError(`Spark renderer failed: ${String(error)}`);
+      active = false;
+      dispose();
+      return;
+    }
+    return () => { active = false; dispose(); };
+  }, [gl, scene, assets, nodes, onError, onLoaded, showScreenedOut]);
+  return null;
+}
+
+function ModelAsset({ asset, node, onError, onLoaded }: { asset: SceneAsset; node?: SceneNode; onError: (message: string) => void; onLoaded: (id: string, value: boolean) => void }) {
+  const { scene } = useThree();
+  useEffect(() => {
+    let active = true;
+    let object: THREE.Object3D | undefined;
+    onLoaded(asset.id, false);
+    const dispose = (root: THREE.Object3D) => root.traverse(item => {
+      if (item instanceof THREE.Mesh) {
+        item.geometry.dispose();
+        const materials = Array.isArray(item.material) ? item.material : [item.material];
+        materials.forEach(material => material.dispose());
+      }
+    });
+    new GLTFLoader().load(asset.uri, result => {
+      if (!active) { dispose(result.scene); return; }
+      try {
+        object = node ? fitModelToNode(result.scene, node) : result.scene;
+        scene.add(object);
+        onLoaded(asset.id, true);
+      } catch (error) {
+        dispose(result.scene);
+        onError(`Model ${asset.id} could not be fitted: ${String(error)}`);
+      }
+    }, undefined, error => { if (active) onError(`Model ${asset.id} failed to load: ${String(error)}`); });
+    return () => {
+      active = false;
+      if (object) {
+        scene.remove(object);
+        dispose(object);
+      }
+    };
+  }, [asset, node, scene, onError, onLoaded]);
+  return null;
+}
+
+function Route({ points, playing, speed }: { points: Vec3[]; playing: boolean; speed: number }) {
+  const ref = useRef<THREE.Mesh>(null);
+  const progress = useRef(0);
+  useFrame((_, delta) => {
+    if (playing) progress.current += Math.min(delta, 0.1) * speed * 0.1;
+    if (ref.current) ref.current.position.set(...pointOnRoute(points, progress.current));
+  });
+  if (points.length < 2) return null;
+  return <>
+    <Line points={points} color="#477da4" lineWidth={1.5} />
+    <mesh ref={ref} position={points[0]}><sphereGeometry args={[0.16, 12, 8]} /><meshBasicMaterial color="#1666a9" /></mesh>
+  </>;
+}
+
+function SceneContent(props: Props & { onError: (message: string) => void; onAssetLoaded: (id: string, value: boolean) => void; labelElements: Map<string, HTMLSpanElement> }) {
+  const [loaded, setLoaded] = useState<Record<string, boolean>>({});
+  const onLoaded = useMemo(() => (id: string, value: boolean) => {
+    setLoaded(previous => previous[id] === value ? previous : { ...previous, [id]: value });
+    props.onAssetLoaded(id, value);
+  }, [props.onAssetLoaded]);
+  const nodes = useMemo(() => visibleNodes(props.scene, props.isolated), [props.scene.nodes, props.isolated]);
+  const displayedNodes = props.strictAssets || props.mode === "splat" ? renderableNodes(props.scene, props.isolated, props.showScreenedOut) : nodes;
+  const ids = useMemo(() => new Set(nodes.map(n => n.id)), [nodes]);
+  const assets = useMemo(() => props.scene.assets.filter(asset => {
+    const linked = assetNodes(asset, props.scene.nodes);
+    return linked.length ? linked.some(node => ids.has(node.id)) : !asset.node_id;
+  }), [props.scene.assets, props.scene.nodes, ids]);
+  const splats = useMemo(() => assets.filter(a => a.kind === "ply"), [assets]);
+  const models = useMemo(() => assets.filter(a => a.kind === "glb"), [assets]);
+  return <>
+    <color attach="background" args={["#edf3f7"]} />
+    <ambientLight intensity={1.8} /><directionalLight position={[10, 20, 10]} intensity={2} />
+    <Grid infiniteGrid fadeDistance={120} cellSize={1} sectionSize={5} cellColor="#c8d7e1" sectionColor="#a8bfce" position={[0, -0.02, 0]} />
+    <Camera scene={props.scene} isolated={props.isolated} view={props.cameraView} />
+    {props.mode === "splat" && splats.length > 0 && <Spark assets={splats} nodes={nodes} onError={props.onError} onLoaded={onLoaded} showScreenedOut={props.showScreenedOut} />}
+    {models.map(asset => <ModelAsset key={asset.id} asset={asset} node={assetNode(asset, nodes)} onError={props.onError} onLoaded={onLoaded} />)}
+    {props.labels && <LabelProjection nodes={displayedNodes} elements={props.labelElements} />}
+    {displayedNodes.map(node => <NodeMesh key={node.id} node={node} selected={props.selected === node.id} onSelect={() => props.onSelect(node.id)}
+      proxy={((props.strictAssets || props.mode === "splat") && splats.some(a => assetNodes(a, [node]).length > 0)) || models.some(a => assetNode(a, nodes)?.id === node.id && (loaded[a.id] || props.scene.case_id === "D01")) ||
+        (props.mode === "splat" && splats.some(a => assetNodes(a, [node]).length > 0 && loaded[a.id] && splatFit(a, node, props.showScreenedOut)))} />)}
+    {props.scene.edges.filter(edge => ids.has(edge.source) && ids.has(edge.target)).map(edge => <Route key={edge.id} points={routePoints(edge, props.scene)} playing={props.playing} speed={props.speed} />)}
+  </>;
+}
+
+export default function Viewport(props: Props) {
+  const [errors, setErrors] = useState<string[]>([]);
+  const [loadedAssets, setLoadedAssets] = useState<Record<string, boolean>>({});
+  const labelElements = useMemo(() => new Map<string, HTMLSpanElement>(), []);
+  const onError = useMemo(() => (message: string) => setErrors(previous => previous.includes(message) ? previous : [...previous, message]), []);
+  const onAssetLoaded = useMemo(() => (id: string, value: boolean) => setLoadedAssets(previous => previous[id] === value ? previous : { ...previous, [id]: value }), []);
+  const placements = props.scene.assets.filter(asset => asset.kind === "ply").flatMap(asset => assetNodes(asset, props.scene.nodes).map(node => ({ asset, node })));
+  const excluded = placements.filter(({ asset, node }) => splatIssue(asset, node)).length;
+  const reviewable = placements.filter(({ asset, node }) => splatIssue(asset, node) && splatFit(asset, node, true)).length;
+  const visible = visibleNodes(props.scene, props.isolated);
+  const displayedNodes = props.strictAssets || props.mode === "splat" ? renderableNodes(props.scene, props.isolated, props.showScreenedOut) : visible;
+  const qualityIssues = props.mode === "splat" ? placements.filter(({ node }) => visible.includes(node)).flatMap(({ asset, node }) => {
+    const issue = splatIssue(asset, node);
+    return issue ? [`${node.label}: ${props.showScreenedOut && splatFit(asset, node, true) ? "Shown for review only. " : ""}${issue}${!props.showScreenedOut || !splatFit(asset, node, true) ? " No representative box substituted." : ""}`] : [];
+  }) : [];
+  const issues = [...new Set([...qualityIssues, ...errors])];
+  useLayoutEffect(() => { setErrors([]); setLoadedAssets({}); }, [props.scene.id, props.mode, props.showScreenedOut]);
+  return <div className="canvas-wrap">
+    <CanvasBoundary key={props.scene.id}><Canvas style={{ position: "absolute", inset: 0 }} gl={{ antialias: false }} camera={{ position: [18, 18, 18], fov: 45 }}>
+      <Suspense fallback={null}><SceneContent key={`${props.scene.id}-${props.mode}`} {...props} onError={onError} onAssetLoaded={onAssetLoaded} labelElements={labelElements} /></Suspense>
+    </Canvas></CanvasBoundary>
+    <div className="scene-label-overlay" aria-hidden="true">{props.labels && displayedNodes.map(node =>
+      <span key={node.id} ref={element => { if (element) labelElements.set(node.id, element); else labelElements.delete(node.id); }} className={`scene-label ${props.selected === node.id ? "selected" : ""}`}>{node.label}</span>
+    )}</div>
+    {props.mode === "splat" && !props.scene.assets.some(a => a.kind === "ply") && <div className="viewport-note">No splat asset for this scene. Showing editable geometry.</div>}
+    {issues.length === 1 && <div className="viewport-error" role="alert">{issues[0]}</div>}
+    {issues.length > 1 && <details className="viewport-error"><summary>{issues.length} appearance issues (screened out or unavailable)</summary>{issues.map(error => <div key={error}>{error}</div>)}</details>}
+    {props.strictAssets && <div className="viewport-note" role="status">Loaded {props.scene.assets.filter(asset => loadedAssets[asset.id]).length}/{props.scene.assets.length} {props.scene.case_id === "D01" ? "authored module models" : "object appearances"}{placements.length > props.scene.assets.length && ` · ${placements.length} authored placements`}{excluded > 0 && ` · ${excluded} excluded by quality screening`}{props.showScreenedOut && ` · Review only: ${reviewable} screened-out placements enabled`} · {props.scene.case_id === "D01" ? "Assumed metric layout" : "Inferred layout"} · No geometry substitute on load failure</div>}
+    <div className="viewport-hint">Drag to orbit · Scroll to zoom</div>
+  </div>;
+}

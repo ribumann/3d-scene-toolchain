@@ -1,0 +1,289 @@
+name: Private one-object GPU smoke
+
+on:
+  workflow_call:
+    inputs:
+      run_gpu:
+        description: "After CPU gated-access checks, run one private I02 reconstruction on the prepared worker"
+        type: boolean
+        default: false
+        required: false
+      source:
+        description: "private-original or explicitly approved public-preview"
+        type: string
+        default: private-original
+        required: false
+      object_batch:
+        description: "Process every usable distinct private I02 crop sequentially with validated resume"
+        type: boolean
+        default: false
+        required: false
+      pilot_cases:
+        type: string
+        default: "I02"
+        required: false
+      publish_pilots:
+        type: boolean
+        default: false
+        required: false
+      package_only:
+        type: boolean
+        default: false
+        required: false
+      trial_batch:
+        type: boolean
+        default: false
+        required: false
+      trial_variants:
+        type: string
+        default: both
+        required: false
+      illustration_batch:
+        type: boolean
+        default: false
+        required: false
+      illustration_cases:
+        type: string
+        default: "P01 P02 P03"
+        required: false
+      illustration_reconstruct:
+        type: boolean
+        default: false
+        required: false
+    secrets:
+      HF_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      idol_revision: ${{ steps.pins.outputs.idol_revision }}
+      dinov3_revision: ${{ steps.pins.outputs.dinov3_revision }}
+      flux2_revision: ${{ steps.pins.outputs.flux2_revision }}
+      detector_revision: ${{ steps.pins.outputs.detector_revision }}
+      segmenter_revision: ${{ steps.pins.outputs.segmenter_revision }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --quiet "huggingface-hub>=0.34,<1"
+      - name: Verify actual gated configs and resolve immutable pins
+        id: pins
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_HUB_DISABLE_TELEMETRY: "1"
+          HF_HUB_DISABLE_PROGRESS_BARS: "1"
+          HF_HUB_VERBOSITY: error
+          RUNNER_LABEL: ${{ vars.SCENE_GPU_RUNNER }}
+          REQUIRE_GPU_RUNNER: ${{ inputs.run_gpu }}
+          I02_OBJECT_BATCH: ${{ inputs.object_batch }}
+          SMOKE_SOURCE: ${{ inputs.source }}
+          PILOT_CASES: ${{ inputs.pilot_cases }}
+          PACKAGE_ONLY: ${{ inputs.package_only }}
+          PUBLISH_PILOTS: ${{ inputs.publish_pilots }}
+          TRIAL_BATCH: ${{ inputs.trial_batch }}
+          TRIAL_VARIANTS: ${{ inputs.trial_variants }}
+          ILLUSTRATION_BATCH: ${{ inputs.illustration_batch || inputs.illustration_reconstruct }}
+        run: python scripts/resolve_smoke_models.py
+  infer:
+    if: inputs.run_gpu
+    needs: readiness
+    runs-on: ${{ vars.SCENE_GPU_RUNNER }}
+    timeout-minutes: ${{ inputs.package_only && 30 || (inputs.object_batch || inputs.illustration_batch || inputs.illustration_reconstruct) && 360 || 90 }}
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      SCENE_IDOL_MODEL_REVISION: ${{ needs.readiness.outputs.idol_revision }}
+      SCENE_DINOV3_REVISION: ${{ needs.readiness.outputs.dinov3_revision }}
+      SCENE_FLUX2_REVISION: ${{ needs.readiness.outputs.flux2_revision }}
+      SCENE_DETECTOR_REVISION: ${{ needs.readiness.outputs.detector_revision }}
+      SCENE_SEGMENTER_REVISION: ${{ needs.readiness.outputs.segmenter_revision }}
+      SCENE_DETECTOR_MODEL: IDEA-Research/grounding-dino-tiny
+      SCENE_SEGMENTER_MODEL: facebook/sam2.1-hiera-small
+      SCENE_IDOL_COMPILE: "0"
+      ATTN_BACKEND: sdpa
+      HF_HOME: /home/scene/scene-private-data/huggingface-cache
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      HF_HUB_DISABLE_PROGRESS_BARS: "1"
+      HF_HUB_VERBOSITY: error
+      TOKENIZERS_PARALLELISM: "false"
+      PYTHONPATH: ${{ github.workspace }}/services/pipeline
+      SMOKE_SOURCE: ${{ inputs.source }}
+      PILOT_CASES: ${{ inputs.pilot_cases }}
+      SCENE_SOURCE_REVISION: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify prepared runtime and actual CUDA
+        if: ${{ !inputs.package_only }}
+        run: |
+          nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader
+          /home/scene/scene-vision-venv/bin/python - <<'PY'
+          import json, os, torch
+          from pathlib import Path
+          from transformers import AutoModelForZeroShotObjectDetection, AutoProcessor, Sam2Model, Sam2Processor
+          import scene_pipeline.extract
+          if not torch.cuda.is_available():
+              raise SystemExit("Vision CUDA is unavailable.")
+          values = torch.arange(16, device="cuda", dtype=torch.float32)
+          total = (values.square() + 1).sum()
+          torch.cuda.synchronize()
+          if total.item() != 1256:
+              raise SystemExit("Vision CUDA arithmetic verification failed.")
+          if not Path(scene_pipeline.extract.__file__).resolve().is_relative_to(Path(os.environ["PYTHONPATH"]).resolve()):
+              raise SystemExit("Vision imports do not use the checked-out source.")
+          print(json.dumps({"vision_imports_ready": True, "cuda_kernel_verified": True}))
+          PY
+          /home/scene/scene-worker-venv/bin/python - <<'PY'
+          import json, os, torch
+          from pathlib import Path
+          from importlib.metadata import distribution
+          from idol import IdolPipeline
+          import scene_pipeline.idol_worker
+          from scene_pipeline.idol_worker import SDK_REVISION
+          if not torch.cuda.is_available():
+              raise SystemExit("CUDA is unavailable; no synthetic fallback is permitted.")
+          values = torch.arange(16, device="cuda", dtype=torch.float32)
+          total = (values.square() + 1).sum()
+          torch.cuda.synchronize()
+          if total.item() != 1256:
+              raise SystemExit("Idol CUDA arithmetic verification failed.")
+          if not Path(scene_pipeline.idol_worker.__file__).resolve().is_relative_to(Path(os.environ["PYTHONPATH"]).resolve()):
+              raise SystemExit("Idol imports do not use the checked-out source.")
+          metadata = json.loads(distribution("idol").read_text("direct_url.json") or "{}")
+          if metadata.get("vcs_info", {}).get("commit_id") != SDK_REVISION:
+              raise SystemExit("Prepared venv does not contain the exact requirements-idol SDK commit.")
+          print(json.dumps({"cuda_kernel_verified": True, "device_count": torch.cuda.device_count()}))
+          PY
+      - name: Extract one private non-person crop and reconstruct with real Idol
+        if: ${{ !inputs.object_batch && !inputs.trial_batch && !inputs.illustration_batch && !inputs.illustration_reconstruct }}
+        run: |
+          umask 077
+          args=()
+          case "$SMOKE_SOURCE" in
+            private-original) ;;
+            public-preview) args+=(--public-preview "$GITHUB_WORKSPACE/apps/web/public/references/I02.webp") ;;
+            *) echo "Unsupported smoke source." >&2; exit 1 ;;
+          esac
+          /home/scene/scene-worker-venv/bin/python scripts/private_gpu_smoke.py run \
+            --data-dir /home/scene/scene-private-data \
+            --output /home/scene/scene-private-data/smoke-output "${args[@]}"
+      - name: Process selected private pilot cases sequentially with resume
+        if: inputs.object_batch && !inputs.package_only && !inputs.trial_batch
+        run: |
+          umask 077
+          case "$SMOKE_SOURCE" in
+            private-original) ;;
+            public-preview) ;;
+            *) echo "Unsupported batch source." >&2; exit 1 ;;
+          esac
+          /home/scene/scene-worker-venv/bin/python - <<'PY'
+          import os
+          from pathlib import Path
+          from scripts.private_gpu_batch import run_cases
+          import signal
+          def interrupt(signum, frame):
+              raise SystemExit(128 + signum)
+          signal.signal(signal.SIGTERM, interrupt)
+          raise SystemExit(run_cases(Path("/home/scene/scene-private-data"), os.environ["PILOT_CASES"].split(), os.environ["SMOKE_SOURCE"]))
+          PY
+      - name: Stage approved photographic inputs and run selected trial variants sequentially
+        if: inputs.trial_batch
+        env:
+          TRIAL_VARIANTS: ${{ inputs.trial_variants }}
+        run: |
+          umask 077
+          /home/scene/scene-worker-venv/bin/python - <<'PY'
+          import os, signal
+          from pathlib import Path
+          from scripts.private_gpu_trials import run_trial, stage_sources
+          from scripts.trial_contracts import load_manifest
+          from scripts.private_gpu_smoke import ROOT
+          def interrupt(signum, frame):
+              raise SystemExit(128 + signum)
+          signal.signal(signal.SIGTERM, interrupt)
+          directory = Path("/home/scene/scene-private-data")
+          manifest_path = ROOT / "cases/trials.json"
+          manifest = load_manifest(manifest_path)
+          trials = {trial.id: trial for trial in manifest.trials}
+          selected = os.environ["PILOT_CASES"].split()
+          if not selected or len(selected) != len(set(selected)) or any(case not in trials for case in selected):
+              raise SystemExit("Select unique approved T01-T03 or R01-R03 trials using pilot_cases.")
+          variants = ("baseline", "optimized") if os.environ["TRIAL_VARIANTS"] == "both" else (os.environ["TRIAL_VARIANTS"],)
+          stage_sources(directory, manifest_path)
+          failed = False
+          for case in selected:
+              for variant in variants:
+                  report = run_trial(directory, manifest_path, trials[case], variant)
+                  if report["status"] == "interrupted":
+                      raise SystemExit(1)
+                  failed |= report["status"] != "succeeded"
+          raise SystemExit(int(failed))
+          PY
+      - name: Generate photographic illustrative candidates for inspection
+        if: inputs.illustration_batch
+        env:
+          ILLUSTRATION_CASES: ${{ inputs.illustration_cases }}
+        run: |
+          umask 077
+          read -ra selected <<< "$ILLUSTRATION_CASES"
+          /home/scene/scene-worker-venv/bin/python -m scripts.generated_references \
+            --data-dir /home/scene/scene-private-data \
+            --manifest "$GITHUB_WORKSPACE/cases/illustrations.json" \
+            --cases "${selected[@]}" \
+            --export "$RUNNER_TEMP/illustration-references-$GITHUB_RUN_ID"
+      - name: Upload generated candidates and receipts only, never private imagery or logs
+        if: inputs.illustration_batch
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: illustration-references-${{ github.run_id }}
+          path: ${{ runner.temp }}/illustration-references-${{ github.run_id }}/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Reconstruct explicitly reviewed generated references and validate additive publication
+        if: inputs.illustration_reconstruct
+        run: |
+          umask 077
+          /home/scene/scene-worker-venv/bin/python -m scripts.illustration_reconstruct run \
+            --data-dir /home/scene/scene-private-data \
+            --manifest "$GITHUB_WORKSPACE/cases/illustrations.json" \
+            --reviews "$GITHUB_WORKSPACE/cases/illustration-reviews.json" \
+            --export "$RUNNER_TEMP/illustration-objects-$GITHUB_RUN_ID"
+          /home/scene/scene-worker-venv/bin/python -m scripts.package_illustrations \
+            --generated "$RUNNER_TEMP/illustration-objects-$GITHUB_RUN_ID" \
+            --out "$RUNNER_TEMP/illustration-publication-$GITHUB_RUN_ID"
+      - name: Upload only validated illustrative publication, no private masks or logs
+        if: inputs.illustration_reconstruct
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: illustration-publication-${{ github.run_id }}
+          path: ${{ runner.temp }}/illustration-publication-${{ github.run_id }}/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Package explicitly approved validated public pilot outputs
+        id: package_public
+        if: always() && !cancelled() && inputs.object_batch && inputs.publish_pilots && !inputs.trial_batch
+        run: |
+          umask 077
+          /home/scene/scene-worker-venv/bin/python -m scripts.package_pilots \
+            --data-dir /home/scene/scene-private-data \
+            --out "$RUNNER_TEMP/pilot-publication-$GITHUB_RUN_ID" \
+            --approve-derived-publication
+      - name: Upload only approved public package
+        if: always() && !cancelled() && steps.package_public.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pilot-publication-${{ github.run_id }}
+          path: ${{ runner.temp }}/pilot-publication-${{ github.run_id }}/
+          if-no-files-found: error
+          retention-days: 7

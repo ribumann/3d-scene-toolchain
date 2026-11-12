@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "excluded": {
+    "b7700bb29ae146f0c81f08046abea78ee5ff55edb080bf4ffab443158b8bf815": "G03 pond 2, reviewed individually in the deployed splat viewer: disconnected surface fragments and large holes do not represent a coherent pond appearance.",
+    "eb264bb14f7184664847abacc5408a8d349b0011ddee1d7e05c297800065cfaf": "G03 enclosure 3, reviewed individually in the deployed splat viewer: scattered disconnected patches and floating fragments do not represent a coherent enclosure.",
+    "54bff0da65b3a830a9d9c8a5f38c079b6db1f99f41cf3f9c96b386a6c7bd8dfa": "Illustrative tree, inspected in the actual isolated splat viewer: a foliage mass and short stump do not reconstruct the complete tree trunk and silhouette requested by the scene.",
+    "5cfacca8e7143af5d594d40112235e7cd4668a51e715a7426ed32002cbc30d7d": "Illustrative belt conveyor, inspected in the actual isolated splat viewer: disconnected belt and roller sections with substantial missing supports do not form one coherent conveyor."
+  }
+}
