@@ -95,7 +95,7 @@ def generate_references(directory, manifest_path, selected, export):
                     variant="fp16", use_safetensors=True,
                 )
                 pipeline.enable_model_cpu_offload()
-                pipeline.enable_vae_slicing()
+                pipeline.vae.enable_slicing()
             settings = contract(concept)
             for tokenizer in (pipeline.tokenizer, pipeline.tokenizer_2):
                 if len(tokenizer(settings["prompt"]).input_ids) > tokenizer.model_max_length:

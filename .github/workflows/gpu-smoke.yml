@@ -93,7 +93,7 @@ jobs:
     if: inputs.run_gpu
     needs: readiness
     runs-on: ${{ vars.SCENE_GPU_RUNNER }}
-    timeout-minutes: ${{ inputs.package_only && 30 || inputs.object_batch && 360 || 90 }}
+    timeout-minutes: ${{ inputs.package_only && 30 || (inputs.object_batch || inputs.illustration_batch) && 360 || 90 }}
     env:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       SCENE_IDOL_MODEL_REVISION: ${{ needs.readiness.outputs.idol_revision }}
