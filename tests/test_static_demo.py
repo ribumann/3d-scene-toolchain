@@ -5,10 +5,30 @@ from pathlib import Path
 from unittest.mock import patch
 
 from scene_pipeline.models import Case, Scene
-from scripts.build_static_demo import build_demo, REFERENCE_IDS, REFERENCE_SOURCE
+from scripts.build_static_demo import apply_visual_exclusions, build_demo, REFERENCE_IDS, REFERENCE_SOURCE
 
 
 class StaticDemoTests(unittest.TestCase):
+    def test_visual_exclusion_is_bound_to_exact_appearance_bytes(self):
+        sha256 = "a" * 64
+        quality = {sha256: {"sha256": sha256, "status": "accepted", "reasons": []}}
+        note = "Individually reviewed disconnected, floating fragments."
+        apply_visual_exclusions(quality, {"schema_version": 1, "excluded": {"b" * 64: note}})
+        self.assertEqual(quality[sha256]["status"], "accepted")
+        apply_visual_exclusions(quality, {"schema_version": 1, "excluded": {sha256: note}})
+        self.assertEqual(quality[sha256]["status"], "excluded")
+        self.assertEqual(quality[sha256]["reasons"], [f"visual_review: {note}"])
+
+    def test_visual_exclusion_rejects_unbound_or_invalid_reviews(self):
+        for reviews in (
+            {"schema_version": 1, "excluded": {"object-id": "Invalid non-hash identity."}},
+            {"schema_version": 1, "excluded": {"a" * 64: ""}},
+            {"schema_version": True, "excluded": {}},
+            {"schema_version": 1, "excluded": {}, "unreviewed": True},
+        ):
+            with self.subTest(reviews=reviews), self.assertRaises(ValueError):
+                apply_visual_exclusions({}, reviews)
+
     def test_refuses_stale_or_unreviewed_files_in_public_output(self):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory)

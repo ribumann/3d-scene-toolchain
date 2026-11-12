@@ -212,6 +212,19 @@ and use the trial controls to compare its detector baseline.
 No authorized Fable endpoint was available, so no Fable trial or claim that
 Fable alone performs better is supported by this experiment.
 
+The additional illustrative-reference review selects 25 concepts with exact PNG
+hashes and normalized boxes in `cases/illustration-reviews.json`. Factory-interior
+and cropped-tank candidates were rejected. A replacement exterior was accepted;
+the replacement tank still depicted the wrong equipment and is not authorized as
+a thickener. Missing appearances are omitted, not replaced with boxes. Input
+review authorizes reconstruction, not acceptance of the resulting 3D geometry.
+Generated machines illustrate equipment roles and do not verify their engineering.
+
+`cases/appearance-reviews.json` additionally excludes two individually inspected
+G03 outputs (pond 2 and enclosure 3) whose disconnected fragments passed numeric
+screening. Overrides bind exact public PLY SHA256 values, never categories or
+mutable asset IDs; the frozen input packages and PLY bytes remain unchanged.
+
 ## Protected sequential workflow
 
 The original T01-T03 subset of committed `cases/trials.json` is semantically

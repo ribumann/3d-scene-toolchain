@@ -237,7 +237,7 @@ export default function Viewport(props: Props) {
     {props.mode === "splat" && !props.scene.assets.some(a => a.kind === "ply") && <div className="viewport-note">No splat asset for this scene. Showing editable geometry.</div>}
     {errors.length === 1 && <div className="viewport-error" role="alert">{errors[0]}</div>}
     {errors.length > 1 && <details className="viewport-error"><summary>{errors.length} appearance issues (excluded or unavailable)</summary>{errors.map(error => <div key={error}>{error}</div>)}</details>}
-    {props.strictAssets && <div className="viewport-note" role="status">Loaded {props.scene.assets.filter(asset => loadedAssets[asset.id]).length}/{props.scene.assets.length} object appearances{placements.length > props.scene.assets.length && ` · ${placements.length} authored placements`}{excluded > 0 && ` · ${excluded} excluded by geometry/fit screening`} · Inferred layout · No geometry substitute on load failure</div>}
+    {props.strictAssets && <div className="viewport-note" role="status">Loaded {props.scene.assets.filter(asset => loadedAssets[asset.id]).length}/{props.scene.assets.length} object appearances{placements.length > props.scene.assets.length && ` · ${placements.length} authored placements`}{excluded > 0 && ` · ${excluded} excluded by quality screening`} · Inferred layout · No geometry substitute on load failure</div>}
     <div className="viewport-hint">Drag to orbit · Scroll to zoom</div>
   </div>;
 }

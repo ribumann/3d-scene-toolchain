@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import shutil
 from pathlib import Path
 
@@ -11,6 +12,20 @@ from scene_pipeline.templates import compile_prompt
 ROOT = Path(__file__).resolve().parents[1]
 REFERENCE_IDS = ("I01", "I02", "I03", "I04", "I05", "G01", "G02", "G03")
 REFERENCE_SOURCE = ROOT / "apps/web/public/references"
+
+
+def apply_visual_exclusions(quality, reviews):
+    if not isinstance(reviews, dict) or set(reviews) != {"schema_version", "excluded"} or type(reviews["schema_version"]) is not int or reviews["schema_version"] != 1 or not isinstance(reviews["excluded"], dict):
+        raise ValueError("Invalid visual exclusion review manifest")
+    for sha256, note in reviews["excluded"].items():
+        if not re.fullmatch(r"[0-9a-f]{64}", sha256) or not isinstance(note, str) or not 10 <= len(note) <= 500:
+            raise ValueError("Visual exclusions require exact SHA256 and a bounded review note")
+    for sha256, note in reviews["excluded"].items():
+        if sha256 in quality:
+            quality[sha256] = {
+                **quality[sha256], "status": "excluded",
+                "reasons": [*quality[sha256]["reasons"], f"visual_review: {note}"],
+            }
 
 
 def build_demo(public: Path, pilot_package: Path | None = None, trial_package: Path | None = None, illustration_package: Path | None = None):
@@ -81,9 +96,10 @@ def build_demo(public: Path, pilot_package: Path | None = None, trial_package: P
                 if name.startswith("assets/") and name.endswith(".ply"):
                     assessment = assess_ply(package / name)
                     quality[assessment["sha256"]] = assessment
+    apply_visual_exclusions(quality, json.loads((ROOT / "cases/appearance-reviews.json").read_text()))
     (destination / "quality.json").write_text(json.dumps({
         "version": 1,
-        "policy": "Four-sigma support above 1/255 opacity; heuristic geometry screening, not semantic acceptance.",
+        "policy": "Four-sigma support above 1/255 opacity, aspect-fit screening and exact-hash visual exclusions; retained assets are not semantic acceptance.",
         "assets": quality,
     }, indent=2) + "\n")
     for case in cases:

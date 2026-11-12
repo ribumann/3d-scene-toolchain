@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "excluded": {
+    "b7700bb29ae146f0c81f08046abea78ee5ff55edb080bf4ffab443158b8bf815": "G03 pond 2, reviewed individually in the deployed splat viewer: disconnected surface fragments and large holes do not represent a coherent pond appearance.",
+    "eb264bb14f7184664847abacc5408a8d349b0011ddee1d7e05c297800065cfaf": "G03 enclosure 3, reviewed individually in the deployed splat viewer: scattered disconnected patches and floating fragments do not represent a coherent enclosure."
+  }
+}
