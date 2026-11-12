@@ -30,6 +30,11 @@ on:
         required: false
         default: false
         type: boolean
+      plant_splat_run_id:
+        description: "Optional reviewed D01 reconstruction run; keeps all three frozen publications"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -88,6 +93,7 @@ jobs:
           TRIAL_RUN_ID: ${{ inputs.trial_run_id }}
           ILLUSTRATION_RUN_ID: ${{ inputs.illustration_run_id }}
           INCLUDE_PLANT: ${{ inputs.include_plant }}
+          PLANT_SPLAT_RUN_ID: ${{ inputs.plant_splat_run_id }}
         run: |
           python - <<'PY'
           import json, os, re, subprocess
@@ -95,6 +101,8 @@ jobs:
           from scripts.package_pilots import validate_package
           from scripts.package_trials import validate_trial_package
           from scripts.package_illustrations import validate_illustration_package
+          if os.environ["PLANT_SPLAT_RUN_ID"] and os.environ["INCLUDE_PLANT"] != "true":
+              raise SystemExit("Plant splats require include_plant.")
           if os.environ["INCLUDE_PLANT"] == "true" and (
               os.environ["PILOT_RUN_ID"], os.environ["TRIAL_RUN_ID"], os.environ["ILLUSTRATION_RUN_ID"]
           ) != ("43079293375", "43185525449", "43237905142"):
@@ -111,6 +119,8 @@ jobs:
               ("PILOT_RUN_ID", "pilot-publication-", "SCENE_PILOT_PUBLIC_PACKAGE", validate_package),
               ("TRIAL_RUN_ID", "trial-publication-", "SCENE_TRIAL_PUBLIC_PACKAGE", validate_trial_package),
               ("ILLUSTRATION_RUN_ID", "illustration-publication-", "SCENE_ILLUSTRATION_PUBLIC_PACKAGE", validate_illustration_package),
+              ("PLANT_SPLAT_RUN_ID", "plant-splats-", "SCENE_PLANT_SPLAT_PACKAGE",
+               lambda path: validate_trial_package(path, Path("cases/diamond-plant-trial.json"))),
           ):
               run_id = os.environ[variable]
               if not run_id:
@@ -119,7 +129,8 @@ jobs:
                   raise SystemExit(variable + " must be an explicit numeric Actions run ID.")
               run = json.loads(subprocess.check_output(
                   ["gh", "api", f"repos/{repository}/actions/runs/{run_id}"], text=True))
-              if (run["status"] != "completed" or run["head_branch"] != os.environ["GITHUB_REF_NAME"]
+              retained = run_id in {"43079293375", "43185525449", "43237905142"}
+              if (run["status"] != "completed" or (not retained and run["head_branch"] != os.environ["GITHUB_REF_NAME"])
                   or run["path"] != expected_path or workflow["path"] != expected_path
                   or run["workflow_id"] != workflow["id"]):
                   raise SystemExit("Select a completed trusted GPU workflow on this same branch.")

@@ -88,7 +88,23 @@ export function createApi(staticDemo = false) {
         if (scene.case_id !== id) throw new ApiError(422, "Published scene identity does not match the selected case.");
         if (id === "D01") {
           const files = await (plantFiles ??= call<Record<string, string>>("/plant/files.json"));
+          const assessments = scene.assets.some(asset => asset.kind === "ply")
+            ? await (quality ??= call<{ version: number; assets: Record<string, unknown> }>("/demo/quality.json")) : null;
           return { ...scene, assets: scene.assets.map(asset => {
+            if (asset.kind === "ply") {
+              const match = /^\/api\/assets\/plant\/(splats\/[A-Za-z0-9][A-Za-z0-9_.-]*\.ply)$/.exec(asset.uri);
+              const assessment = assessments?.assets?.[asset.sha256];
+              if (!match || files[match[1]] !== asset.sha256 || assessments?.version !== 1 ||
+                  !/^[a-f0-9]{64}$/.test(asset.sha256) ||
+                  asset.provenance.trial_id !== "D01" || asset.provenance.variant !== "optimized" ||
+                  asset.provenance.model !== "speridlabs/idol" ||
+                  asset.provenance.source_sha256 !== files["D01.png"] ||
+                  !assessment || typeof assessment !== "object" || !("sha256" in assessment) ||
+                  assessment.sha256 !== asset.sha256) {
+                throw new ApiError(422, "Plant splat path, source or hash-bound quality assessment is invalid.");
+              }
+              return { ...asset, uri: "/plant/" + match[1], provenance: { ...asset.provenance, geometry_quality: assessment } };
+            }
             const match = /^\/api\/assets\/plant\/(modules\/(?:crusher|scrubber|screen|dms|medium|sorter|hopper|thickener|water|lab|control|tailings)\.glb)$/.exec(asset.uri);
             if (!match || asset.kind !== "glb" || asset.provenance.method !== "authored-parametric-module" ||
                 !/^[a-f0-9]{64}$/.test(asset.sha256) || files[match[1]] !== asset.sha256) {

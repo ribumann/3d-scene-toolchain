@@ -8,10 +8,12 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from pydantic import ValidationError
 
-from scripts.diamond_plant import ROOT, TYPES, design, public_files, publish, trial_manifest, validate_design
+from scripts.diamond_plant import ROOT, TYPES, apply_reconstructed_appearances, design, public_files, publish, trial_manifest, validate_design
+from scene_pipeline.models import Asset
 from scripts.plant_geometry import glb
 from scripts.trial_contracts import TrialManifest, load_manifest
 
@@ -37,6 +39,39 @@ def decode_glb(data):
 
 
 class DiamondPlantTests(unittest.TestCase):
+    def test_gaussian_overlay_preserves_twin_ids_routes_and_shares_repeated_appearances(self):
+        metadata = design()
+        scene, files = public_files(metadata)
+        original_nodes = [node.model_dump(exclude={"asset_id"}) for node in scene.nodes]
+        original_edges = scene.edges.copy()
+        recovered = scene.model_copy(deep=True)
+        recovered.nodes = [node for node in recovered.nodes if node.id.endswith(".crusher")]
+        recovered.edges = []
+        recovered.assets = []
+        for node in recovered.nodes:
+            node.asset_id = "idol-" + node.id
+            recovered.assets.append(Asset(
+                id=node.asset_id, kind="ply", node_id=node.id, uri="/api/assets/trials/D01/optimized/object-000.ply",
+                sha256="a" * 64, provenance={"parent_node_id": "object-000"},
+            ))
+        entry = {"variant": "optimized", "scene": "scene.json", "report": {"independent_generations": 1}}
+        with tempfile.TemporaryDirectory() as temporary:
+            package = Path(temporary)
+            (package / "scene.json").write_text(recovered.model_dump_json())
+            asset = package / "assets/D01/optimized/object-000.ply"
+            asset.parent.mkdir(parents=True)
+            asset.write_bytes(b"validated by the isolated trial package validator")
+            with patch("scripts.package_trials.validate_trial_package", return_value=({"trials": [entry]}, None)):
+                apply_reconstructed_appearances(scene, metadata, files, package)
+        self.assertEqual([node.model_dump(exclude={"asset_id"}) for node in scene.nodes], original_nodes)
+        self.assertEqual(scene.edges, original_edges)
+        self.assertEqual(sum(asset.kind == "ply" for asset in scene.assets), 1)
+        self.assertEqual(sum(asset.kind == "glb" for asset in scene.assets), 21)
+        self.assertEqual(len({node.asset_id for node in scene.nodes if node.id.endswith(".crusher")}), 1)
+        self.assertEqual(metadata["reconstruction"]["gaussian_module_placements"], 3)
+        self.assertEqual(len(metadata["telemetry_tags"]), 56)
+        self.assertIn("splats/object-000.ply", files)
+
     def test_authored_inventory_has_nonoverlapping_grounded_modules_and_joinable_telemetry(self):
         metadata = design()
         self.assertEqual(len(metadata["modules"]), 24)

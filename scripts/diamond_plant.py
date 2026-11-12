@@ -354,12 +354,59 @@ def layout_svg(metadata):
     return "\n".join(shapes).encode()
 
 
-def public_files(metadata):
+def apply_reconstructed_appearances(scene, metadata, files, package):
+    from scripts.package_trials import validate_trial_package
+
+    publication, _ = validate_trial_package(package, ROOT / "cases/diamond-plant-trial.json")
+    entry = next(item for item in publication["trials"] if item["variant"] == "optimized")
+    if not entry["scene"]:
+        raise ValueError("Plant publication has no completed optimized reconstruction")
+    reconstructed = Scene.model_validate_json((package / entry["scene"]).read_text())
+    nodes = {node.id: node for node in scene.nodes}
+    if any(node.id not in nodes for node in reconstructed.nodes):
+        raise ValueError("Reconstructed plant references an unknown module")
+    assets = {asset.id: asset for asset in reconstructed.assets}
+    shared = {}
+    replaced = set()
+    for recovered in reconstructed.nodes:
+        asset = assets[recovered.asset_id]
+        parent = asset.provenance["parent_node_id"]
+        identifier = "D01-splat-" + parent
+        if identifier not in shared:
+            relative = f"splats/{parent}.ply"
+            files[relative] = (package / f"assets/D01/optimized/{parent}.ply").read_bytes()
+            shared[identifier] = asset.model_copy(update={
+                "id": identifier, "node_id": None, "uri": "/api/assets/plant/" + relative,
+            }, deep=True)
+        node = nodes[recovered.id]
+        replaced.add(node.asset_id)
+        node.asset_id = identifier
+    scene.assets = [asset for asset in scene.assets if asset.id not in replaced] + list(shared.values())
+    scene.description = (
+        "Single-image SAM2/Idol component Gaussian reconstruction from the original synthetic plant photograph. "
+        "Repeated modules share reconstructed appearances; metric placement, connectivity and telemetry remain authored assumptions. "
+        "Unreconstructed modules retain explicitly authored mesh models. Gaussian screening is not semantic accuracy certification."
+    )
+    metadata["reconstruction"] = {
+        "method": "reviewed-boxes+sam2+idol",
+        "independent_idol_generations": entry["report"]["independent_generations"],
+        "reconstructed_concepts": len(shared), "gaussian_module_placements": len(reconstructed.nodes),
+        "authored_mesh_fallbacks": len(scene.nodes) - len(reconstructed.nodes),
+        "source_sha256": metadata["source"]["sha256"],
+        "layout": "authored-metric-assumptions-not-surveyed",
+        "report": entry["report"],
+    }
+    files["reconstruction.json"] = (json.dumps(metadata["reconstruction"], indent=2) + "\n").encode()
+
+
+def public_files(metadata, splat_package=None):
     files = {"D01.png": SOURCE.read_bytes(), "layout.svg": layout_svg(metadata)}
     for kind in TYPES:
         _, size, _, _ = TYPES[kind]
         files[f"modules/{kind}.glb"] = glb([{"id": kind, "kind": kind, "position": [0, 0, 0], "size": size}])
     scene = scene_for(metadata, files)
+    if splat_package is not None:
+        apply_reconstructed_appearances(scene, metadata, files, splat_package)
     for stream, edge in zip(metadata["streams"], scene.edges, strict=True):
         stream["route_points_m"] = edge.model_dump(mode="json")["points"]
     connections = []
@@ -386,9 +433,9 @@ def public_files(metadata):
     return scene, files
 
 
-def publish(public):
+def publish(public, splat_package=None):
     metadata = design()
-    scene, files = public_files(metadata)
+    scene, files = public_files(metadata, splat_package)
     if public.is_symlink() or public.exists() and not public.is_dir():
         raise ValueError("Unsafe public plant directory")
     if public.exists():
@@ -402,7 +449,12 @@ def publish(public):
         path.write_bytes(data)
     case = Case(
         id="D01", title=metadata["name"], input_type="generated", status="ready",
-        summary="24 authored process modules / 3 lines. Manual image-guided reconstruction, not recovered metric geometry. Gaussian inference is pending GPU capacity.",
+        summary=(
+            f"{metadata['reconstruction']['reconstructed_concepts']} photo-derived Gaussian concepts / "
+            f"{metadata['reconstruction']['gaussian_module_placements']} authored placements; "
+            "single-image approximation, not measured facility geometry."
+        ) if splat_package is not None else
+        "24 authored process modules / 3 lines. Manual image-guided reconstruction, not recovered metric geometry. Gaussian inference is pending GPU capacity.",
         source_filename="D01.png", source_url="/plant/D01.png",
     )
     return case, scene

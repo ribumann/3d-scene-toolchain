@@ -16,6 +16,28 @@ describe("API contract", () => {
   });
 
   describe("public static demo", () => {
+    it("loads plant splats only with matching plant receipts, original source and quality hashes", async () => {
+      let uri = "/api/assets/plant/splats/object-000.ply";
+      let source = "1".repeat(64);
+      vi.stubGlobal("fetch", vi.fn().mockImplementation((path: string) => Promise.resolve(new Response(JSON.stringify(
+        path.endsWith("cases.json") ? [{ id: "D01", status: "ready" }] :
+          path.endsWith("files.json") ? { "splats/object-000.ply": sha256, "D01.png": "1".repeat(64) } :
+            path.endsWith("quality.json") ? quality :
+              { case_id: "D01", assets: [{ uri, kind: "ply", sha256, provenance: {
+                trial_id: "D01", variant: "optimized", model: "speridlabs/idol", source_sha256: source,
+              } }] },
+      )))));
+      const demo = createApi(true);
+      await demo.cases();
+      await expect(demo.scene("D01")).resolves.toMatchObject({ assets: [{
+        uri: "/plant/splats/object-000.ply", provenance: { geometry_quality: quality.assets[sha256] },
+      }] });
+      uri = "/api/assets/plant/splats/../private.ply";
+      await expect(demo.scene("D01")).rejects.toMatchObject({ status: 422 });
+      uri = "/api/assets/plant/splats/object-000.ply";
+      source = "2".repeat(64);
+      await expect(demo.scene("D01")).rejects.toMatchObject({ status: 422 });
+    });
     it("loads only D01-authored GLB paths bound to the plant file receipts", async () => {
       let uri = "/api/assets/plant/modules/crusher.glb";
       let hash = sha256;

@@ -5,11 +5,12 @@ image-guided, module-level digital twin for a future telemetry / Fabric RTI demo
 It is **not a real plant, a surveyed layout, an engineering design or a
 photogrammetric reconstruction**.
 
-The existing Italy North Spot T4 could not restart: Azure returned
-`SkuNotAvailable`. No D01 SAM2/Idol inference has run and no Gaussian result is
-published. The downloadable geometry is deliberately labeled authored
-parametric mesh geometry. This does not replace or relabel the incumbent
-Gaussian reconstructions.
+The first publication used authored parametric mesh geometry after Azure
+returned `SkuNotAvailable` for the retained Italy North Spot T4. The worker has
+since restarted for a separate, supervised SAM2/Idol reconstruction attempt.
+An optional validated Gaussian package overlays component appearances without
+replacing the authored layout or relabeling incumbent reconstructions. The
+portable GLB remains the authored mesh model, not an export of the splats.
 
 ## What is provided
 
@@ -139,12 +140,11 @@ visibility, view controls and downloads worked without page errors or horizontal
 overflow. Hiding Line A reduced visible labels from 24 to 18; restoring it
 returned 24.
 
-These checks establish publication and authored-layout consistency, not
-photographic reconstruction accuracy. Actual D01 SAM2/Idol inference is still
-blocked by unavailable retained-worker GPU capacity. No Fabric infrastructure or
-telemetry simulator has been deployed.
+These checks describe the initial mesh publication, not photographic
+reconstruction accuracy. No Fabric infrastructure or telemetry simulator is
+deployed by this repository's viewer publication.
 
-## Pending Gaussian reconstruction
+## Component Gaussian reconstruction
 
 `cases/diamond-plant-trial.json` isolates D01 from the six frozen photographic
 trials. Twelve manually reviewed canonical crops, including the foreground
@@ -153,9 +153,8 @@ reuse each line-module concept; these are authored instances, not three
 independently recovered appearances. A reviewed box is not a segmentation or
 accuracy ground-truth label.
 
-Once the retained, approved GPU environment is available, with the existing
-protected token and frozen model/SDK pins supplied by the normal job, the
-runner accepts this separate manifest:
+With the existing protected token and frozen model/SDK pins supplied by the
+normal job, the runner accepts this separate manifest:
 
 ```sh
 python -m scripts.private_gpu_trials stage \
@@ -177,3 +176,25 @@ silently resolve new models, overwrite baseline checkpoints or publish unfinishe
 outputs. This prepares a separate validated package, **not** a deployed Gaussian
 plant. Actual extraction outcomes, failed crops, quality screening and appearance
 fidelity must be reviewed before any subsequent additive publication.
+
+The registered workflow accepts `smoke_mode=trials`, `pilot_cases=D01`,
+`trial_variants=optimized`, and `publish_trials=true`. D01 must run alone and
+uses `cases/diamond-plant-trial.json`, not the frozen photographic-trial
+manifest. Its public artifact is `plant-splats-<runID>`. Cache validation and
+resume settings are identical to the existing trial pipeline.
+
+For static publication, set `SCENE_PLANT_SPLAT_PACKAGE` to that validated
+package alongside the three retained packages and
+`SCENE_INCLUDE_DIAMOND_PLANT=1`. CI exposes the equivalent
+`plant_splat_run_id` input. Each successful canonical crop is loaded once and
+shared across its explicit module placements. Stable module IDs, positions,
+sizes, connection routes and all telemetry attachments remain unchanged.
+Unreconstructed modules retain explicitly authored GLBs; screened-out
+reconstructed appearances are hidden rather than silently replaced by boxes.
+The existing review-only visibility flag can show excluded splats.
+
+`plant/reconstruction.json` records actual inference counts, failures, settings
+and source hash; `plant/files.json` binds all published PLY bytes. The browser
+also requires matching hash-bound Gaussian quality assessments and the
+original source hash. Numerical validity and conservative extent screening do
+not certify photographic fidelity, hidden geometry or recovered dimensions.
