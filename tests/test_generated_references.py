@@ -21,7 +21,11 @@ class GeneratedReferenceTests(unittest.TestCase):
             folder = reference_folder(root, self.concept)
             folder.mkdir(parents=True)
             Image.new("RGB", (1024, 1024), "white").save(folder / "reference.png")
-            receipt = {"contract": contract(self.concept), "sha256": digest(folder / "reference.png")}
+            receipt = {
+                "contract": contract(self.concept), "sha256": digest(folder / "reference.png"),
+                "seconds": 1.0, "libraries": {name: "1.0.0" for name in ("torch", "diffusers", "transformers", "accelerate")},
+                "reviewed": False, "limitations": "Invented appearance from a description; not recovered from a schema.",
+            }
             (folder / "reference.json").write_text(json.dumps(receipt))
             self.assertEqual(validate_reference(folder, self.concept), receipt)
             changed = self.concept.model_copy(update={"subject": "one large slurry pump"})

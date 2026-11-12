@@ -2,11 +2,13 @@
 
 import argparse
 import json
+import math
+import re
 from pathlib import Path
 
 from scene_pipeline.gaussians import validate_ply
 from scene_pipeline.models import Scene
-from scripts.generated_references import CASES, Manifest, contract
+from scripts.generated_references import CASES, Manifest, validate_reference_receipt
 from scripts.illustration_reconstruct import Reviews
 from scripts.illustration_scenes import illustration_scene
 from scripts.package_pilots import APPROVED_PINS, public_ply
@@ -43,10 +45,21 @@ def validate_appearances(appearances, root):
             key: APPROVED_PINS[key] for key in ("SCENE_DINOV3_REVISION", "SCENE_FLUX2_REVISION")
         }:
             raise ValueError("Illustrative generation model/settings differ")
-        if metadata["reference"]["contract"] != contract(concepts[identifier]):
-            raise ValueError("Unapproved illustrative description or reference settings")
+        validate_reference_receipt(metadata["reference"], concepts[identifier])
         if metadata["review"] != reviews[identifier].model_dump(mode="json") or metadata["reference"]["sha256"] != reviews[identifier].sha256:
             raise ValueError("Generated input does not match the reviewed reference")
+        if metadata.get("dinov3_dtype") != "fp32" or type(metadata.get("resumed")) is not bool:
+            raise ValueError("Unexpected illustrative encoder dtype or resume state")
+        if not re.fullmatch(r"[0-9a-f]{64}", metadata.get("crop_sha256", "")) or metadata["crop_sha256"] != metadata.get("input_sha256"):
+            raise ValueError("Illustrative segmentation input hash differs")
+        if "generation_sha256" in metadata and not re.fullmatch(r"[0-9a-f]{64}", metadata["generation_sha256"]):
+            raise ValueError("Invalid original generation hash")
+        timing = metadata["timing_this_run"]
+        if timing and (
+            set(timing) != {"seconds", "peak_device_memory_mib_sampled", "sample_interval_seconds"}
+            or any(type(value) not in (int, float) or not math.isfinite(value) or value < 0 for value in timing.values())
+        ):
+            raise ValueError("Unexpected illustrative timing metadata")
 
 
 def validate_illustration_package(root):

@@ -3,6 +3,8 @@
 import argparse
 import hashlib
 import json
+import math
+import re
 import shutil
 import time
 from importlib.metadata import version
@@ -60,10 +62,30 @@ def reference_folder(directory, concept):
     return private_path(directory, f"illustrations/references/{concept.id}/{key}")
 
 
+def validate_reference_receipt(receipt, concept):
+    if set(receipt) != {"contract", "sha256", "seconds", "libraries", "reviewed", "limitations"}:
+        raise ValueError("Unexpected illustrative reference metadata")
+    if receipt["contract"] != contract(concept):
+        raise ValueError("Illustrative reference contract changed")
+    if not re.fullmatch(r"[0-9a-f]{64}", receipt["sha256"]):
+        raise ValueError("Invalid illustrative reference hash")
+    seconds = receipt["seconds"]
+    libraries = receipt["libraries"]
+    if (
+        type(seconds) not in (int, float) or not math.isfinite(seconds) or seconds < 0
+        or set(libraries) != {"torch", "diffusers", "transformers", "accelerate"}
+        or any(not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9.+_-]{1,100}", value) for value in libraries.values())
+        or receipt["reviewed"] is not False
+        or receipt["limitations"] != "Invented appearance from a description; not recovered from a schema."
+    ):
+        raise ValueError("Invalid illustrative reference provenance")
+
+
 def validate_reference(folder, concept):
     receipt = json.loads((folder / "reference.json").read_text())
-    if receipt["contract"] != contract(concept) or receipt["sha256"] != digest(folder / "reference.png"):
-        raise ValueError("Illustrative reference contract or image hash changed")
+    validate_reference_receipt(receipt, concept)
+    if receipt["sha256"] != digest(folder / "reference.png"):
+        raise ValueError("Illustrative reference image hash changed")
     with Image.open(folder / "reference.png") as image:
         if image.format != "PNG" or image.size != (1024, 1024):
             raise ValueError("Illustrative reference image format or dimensions changed")

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { caseFromQuery, pointOnRoute, routePoints, splatFit, splatIssue, updateNode, visibleNodes } from "./model";
+import { assetNodes, caseFromQuery, pointOnRoute, routePoints, splatFit, splatIssue, updateNode, visibleNodes } from "./model";
 import type { Scene } from "../../../packages/scene/types";
 
 const scene: Scene = {
@@ -32,6 +32,15 @@ describe("scene view model", () => {
   it("filters hidden and isolated nodes", () => {
     expect(visibleNodes(updateNode(scene, "a", { visible: false }), null)).toHaveLength(0);
     expect(visibleNodes(scene, "other")).toHaveLength(0);
+  });
+  it("retains every explicitly shared placement, including isolation of a later instance", () => {
+    const asset = { id: "shared-tree", kind: "ply" as const, uri: "/tree.ply", sha256: "", provenance: {} };
+    const first = { ...scene.nodes[0], id: "first", asset_id: asset.id };
+    const second = { ...first, id: "second" };
+    const shared = { ...scene, nodes: [first, second, { ...scene.nodes[0], id: "unrelated" }] };
+    expect(assetNodes(asset, shared.nodes).map(node => node.id)).toEqual(["first", "second"]);
+    expect(assetNodes(asset, visibleNodes(shared, "second")).map(node => node.id)).toEqual(["second"]);
+    expect(assetNodes({ ...asset, id: "parent-linked", node_id: "first" }, shared.nodes).map(node => node.id)).toEqual(["first"]);
   });
   it("interpolates along actual route distance", () => {
     expect(pointOnRoute([[0, 0, 0], [1, 0, 0], [1, 3, 0]], 0.5)).toEqual([1, 1, 0]);

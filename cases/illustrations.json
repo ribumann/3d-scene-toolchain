@@ -2,7 +2,7 @@
   "schema_version": 1,
   "concepts": [
     {"id":"grocery-shelf","category":"shelf","cases":["P01"],"subject":"one fully stocked supermarket shelving bay with metal shelves and assorted groceries"},
-    {"id":"grocery-endcap","category":"endcap","cases":["P01"],"subject":"one freestanding supermarket endcap display with shelves of packaged groceries"},
+    {"id":"grocery-endcap","category":"endcap","cases":["P01"],"subject":"one small freestanding metal grocery display rack viewed diagonally in a supermarket, both sides visible"},
     {"id":"checkout","category":"checkout","cases":["P01"],"subject":"one supermarket checkout counter with a short conveyor belt and cash register"},
     {"id":"wafer-loader","category":"machine","cases":["P02"],"subject":"one enclosed semiconductor wafer loading machine with a wafer cassette and control panel"},
     {"id":"die-attach","category":"machine","cases":["P02"],"subject":"one semiconductor die attach machine with a steel enclosure and small precision stage"},
@@ -20,12 +20,12 @@
     {"id":"cone-crusher","category":"crusher","cases":["I01"],"subject":"one industrial cone crusher with a conical housing, feed opening and steel support frame"},
     {"id":"vibrating-screen","category":"screen","cases":["I01"],"subject":"one industrial inclined vibrating screen with a rectangular mesh deck and steel support frame"},
     {"id":"feed-hopper","category":"bin","cases":["I01"],"subject":"one industrial ore feed hopper with a steel rectangular bin and tapered discharge"},
-    {"id":"thickener","category":"thickener","cases":["I01"],"subject":"one industrial circular slurry thickener tank with a central rake bridge"},
+    {"id":"thickener","category":"thickener","cases":["I01"],"subject":"one complete freestanding circular steel water treatment tank on legs with an overhead bridge, outdoors"},
     {"id":"grinding-mill","category":"mill","cases":["I01"],"subject":"one industrial horizontal cylindrical grinding mill with a steel drum and drive motor"},
     {"id":"rotary-scrubber","category":"scrubber","cases":["I01"],"subject":"one industrial rotary ore scrubber with a cylindrical washing drum and drive motor"},
     {"id":"belt-conveyor","category":"conveyor","cases":["I01"],"subject":"one industrial inclined belt conveyor with visible rollers and a steel support frame"},
     {"id":"slurry-pump","category":"pump","cases":["I01"],"subject":"one industrial centrifugal slurry pump with a volute casing, electric motor and common baseplate"},
     {"id":"assembly-station","category":"workstation","cases":["I04"],"subject":"one automotive assembly workstation with a steel fixture, tool gantry and control cabinet"},
-    {"id":"factory-building","category":"building","cases":["I05"],"subject":"one single-story historic industrial factory shed with a pitched roof, brick walls and large windows"}
+    {"id":"factory-building","category":"building","cases":["I05"],"subject":"one complete detached brick factory building, exterior street view, pitched roof and large windows"}
   ]
 }

@@ -19,6 +19,10 @@ export function visibleNodes(scene: Scene, isolated: string | null): SceneNode[]
   return scene.nodes.filter(node => node.visible && (!isolated || node.id === isolated));
 }
 
+export function assetNodes(asset: SceneAsset, nodes: SceneNode[]): SceneNode[] {
+  return nodes.filter(node => asset.node_id === node.id || node.asset_id === asset.id);
+}
+
 export function routePoints(edge: SceneEdge, scene: Scene): Vec3[] {
   if (edge.points.length >= 2) return edge.points;
   const source = scene.nodes.find(node => node.id === edge.source);

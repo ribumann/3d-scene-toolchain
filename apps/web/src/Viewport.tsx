@@ -5,7 +5,7 @@ import { SparkRenderer, SplatMesh } from "@sparkjsdev/spark";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import type { Scene, SceneAsset, SceneNode, Vec3 } from "../../../packages/scene/types";
-import { pointOnRoute, routePoints, splatFit, splatIssue, visibleNodes } from "./model";
+import { assetNodes, pointOnRoute, routePoints, splatFit, splatIssue, visibleNodes } from "./model";
 import { fitModelToNode, fitSplatToNode } from "./assets";
 
 type Props = {
@@ -92,30 +92,50 @@ function Spark({ assets, nodes, onError, onLoaded }: { assets: SceneAsset[]; nod
     let active = true;
     let renderer: SparkRenderer | undefined;
     const meshes: SplatMesh[] = [];
+    const sources: SplatMesh[] = [];
+    const dispose = () => {
+      meshes.forEach(mesh => {
+        scene.remove(mesh);
+        if (!sources.includes(mesh)) { mesh.splats = undefined; mesh.dispose(); }
+      });
+      sources.forEach(mesh => { void mesh.initialized.then(() => mesh.dispose(), () => mesh.dispose()); });
+      if (renderer) { scene.remove(renderer); renderer.dispose(); }
+    };
     try {
       renderer = new SparkRenderer({ renderer: gl });
       renderer.name = "SparkRenderer";
       scene.add(renderer);
       for (const asset of assets) {
         onLoaded(asset.id, false);
-        const node = assetNode(asset, nodes);
-        const fit = node ? splatFit(asset, node) : null;
-        if (node && !fit) { onError(`${node.label}: ${splatIssue(asset, node)} No representative box substituted.`); continue; }
-        const mesh = new SplatMesh({ url: asset.uri });
-        mesh.name = asset.id;
-        if (node && fit) {
-          fitSplatToNode(mesh, asset, node);
-        }
-        scene.add(mesh); meshes.push(mesh);
-        mesh.initialized.then(() => { if (active) onLoaded(asset.id, true); }).catch((error: unknown) => { if (active) onError(`Splat ${asset.id} failed to load: ${String(error)}`); });
+        const linked = assetNodes(asset, nodes);
+        const placements: (SceneNode | undefined)[] = linked.length ? linked : [undefined];
+        const accepted = placements.filter(node => {
+          if (!node || splatFit(asset, node)) return true;
+          onError(`${node.label}: ${splatIssue(asset, node)} No representative box substituted.`);
+          return false;
+        });
+        if (!accepted.length) continue;
+        const source = new SplatMesh({ url: asset.uri });
+        sources.push(source);
+        source.initialized.then(() => {
+          if (!active) return;
+          if (!source.splats) throw new Error("Loaded splat has no shared source");
+          accepted.forEach((node, index) => {
+            const mesh = index === 0 ? source : new SplatMesh({ splats: source.splats });
+            mesh.name = `${asset.id}/${node?.id ?? "scene"}`;
+            if (node) fitSplatToNode(mesh, asset, node);
+            scene.add(mesh); meshes.push(mesh);
+          });
+          onLoaded(asset.id, true);
+        }).catch((error: unknown) => { if (active) onError(`Splat ${asset.id} failed to load: ${String(error)}`); });
       }
     } catch (error) {
       onError(`Spark renderer failed: ${String(error)}`);
-      meshes.forEach(mesh => { scene.remove(mesh); mesh.dispose(); });
-      if (renderer) { scene.remove(renderer); renderer.dispose(); }
+      active = false;
+      dispose();
       return;
     }
-    return () => { active = false; meshes.forEach(mesh => { scene.remove(mesh); mesh.dispose(); }); if (renderer) { scene.remove(renderer); renderer.dispose(); } };
+    return () => { active = false; dispose(); };
   }, [gl, scene, assets, nodes, onError, onLoaded]);
   return null;
 }
@@ -178,8 +198,8 @@ function SceneContent(props: Props & { onError: (message: string) => void; onAss
   const nodes = useMemo(() => visibleNodes(props.scene, props.isolated), [props.scene.nodes, props.isolated]);
   const ids = useMemo(() => new Set(nodes.map(n => n.id)), [nodes]);
   const assets = useMemo(() => props.scene.assets.filter(asset => {
-    const linked = assetNode(asset, props.scene.nodes);
-    return linked ? ids.has(linked.id) : !asset.node_id;
+    const linked = assetNodes(asset, props.scene.nodes);
+    return linked.length ? linked.some(node => ids.has(node.id)) : !asset.node_id;
   }), [props.scene.assets, props.scene.nodes, ids]);
   const splats = useMemo(() => assets.filter(a => a.kind === "ply"), [assets]);
   const models = useMemo(() => assets.filter(a => a.kind === "glb"), [assets]);
@@ -192,8 +212,8 @@ function SceneContent(props: Props & { onError: (message: string) => void; onAss
     {models.map(asset => <ModelAsset key={asset.id} asset={asset} node={assetNode(asset, nodes)} onError={props.onError} onLoaded={onLoaded} />)}
     {props.labels && <LabelProjection nodes={nodes} elements={props.labelElements} />}
     {nodes.map(node => <NodeMesh key={node.id} node={node} selected={props.selected === node.id} onSelect={() => props.onSelect(node.id)}
-      proxy={((props.strictAssets || props.mode === "splat") && splats.some(a => assetNode(a, nodes)?.id === node.id)) || models.some(a => assetNode(a, nodes)?.id === node.id && loaded[a.id]) ||
-        (props.mode === "splat" && splats.some(a => assetNode(a, nodes)?.id === node.id && loaded[a.id] && splatFit(a, node)))} />)}
+      proxy={((props.strictAssets || props.mode === "splat") && splats.some(a => assetNodes(a, [node]).length > 0)) || models.some(a => assetNode(a, nodes)?.id === node.id && loaded[a.id]) ||
+        (props.mode === "splat" && splats.some(a => assetNodes(a, [node]).length > 0 && loaded[a.id] && splatFit(a, node)))} />)}
     {props.scene.edges.filter(edge => ids.has(edge.source) && ids.has(edge.target)).map(edge => <Route key={edge.id} points={routePoints(edge, props.scene)} playing={props.playing} speed={props.speed} />)}
   </>;
 }
@@ -204,10 +224,8 @@ export default function Viewport(props: Props) {
   const labelElements = useMemo(() => new Map<string, HTMLSpanElement>(), []);
   const onError = useMemo(() => (message: string) => setErrors(previous => previous.includes(message) ? previous : [...previous, message]), []);
   const onAssetLoaded = useMemo(() => (id: string, value: boolean) => setLoadedAssets(previous => previous[id] === value ? previous : { ...previous, [id]: value }), []);
-  const excluded = props.scene.assets.filter(asset => {
-    const node = assetNode(asset, props.scene.nodes);
-    return asset.kind === "ply" && node && splatIssue(asset, node);
-  }).length;
+  const placements = props.scene.assets.filter(asset => asset.kind === "ply").flatMap(asset => assetNodes(asset, props.scene.nodes).map(node => ({ asset, node })));
+  const excluded = placements.filter(({ asset, node }) => splatIssue(asset, node)).length;
   useEffect(() => { setErrors([]); setLoadedAssets({}); }, [props.scene.id, props.mode]);
   return <div className="canvas-wrap">
     <CanvasBoundary key={props.scene.id}><Canvas style={{ position: "absolute", inset: 0 }} gl={{ antialias: false }} camera={{ position: [18, 18, 18], fov: 45 }}>
@@ -219,7 +237,7 @@ export default function Viewport(props: Props) {
     {props.mode === "splat" && !props.scene.assets.some(a => a.kind === "ply") && <div className="viewport-note">No splat asset for this scene. Showing editable geometry.</div>}
     {errors.length === 1 && <div className="viewport-error" role="alert">{errors[0]}</div>}
     {errors.length > 1 && <details className="viewport-error"><summary>{errors.length} appearance issues (excluded or unavailable)</summary>{errors.map(error => <div key={error}>{error}</div>)}</details>}
-    {props.strictAssets && <div className="viewport-note" role="status">Loaded {props.scene.assets.filter(asset => loadedAssets[asset.id]).length}/{props.scene.assets.length} object appearances{excluded > 0 && ` · ${excluded} excluded by geometry/fit screening`} · Inferred layout · No geometry substitute on load failure</div>}
+    {props.strictAssets && <div className="viewport-note" role="status">Loaded {props.scene.assets.filter(asset => loadedAssets[asset.id]).length}/{props.scene.assets.length} object appearances{placements.length > props.scene.assets.length && ` · ${placements.length} authored placements`}{excluded > 0 && ` · ${excluded} excluded by geometry/fit screening`} · Inferred layout · No geometry substitute on load failure</div>}
     <div className="viewport-hint">Drag to orbit · Scroll to zoom</div>
   </div>;
 }
