@@ -22,6 +22,7 @@
     {"id":"feed-hopper","category":"bin","cases":["I01"],"subject":"one industrial ore feed hopper with a steel rectangular bin and tapered discharge"},
     {"id":"thickener","category":"thickener","cases":["I01"],"subject":"one industrial circular slurry thickener tank with a central rake bridge"},
     {"id":"grinding-mill","category":"mill","cases":["I01"],"subject":"one industrial horizontal cylindrical grinding mill with a steel drum and drive motor"},
+    {"id":"rotary-scrubber","category":"scrubber","cases":["I01"],"subject":"one industrial rotary ore scrubber with a cylindrical washing drum and drive motor"},
     {"id":"belt-conveyor","category":"conveyor","cases":["I01"],"subject":"one industrial inclined belt conveyor with visible rollers and a steel support frame"},
     {"id":"slurry-pump","category":"pump","cases":["I01"],"subject":"one industrial centrifugal slurry pump with a volute casing, electric motor and common baseplate"},
     {"id":"assembly-station","category":"workstation","cases":["I04"],"subject":"one automotive assembly workstation with a steel fixture, tool gantry and control cabinet"},

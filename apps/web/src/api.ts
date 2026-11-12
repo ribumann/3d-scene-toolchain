@@ -72,7 +72,7 @@ export function createApi(staticDemo = false) {
     cases: async () => {
       const cases = await call<Case[]>(staticDemo ? "/demo/cases.json" : "/api/cases");
       if (staticDemo) for (const item of cases) {
-        if (/^(I0[1-5]|G0[1-3]|[TR]0[1-3]-(baseline|optimized))$/.test(item.id) && item.status === "ready") publishedScenes.add(item.id);
+        if (/^(I0[1-5]|G0[1-3]|[TR]0[1-3]-(baseline|optimized)|(?:P0[1-3]|I01|I04|I05)-illustrated)$/.test(item.id) && item.status === "ready") publishedScenes.add(item.id);
       }
       return cases;
     },
@@ -91,7 +91,8 @@ export function createApi(staticDemo = false) {
         }
         return { ...scene, assets: scene.assets.map(asset => {
           const trial = /^[TR]0[1-3]-(baseline|optimized)$/.test(id);
-          const match = trial
+          const illustrated = /^(P0[1-3]|I01|I04|I05)-illustrated$/.test(id);
+          const match = illustrated ? /^\/api\/assets\/illustrations\/[A-Za-z0-9_.-]+\.ply$/.test(asset.uri) : trial
             ? new RegExp(`^/api/assets/trials/${id.slice(0, 3)}/${id.slice(4)}/[A-Za-z0-9_.-]+\\.ply$`).test(asset.uri)
             : new RegExp(`^/api/assets/pilot/${id}/[A-Za-z0-9_.-]+\\.ply$`).test(asset.uri);
           if (!match) {
@@ -103,7 +104,7 @@ export function createApi(staticDemo = false) {
           }
           return {
             ...asset, provenance: { ...asset.provenance, geometry_quality: assessment },
-            uri: trial ? asset.uri.replace("/api/assets/trials/", "/trial-assets/") : asset.uri.replace("/api/assets/", "/pilot-assets/"),
+            uri: illustrated ? asset.uri.replace("/api/assets/illustrations/", "/illustration-assets/") : trial ? asset.uri.replace("/api/assets/trials/", "/trial-assets/") : asset.uri.replace("/api/assets/", "/pilot-assets/"),
           };
         }) };
       }

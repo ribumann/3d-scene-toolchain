@@ -45,6 +45,7 @@ class Edge(StrictModel):
     kind: Literal["process", "visitor", "conveyor", "adjacency"]
     points: list[Vec3] = Field(min_length=2, max_length=10000)
     label: str = ""
+    evidence: Evidence | None = None
 
 
 class Asset(StrictModel):
@@ -99,6 +100,8 @@ class Scene(StrictModel):
         for edge in self.edges:
             if edge.source not in nodes or edge.target not in nodes:
                 raise ValueError(f"Edge {edge.id} references an unknown node")
+            if edge.evidence and edge.evidence.source_id and edge.evidence.source_id not in sources:
+                raise ValueError(f"Edge {edge.id} references an unknown evidence source")
         for node in self.nodes:
             if node.asset_id and node.asset_id not in assets:
                 raise ValueError(f"Node {node.id} references an unknown asset")

@@ -42,6 +42,7 @@ export default function App() {
   const currentCase = cases.find(item => item.id === caseId);
   const publicReference = readOnly && currentCase?.input_type !== "prompt" && !!currentCase?.source_url;
   const trial = trialStatuses.find(item => `${item.trial_id}-${item.variant}` === caseId);
+  const illustrated = caseId.endsWith("-illustrated");
   const referenceProvenance = trial ? trial.definition.source.kind === "licensed-real-photograph" ? "Licensed real photograph" : "Synthetic photographic input" : currentCase?.input_type === "generated" ? "AI-generated reference" : "Original reference";
   const pilot = pilotStatuses.find(item => item.case_id === caseId);
   const hasPublishedSplats = readOnly && !!scene?.assets.some(asset => asset.kind === "ply");
@@ -203,12 +204,12 @@ export default function App() {
       <aside className="library" aria-label="Case navigation">
         <div className="panel-heading"><div><h2>Cases</h2><p>Scene library</p></div><span className="count">{cases.length}</span></div>
         {!cases.length && <p className="muted inset">{error ? "Case library unavailable." : "Loading cases…"}</p>}
-        {(["prompt", "reference", "generated", "trials"] as const).map(group => {
-          const items = cases.filter(item => group === "trials" ? /^T0[1-3]-/.test(item.id) : /^T0[1-3]-/.test(item.id) ? false : group === "prompt" ? item.input_type === "prompt" : group === "generated" ? item.input_type === "generated" : !["prompt", "generated"].includes(item.input_type));
+        {(["prompt", "reference", "generated", "trials", "illustrations"] as const).map(group => {
+          const items = cases.filter(item => group === "illustrations" ? item.id.endsWith("-illustrated") : item.id.endsWith("-illustrated") ? false : group === "trials" ? /^T0[1-3]-/.test(item.id) : /^T0[1-3]-/.test(item.id) ? false : group === "prompt" ? item.input_type === "prompt" : group === "generated" ? item.input_type === "generated" : !["prompt", "generated"].includes(item.input_type));
           if (!items.length) return null;
-          return <div className="case-group" key={group}><h3>{group === "trials" ? "Trials" : group === "prompt" ? "Prompt scenarios" : group === "reference" ? readOnly ? "Original references" : "Reference inputs" : readOnly ? "AI-generated references" : "Generated inputs"}</h3>
+          return <div className="case-group" key={group}><h3>{group === "illustrations" ? "Illustrative splats" : group === "trials" ? "Trials" : group === "prompt" ? "Prompt scenarios" : group === "reference" ? readOnly ? "Original references" : "Reference inputs" : readOnly ? "AI-generated references" : "Generated inputs"}</h3>
             {items.map(item => <button key={item.id} className={`case-item ${caseId === item.id ? "active" : ""}`} onClick={() => switchCase(item.id)} disabled={busy} aria-current={caseId === item.id ? "page" : undefined}>
-              <span className="case-id">{item.id}</span><span className="case-name">{item.title}<small>{readOnly && item.source_url ? pilotStatuses.find(p => p.case_id === item.id)?.status || trialStatuses.find(t => `${t.trial_id}-${t.variant}` === item.id)?.status || "Reference only" : item.status === "awaiting_input" ? "Awaiting input" : item.input_type}</small></span><span className={`status-dot ${item.status}`} aria-hidden="true" />
+              <span className="case-id">{item.id}</span><span className="case-name">{item.title}<small>{item.id.endsWith("-illustrated") ? "Generated illustration" : readOnly && item.source_url ? pilotStatuses.find(p => p.case_id === item.id)?.status || trialStatuses.find(t => `${t.trial_id}-${t.variant}` === item.id)?.status || "Reference only" : item.status === "awaiting_input" ? "Awaiting input" : item.input_type}</small></span><span className={`status-dot ${item.status}`} aria-hidden="true" />
             </button>)}
           </div>;
         })}
@@ -221,6 +222,7 @@ export default function App() {
             <button onClick={reload} disabled={!caseId || loading || busy}>{publicReference ? "Reload reference" : "Reload scene"}</button></div>
         </div>
         {readOnly && <PipelineGuide />}
+        {illustrated && <div className="pilot-status" role="status"><strong>Invented appearance, source-supported relationships</strong><p>Generated photographic references were segmented and reconstructed with Idol. These are illustrative objects, not recovered photographs of the original equipment. Repeated concepts are authored instances. Routes retain scenario intent or reviewed diagram direction; plan proximity does not imply a connection. Original cases remain available separately.</p></div>}
         {trial && <TrialPanel trial={trial} onVariant={switchCase} />}
         {pilot && <div className="pilot-status" role="status"><strong>{pilot.status === "proposals" ? "Unreviewed diagram/plan proposals" : pilot.status === "partial" ? "Partial object reconstruction" : pilot.status === "succeeded" ? "Validated object outputs" : pilot.status === "processing" ? "Processing at publication snapshot" : pilot.status === "failed" ? "Pilot processing failed" : "Pilot not run"}</strong>
           <p>{pilot.status === "processing" ? "This source was active or had an unfinished running checkpoint. Its in-progress objects are not published; another snapshot is needed after it stops." : pilot.status === "proposals" ? `${pilot.objects} inferred region boxes; no Idol appearance or recovered process topology.` : `${pilot.objects} published object appearances; ${pilot.failed_objects} failed or unfinished distinct crops. Not a complete facility reconstruction.`} Compressed WebP input, not original bytes. Placement and scale are inferred.</p></div>}

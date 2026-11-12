@@ -20,6 +20,29 @@ They invent appearance from descriptions: they cannot recover the actual hidden
 appearance of schematic equipment. The workflow uploads only these generated
 candidates and receipts, never private inputs, masks, logs or credentials.
 
+The subsequent `smoke_mode=illustrated-objects` route requires a committed
+`cases/illustration-reviews.json` with exact candidate hashes, normalized XYWH
+boxes and review notes. It runs SAM2 and Idol in separate sequential processes,
+validates successful receipts before resuming, and exports only a strictly
+validated `illustration-publication-<run>` package. Source pixels, segmentation
+and generation files are hash checked; failures do not produce replacement
+boxes. No category-only similarity cache is used.
+
+The optional `ci.yml` `illustration_run_id` builds six **additional**
+`P01/P02/P03/I01/I04/I05-illustrated` cases, never replacing original cases or
+interim comparisons. It requires the retained pilot `43079293375` and trial
+`43185525449` publications. Prompt objects intentionally share concept assets;
+complete machines replace overlapping housing/control proxies, and complete
+trees replace separate trunk/canopy primitives.
+
+I04 preserves all 93 numbered main-line/engine stations, eight buffers and
+100 directed relationships, including the Engine branch into Chassis 2.
+I01 asserts only two reviewed feed relationships; ambiguous junctions remain
+unasserted. I05 uses eight reviewed principal building footprints and invents
+no process links from proximity. Edge evidence records reviewed diagram
+relationships separately from authored prompt routes. All 3D routes are
+relative authored paths, not measured physical pipes or flow simulation.
+
 ## Scene-wide geometry screening
 
 The static builder assesses every approved original and interim PLY without

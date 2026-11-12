@@ -17,6 +17,7 @@ on:
           - trials
           - trial-package
           - illustrations
+          - illustrated-objects
       smoke_source:
         description: "Explicit smoke/batch input; public-preview records authorized WebP provenance, never original bytes"
         default: private-original
@@ -69,11 +70,12 @@ concurrency:
 
 jobs:
   private-smoke:
-    if: github.event_name == 'workflow_dispatch' && (inputs.smoke_mode == 'readiness' || inputs.smoke_mode == 'gpu' || inputs.smoke_mode == 'batch' || inputs.smoke_mode == 'trials' || inputs.smoke_mode == 'illustrations')
+    if: github.event_name == 'workflow_dispatch' && (inputs.smoke_mode == 'readiness' || inputs.smoke_mode == 'gpu' || inputs.smoke_mode == 'batch' || inputs.smoke_mode == 'trials' || inputs.smoke_mode == 'illustrations' || inputs.smoke_mode == 'illustrated-objects')
     uses: ./.github/workflows/gpu-smoke.yml
     with:
-      run_gpu: ${{ inputs.smoke_mode == 'gpu' || inputs.smoke_mode == 'batch' || inputs.smoke_mode == 'trials' || inputs.smoke_mode == 'illustrations' }}
+      run_gpu: ${{ inputs.smoke_mode == 'gpu' || inputs.smoke_mode == 'batch' || inputs.smoke_mode == 'trials' || inputs.smoke_mode == 'illustrations' || inputs.smoke_mode == 'illustrated-objects' }}
       illustration_batch: ${{ inputs.smoke_mode == 'illustrations' }}
+      illustration_reconstruct: ${{ inputs.smoke_mode == 'illustrated-objects' }}
       illustration_cases: ${{ inputs.cases || 'P01 P02 P03' }}
       object_batch: ${{ inputs.smoke_mode == 'batch' || inputs.smoke_mode == 'trials' }}
       trial_batch: ${{ inputs.smoke_mode == 'trials' }}

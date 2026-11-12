@@ -13,7 +13,7 @@ REFERENCE_IDS = ("I01", "I02", "I03", "I04", "I05", "G01", "G02", "G03")
 REFERENCE_SOURCE = ROOT / "apps/web/public/references"
 
 
-def build_demo(public: Path, pilot_package: Path | None = None, trial_package: Path | None = None):
+def build_demo(public: Path, pilot_package: Path | None = None, trial_package: Path | None = None, illustration_package: Path | None = None):
     from scripts.package_pilots import validate_package
     from scene_pipeline.gaussians import assess_ply
 
@@ -25,12 +25,19 @@ def build_demo(public: Path, pilot_package: Path | None = None, trial_package: P
         from scripts.package_trials import validate_trial_package
         trials = validate_trial_package(trial_package)
     trial_entries = trials[0]["trials"] if trials else []
+    illustrations = None
+    if illustration_package is not None:
+        if pilots is None or trials is None:
+            raise ValueError("Illustrative publication must retain approved original and interim packages")
+        from scripts.package_illustrations import validate_illustration_package
+        illustrations = validate_illustration_package(illustration_package)
+    illustration_ids = set(illustrations["cases"]) if illustrations else set()
     trial_ids = {f"{entry['trial_id']}-{entry['variant']}" for entry in trial_entries if entry["scene"]}
     entries = {item["case_id"]: item for item in pilots["cases"]} if pilots else {}
     destination, references = public / "demo", public / "references"
     for directory, allowed in (
-        (public, {"demo", "references"} | ({"pilot-assets"} if pilots else set()) | ({"trial-assets", "trial-references"} if trials else set())),
-        (destination, {"cases.json", "P01.json", "P02.json", "P03.json", "pilots.json", "trials.json", "quality.json"} | {f"{case}.json" for case in trial_ids} | ({*(f"{case}.json" for case, item in entries.items() if item["scene"])} if pilots else set())),
+        (public, {"demo", "references"} | ({"pilot-assets"} if pilots else set()) | ({"trial-assets", "trial-references"} if trials else set()) | ({"illustration-assets"} if illustrations else set())),
+        (destination, {"cases.json", "P01.json", "P02.json", "P03.json", "pilots.json", "trials.json", "quality.json"} | {f"{case}.json" for case in trial_ids | illustration_ids} | ({*(f"{case}.json" for case, item in entries.items() if item["scene"])} if pilots else set())),
         (references, {f"{identifier}.webp" for identifier in REFERENCE_IDS}),
     ):
         if directory.is_symlink() or (directory.exists() and not directory.is_dir()):
@@ -54,6 +61,12 @@ def build_demo(public: Path, pilot_package: Path | None = None, trial_package: P
             for path in directory.rglob("*"):
                 if path.is_symlink() or (path.is_file() and path.relative_to(directory).as_posix() not in expected):
                     raise ValueError("Unexpected public trial output")
+    illustration_assets = public / "illustration-assets"
+    if illustration_assets.exists():
+        expected = {name.removeprefix("assets/") for name in illustrations["files"] if name.startswith("assets/")} if illustrations else set()
+        for path in illustration_assets.rglob("*"):
+            if path.is_symlink() or (path.is_file() and path.relative_to(illustration_assets).as_posix() not in expected):
+                raise ValueError("Unexpected public illustration output")
     for identifier in REFERENCE_IDS:
         source = REFERENCE_SOURCE / f"{identifier}.webp"
         if REFERENCE_SOURCE.is_symlink() or source.is_symlink() or not source.is_file():
@@ -62,7 +75,7 @@ def build_demo(public: Path, pilot_package: Path | None = None, trial_package: P
     destination.mkdir(parents=True, exist_ok=True)
     references.mkdir(parents=True, exist_ok=True)
     quality = {}
-    for package, manifest in ((pilot_package, pilots), (trial_package, trials[0] if trials else None)):
+    for package, manifest in ((pilot_package, pilots), (trial_package, trials[0] if trials else None), (illustration_package, illustrations)):
         if manifest is not None:
             for name in manifest["files"]:
                 if name.startswith("assets/") and name.endswith(".ply"):
@@ -103,6 +116,16 @@ def build_demo(public: Path, pilot_package: Path | None = None, trial_package: P
                     status="ready" if entry["scene"] else "awaiting_input", source_filename=trial.source.filename,
                     source_url=f"/trial-references/{trial.source.filename}",
                 ))
+    if illustrations:
+        from scene_pipeline.models import Scene
+        for identifier in illustrations["cases"]:
+            scene = Scene.model_validate_json((illustration_package / f"scenes/{identifier}.json").read_text())
+            original = next(case for case in cases if case.id == identifier.removesuffix("-illustrated"))
+            cases.append(Case(
+                id=identifier, title=scene.name, input_type=original.input_type, status="ready",
+                summary=f"Illustrative generated appearances: {len(scene.assets)} shared concepts, {sum(node.asset_id is not None for node in scene.nodes)} authored instances; not recovered source appearance. {scene.description}",
+                prompt=original.prompt, source_filename=original.source_filename, source_url=original.source_url,
+            ))
     (destination / "cases.json").write_text(
         json.dumps([case.model_dump() for case in cases], indent=2) + "\n"
     )
@@ -134,9 +157,20 @@ def build_demo(public: Path, pilot_package: Path | None = None, trial_package: P
                 continue
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(trial_package / name, target)
+    if illustrations:
+        for name in illustrations["files"]:
+            if name.startswith("assets/"):
+                target = public / "illustration-assets" / name.removeprefix("assets/")
+            elif name.startswith("scenes/"):
+                target = destination / Path(name).name
+            else:
+                continue
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(illustration_package / name, target)
 
 
 if __name__ == "__main__":
     package = os.environ.get("SCENE_PILOT_PUBLIC_PACKAGE")
     trials = os.environ.get("SCENE_TRIAL_PUBLIC_PACKAGE")
-    build_demo(ROOT / "apps/web/public-demo", Path(package) if package else None, Path(trials) if trials else None)
+    illustrations = os.environ.get("SCENE_ILLUSTRATION_PUBLIC_PACKAGE")
+    build_demo(ROOT / "apps/web/public-demo", Path(package) if package else None, Path(trials) if trials else None, Path(illustrations) if illustrations else None)

@@ -119,6 +119,20 @@ describe("API contract", () => {
       await demo.cases();
       await expect(demo.scene("I02")).rejects.toMatchObject({ status: 422, message: expect.stringContaining("hash-bound") });
     });
+    it("keeps illustrated scenes additive and rejects baseline-path substitution", async () => {
+      let uri = "/api/assets/illustrations/assembly-station.ply";
+      vi.stubGlobal("fetch", vi.fn().mockImplementation((path: string) => Promise.resolve(new Response(JSON.stringify(
+        path.endsWith("cases.json") ? [{ id: "I04-illustrated", status: "ready" }] :
+          path.endsWith("quality.json") ? quality :
+            { case_id: "I04-illustrated", assets: [{ sha256, uri }] },
+      )))));
+      const demo = createApi(true);
+      await demo.cases();
+      await expect(demo.scene("I04-illustrated")).resolves.toMatchObject({ assets: [{ uri: "/illustration-assets/assembly-station.ply" }] });
+      uri = "/api/assets/pilot/I04/assembly-station.ply";
+      await expect(demo.scene("I04-illustrated")).rejects.toMatchObject({ status: 422 });
+      await expect(demo.scene("I04")).rejects.toMatchObject({ status: 409 });
+    });
   });
   it("reports non-JSON HTTP failures", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("unavailable", { status: 503, statusText: "Unavailable" })));

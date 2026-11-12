@@ -26,6 +26,7 @@ export type SceneEdge = {
   kind: "process" | "visitor" | "conveyor" | "adjacency";
   points: Vec3[];
   label: string;
+  evidence?: Evidence | null;
 };
 export type SceneAsset = {
   id: string;

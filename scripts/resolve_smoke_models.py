@@ -98,7 +98,7 @@ def main():
         with tempfile.TemporaryDirectory(prefix="scene-model-gates-") as cache:
             pins = resolve_models(
                 HfApi(), hf_hub_download, token, cache,
-                I02_BATCH_REVISIONS if os.environ.get("I02_OBJECT_BATCH") == "true" else None,
+                I02_BATCH_REVISIONS if os.environ.get("I02_OBJECT_BATCH") == "true" or os.environ.get("ILLUSTRATION_BATCH") == "true" else None,
             )
     except HfHubHTTPError as error:
         status = error.response.status_code if error.response is not None else "unknown"

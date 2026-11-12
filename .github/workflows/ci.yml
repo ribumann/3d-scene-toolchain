@@ -20,6 +20,11 @@ on:
         required: false
         default: ""
         type: string
+      illustration_run_id:
+        description: "Optional reviewed generated-illustration publication; retain approved pilot and trial packages"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -71,19 +76,23 @@ jobs:
       - run: npm run build
       - run: npm test -- --run
       - name: Download explicitly selected approved pilot package
-        if: github.event_name == 'workflow_dispatch' && (inputs.pilot_run_id != '' || inputs.trial_run_id != '')
+        if: github.event_name == 'workflow_dispatch' && (inputs.pilot_run_id != '' || inputs.trial_run_id != '' || inputs.illustration_run_id != '')
         env:
           GH_TOKEN: ${{ github.token }}
           PILOT_RUN_ID: ${{ inputs.pilot_run_id }}
           TRIAL_RUN_ID: ${{ inputs.trial_run_id }}
+          ILLUSTRATION_RUN_ID: ${{ inputs.illustration_run_id }}
         run: |
           python - <<'PY'
           import json, os, re, subprocess
           from pathlib import Path
           from scripts.package_pilots import validate_package
           from scripts.package_trials import validate_trial_package
+          from scripts.package_illustrations import validate_illustration_package
           if os.environ["TRIAL_RUN_ID"] and os.environ["PILOT_RUN_ID"] != "43079293375":
               raise SystemExit("Trial publication must retain approved final pilot_run_id=43079293375.")
+          if os.environ["ILLUSTRATION_RUN_ID"] and (os.environ["PILOT_RUN_ID"] != "43079293375" or os.environ["TRIAL_RUN_ID"] != "43185525449"):
+              raise SystemExit("Illustrations must retain approved original and interim publications.")
           repository = os.environ["GITHUB_REPOSITORY"]
           workflow = json.loads(subprocess.check_output(
               ["gh", "api", f"repos/{repository}/actions/workflows/gpu-batch.yml"], text=True))
@@ -91,6 +100,7 @@ jobs:
           for variable, prefix, output, validate in (
               ("PILOT_RUN_ID", "pilot-publication-", "SCENE_PILOT_PUBLIC_PACKAGE", validate_package),
               ("TRIAL_RUN_ID", "trial-publication-", "SCENE_TRIAL_PUBLIC_PACKAGE", validate_trial_package),
+              ("ILLUSTRATION_RUN_ID", "illustration-publication-", "SCENE_ILLUSTRATION_PUBLIC_PACKAGE", validate_illustration_package),
           ):
               run_id = os.environ[variable]
               if not run_id:
