@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       smoke_mode:
-        description: "off/readiness/gpu/batch: existing pilots; package: pilot export; trials: photographic comparison; trial-package: trial export"
+        description: "Existing pilots, photographic trials, isolated exports, or generated illustrative references"
         default: "off"
         required: false
         type: choice
@@ -16,6 +16,7 @@ on:
           - package
           - trials
           - trial-package
+          - illustrations
       smoke_source:
         description: "Explicit smoke/batch input; public-preview records authorized WebP provenance, never original bytes"
         default: private-original
@@ -50,7 +51,7 @@ on:
         default: false
         type: boolean
       cases:
-        description: "Space-separated prompt case IDs (P01 P02 P03). Image uploads remain private until separate access is configured."
+        description: "Procedural cases; illustrations mode also accepts I01 I04 I05 for generated reference candidates"
         default: "P01 P02 P03"
         required: true
         type: string
@@ -68,10 +69,12 @@ concurrency:
 
 jobs:
   private-smoke:
-    if: github.event_name == 'workflow_dispatch' && (inputs.smoke_mode == 'readiness' || inputs.smoke_mode == 'gpu' || inputs.smoke_mode == 'batch' || inputs.smoke_mode == 'trials')
+    if: github.event_name == 'workflow_dispatch' && (inputs.smoke_mode == 'readiness' || inputs.smoke_mode == 'gpu' || inputs.smoke_mode == 'batch' || inputs.smoke_mode == 'trials' || inputs.smoke_mode == 'illustrations')
     uses: ./.github/workflows/gpu-smoke.yml
     with:
-      run_gpu: ${{ inputs.smoke_mode == 'gpu' || inputs.smoke_mode == 'batch' || inputs.smoke_mode == 'trials' }}
+      run_gpu: ${{ inputs.smoke_mode == 'gpu' || inputs.smoke_mode == 'batch' || inputs.smoke_mode == 'trials' || inputs.smoke_mode == 'illustrations' }}
+      illustration_batch: ${{ inputs.smoke_mode == 'illustrations' }}
+      illustration_cases: ${{ inputs.cases || 'P01 P02 P03' }}
       object_batch: ${{ inputs.smoke_mode == 'batch' || inputs.smoke_mode == 'trials' }}
       trial_batch: ${{ inputs.smoke_mode == 'trials' }}
       trial_variants: ${{ inputs.trial_variants || 'both' }}

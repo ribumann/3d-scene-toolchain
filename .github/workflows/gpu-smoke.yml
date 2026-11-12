@@ -38,6 +38,14 @@ on:
         type: string
         default: both
         required: false
+      illustration_batch:
+        type: boolean
+        default: false
+        required: false
+      illustration_cases:
+        type: string
+        default: "P01 P02 P03"
+        required: false
     secrets:
       HF_TOKEN:
         required: true
@@ -153,7 +161,7 @@ jobs:
           print(json.dumps({"cuda_kernel_verified": True, "device_count": torch.cuda.device_count()}))
           PY
       - name: Extract one private non-person crop and reconstruct with real Idol
-        if: ${{ !inputs.object_batch && !inputs.trial_batch }}
+        if: ${{ !inputs.object_batch && !inputs.trial_batch && !inputs.illustration_batch }}
         run: |
           umask 077
           args=()
@@ -217,6 +225,26 @@ jobs:
                   failed |= report["status"] != "succeeded"
           raise SystemExit(int(failed))
           PY
+      - name: Generate photographic illustrative candidates for inspection
+        if: inputs.illustration_batch
+        env:
+          ILLUSTRATION_CASES: ${{ inputs.illustration_cases }}
+        run: |
+          umask 077
+          read -ra selected <<< "$ILLUSTRATION_CASES"
+          /home/scene/scene-worker-venv/bin/python -m scripts.generated_references \
+            --data-dir /home/scene/scene-private-data \
+            --manifest "$GITHUB_WORKSPACE/cases/illustrations.json" \
+            --cases "${selected[@]}" \
+            --export "$RUNNER_TEMP/illustration-references-$GITHUB_RUN_ID"
+      - name: Upload generated candidates and receipts only, never private imagery or logs
+        if: inputs.illustration_batch
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: illustration-references-${{ github.run_id }}
+          path: ${{ runner.temp }}/illustration-references-${{ github.run_id }}/
+          if-no-files-found: error
+          retention-days: 7
       - name: Package explicitly approved validated public pilot outputs
         id: package_public
         if: always() && !cancelled() && inputs.object_batch && inputs.publish_pilots && !inputs.trial_batch

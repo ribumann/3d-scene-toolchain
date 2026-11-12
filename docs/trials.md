@@ -1,5 +1,25 @@
 # Opt-in photographic industrial trials
 
+## Prompt and schema reference candidates
+
+An opt-in `gpu-batch.yml` `smoke_mode=illustrations` route generates contextual
+photographic candidates for explicit concept identities in `cases/illustrations.json`.
+Select `cases="P01 P02 P03 I01 I04 I05"` for all currently curated descriptions.
+This is not a reconstruction result or a public demo release.
+
+The generator is Apache-2.0 `segmind/SSD-1B` pinned to
+`60987f37e94cd59c36b1cba832b9f97b57395a10`, using the existing Diffusers runtime,
+fp16, CPU offload, 1024px, 30 steps and guidance 9. Each identity gets a stable
+seed; receipts record the exact description, prompt, model/settings, output hash
+and actual library versions. Exact successful candidates can resume; changing
+the description/settings changes the cache location. No frozen runtime is upgraded.
+
+Candidates retain a background and require inspection, target-box review,
+segmentation and Idol reconstruction before becoming illustrative scene assets.
+They invent appearance from descriptions: they cannot recover the actual hidden
+appearance of schematic equipment. The workflow uploads only these generated
+candidates and receipts, never private inputs, masks, logs or credentials.
+
 ## Scene-wide geometry screening
 
 The static builder assesses every approved original and interim PLY without

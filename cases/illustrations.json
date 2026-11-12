@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "concepts": [
+    {"id":"grocery-shelf","category":"shelf","cases":["P01"],"subject":"one fully stocked supermarket shelving bay with metal shelves and assorted groceries"},
+    {"id":"grocery-endcap","category":"endcap","cases":["P01"],"subject":"one freestanding supermarket endcap display with shelves of packaged groceries"},
+    {"id":"checkout","category":"checkout","cases":["P01"],"subject":"one supermarket checkout counter with a short conveyor belt and cash register"},
+    {"id":"wafer-loader","category":"machine","cases":["P02"],"subject":"one enclosed semiconductor wafer loading machine with a wafer cassette and control panel"},
+    {"id":"die-attach","category":"machine","cases":["P02"],"subject":"one semiconductor die attach machine with a steel enclosure and small precision stage"},
+    {"id":"wire-bonder","category":"machine","cases":["P02"],"subject":"one industrial semiconductor wire bonding machine with an enclosure and inspection window"},
+    {"id":"encapsulation","category":"machine","cases":["P02"],"subject":"one enclosed semiconductor encapsulation press with a control panel"},
+    {"id":"singulation","category":"machine","cases":["P02"],"subject":"one enclosed precision wafer dicing machine with a worktable and inspection window"},
+    {"id":"electrical-test","category":"machine","cases":["P02"],"subject":"one semiconductor electrical test station with instrument racks and a test chamber"},
+    {"id":"packaged-output","category":"machine","cases":["P02"],"subject":"one compact electronic component packaging machine with reels and an enclosed work area"},
+    {"id":"buffer-rack","category":"buffer","cases":["P02","I04"],"subject":"one steel industrial buffer rack holding several trays of parts"},
+    {"id":"tree","category":"tree","cases":["P03"],"subject":"one complete leafy broadleaf tree with a clearly visible trunk and natural rounded crown outdoors"},
+    {"id":"giraffe","category":"animal","cases":["P03"],"subject":"one complete standing giraffe viewed from the side in an open zoo habitat"},
+    {"id":"aviary-bird","category":"animal","cases":["P03"],"subject":"one complete standing colorful pheasant viewed from the side in a zoo aviary"},
+    {"id":"woodland-deer","category":"animal","cases":["P03"],"subject":"one complete standing deer viewed from the side in a woodland zoo habitat"},
+    {"id":"jaw-crusher","category":"crusher","cases":["I01"],"subject":"one industrial jaw crusher with its feed opening, steel frame and drive motor"},
+    {"id":"cone-crusher","category":"crusher","cases":["I01"],"subject":"one industrial cone crusher with a conical housing, feed opening and steel support frame"},
+    {"id":"vibrating-screen","category":"screen","cases":["I01"],"subject":"one industrial inclined vibrating screen with a rectangular mesh deck and steel support frame"},
+    {"id":"feed-hopper","category":"bin","cases":["I01"],"subject":"one industrial ore feed hopper with a steel rectangular bin and tapered discharge"},
+    {"id":"thickener","category":"thickener","cases":["I01"],"subject":"one industrial circular slurry thickener tank with a central rake bridge"},
+    {"id":"grinding-mill","category":"mill","cases":["I01"],"subject":"one industrial horizontal cylindrical grinding mill with a steel drum and drive motor"},
+    {"id":"belt-conveyor","category":"conveyor","cases":["I01"],"subject":"one industrial inclined belt conveyor with visible rollers and a steel support frame"},
+    {"id":"slurry-pump","category":"pump","cases":["I01"],"subject":"one industrial centrifugal slurry pump with a volute casing, electric motor and common baseplate"},
+    {"id":"assembly-station","category":"workstation","cases":["I04"],"subject":"one automotive assembly workstation with a steel fixture, tool gantry and control cabinet"},
+    {"id":"factory-building","category":"building","cases":["I05"],"subject":"one single-story historic industrial factory shed with a pitched roof, brick walls and large windows"}
+  ]
+}
