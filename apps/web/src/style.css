@@ -105,6 +105,26 @@ select, input[type="number"] { color: #253f52; background: #fff; border: 1px sol
 .trial-measurements { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 14px 0; }
 .trial-measurements dt { color: #526d80; font-size: 12px; }
 .trial-measurements dd { margin: 4px 0 0; font-weight: 600; }
+.pipeline-guide { border: 1px solid #c7d7e1; background: #fff; }
+.pipeline-guide > summary { cursor: pointer; padding: 12px 14px; color: #214e69; font-weight: 600; }
+.pipeline-guide > summary:hover { background: #edf5fa; }
+.pipeline-guide > summary:focus-visible { outline: 2px solid #1767b5; outline-offset: 2px; }
+.pipeline-guide > summary span { color: #526d80; font-size: 12px; font-weight: 400; margin-left: 8px; }
+.pipeline-guide-content { padding: 0 14px 14px; }
+.pipeline-guide-content > p { max-width: 75ch; }
+.pipeline-diagram { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px 24px; padding: 0; margin: 20px 0; list-style: none; counter-reset: pipeline; }
+.pipeline-diagram li { position: relative; border-top: 1px solid #9fb9ca; padding-top: 10px; counter-increment: pipeline; }
+.pipeline-diagram strong { display: block; color: #20394c; }
+.pipeline-diagram strong::before { content: counter(pipeline) ". "; }
+.pipeline-diagram li:not(:last-child)::after { content: "→"; position: absolute; right: -18px; top: 10px; color: #526d80; }
+.pipeline-diagram span { display: block; margin-top: 5px; line-height: 1.5; color: #526d80; }
+.pipeline-notes { display: grid; gap: 12px; border-top: 1px solid #d9e4ea; padding-top: 12px; }
+.pipeline-notes p { max-width: 75ch; }
+@media (max-width: 700px) {
+  .pipeline-guide > summary span { display: block; margin: 4px 0 0 14px; }
+  .pipeline-diagram { grid-template-columns: 1fr; gap: 20px; }
+  .pipeline-diagram li:not(:last-child)::after { content: "↓"; top: auto; right: 0; bottom: -19px; }
+}
 .reference-link { color: #165f9e; text-underline-offset: 3px; }
 .reference-link:focus-visible { outline: 2px solid #1767b5; outline-offset: 2px; }
 .wide { width: 100%; }

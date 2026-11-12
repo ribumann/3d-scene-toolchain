@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 import type { Case, Job, Scene, SceneNode, Vec3 } from "../../../packages/scene/types";
 import { api, ApiError, readOnly, type PilotStatus, type TrialStatus } from "./api";
 import TrialPanel from "./TrialPanel";
+import PipelineGuide from "./PipelineGuide";
 import { caseFromQuery, updateNode } from "./model";
 import { parseSceneImport } from "./interchange";
 const Viewport = lazy(() => import("./Viewport"));
@@ -219,6 +220,7 @@ export default function App() {
             <button onClick={() => jsonInput.current?.click()} disabled={!caseId || loading || busy || currentCase?.status === "awaiting_input"}>Import JSON</button></>}
             <button onClick={reload} disabled={!caseId || loading || busy}>{publicReference ? "Reload reference" : "Reload scene"}</button></div>
         </div>
+        {readOnly && <PipelineGuide />}
         {trial && <TrialPanel trial={trial} onVariant={switchCase} />}
         {pilot && <div className="pilot-status" role="status"><strong>{pilot.status === "proposals" ? "Unreviewed diagram/plan proposals" : pilot.status === "partial" ? "Partial object reconstruction" : pilot.status === "succeeded" ? "Validated object outputs" : pilot.status === "processing" ? "Processing at publication snapshot" : pilot.status === "failed" ? "Pilot processing failed" : "Pilot not run"}</strong>
           <p>{pilot.status === "processing" ? "This source was active or had an unfinished running checkpoint. Its in-progress objects are not published; another snapshot is needed after it stops." : pilot.status === "proposals" ? `${pilot.objects} inferred region boxes; no Idol appearance or recovered process topology.` : `${pilot.objects} published object appearances; ${pilot.failed_objects} failed or unfinished distinct crops. Not a complete facility reconstruction.`} Compressed WebP input, not original bytes. Placement and scale are inferred.</p></div>}
