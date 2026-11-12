@@ -262,6 +262,21 @@ certify device performance, geometric accuracy or all possible camera views.
 
 ### Next comparisons and better input capture
 
+The case library separates illustrated object scenes, procedural layouts,
+original photos/diagrams, generated scene images, synthetic-photo comparisons
+and real-photo reconstructions. Each group can be expanded independently; the
+selected case's group opens automatically, including direct links.
+
+The viewport's **Show screened-out objects** checkbox is off initially. Enable
+it to inspect rejected appearances without changing their hash-bound review
+status or the exported scene. Rejection reasons remain visible, and the counter
+labels these placements as review-only. Revealed objects keep uniform scaling
+and the same upright/base alignment; no representative geometry is substituted.
+Invalid or missing bounds, invalid sizes and failed loads are never bypassed.
+The setting lasts while browsing cases in the current page and resets on reload.
+Screened-out labels and selection boxes stay hidden when the checkbox is off;
+the authored semantic graph remains unchanged.
+
 The highest-value improvement is better observation, not a larger generation
 step count. Use complete objects including feet/baseplates, sharp textures,
 diffuse and consistent exposure, margins for masks, and visible gaps between

@@ -3,6 +3,7 @@ import type { Case, Job, Scene, SceneNode, Vec3 } from "../../../packages/scene/
 import { api, ApiError, readOnly, type PilotStatus, type TrialStatus } from "./api";
 import TrialPanel from "./TrialPanel";
 import PipelineGuide from "./PipelineGuide";
+import CaseLibrary from "./CaseLibrary";
 import { caseFromQuery, updateNode } from "./model";
 import { parseSceneImport } from "./interchange";
 const Viewport = lazy(() => import("./Viewport"));
@@ -28,6 +29,7 @@ export default function App() {
   const [mode, setMode] = useState<"geometry" | "splat">("geometry");
   const [isolated, setIsolated] = useState<string | null>(null);
   const [labels, setLabels] = useState(true);
+  const [showScreenedOut, setShowScreenedOut] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   const [playing, setPlaying] = useState(() => !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   const [speed, setSpeed] = useState(1);
@@ -204,15 +206,7 @@ export default function App() {
       <aside className="library" aria-label="Case navigation">
         <div className="panel-heading"><div><h2>Cases</h2><p>Scene library</p></div><span className="count">{cases.length}</span></div>
         {!cases.length && <p className="muted inset">{error ? "Case library unavailable." : "Loading cases…"}</p>}
-        {(["illustrations", "prompt", "reference", "generated", "trials"] as const).map(group => {
-          const items = cases.filter(item => group === "illustrations" ? item.id.endsWith("-illustrated") : item.id.endsWith("-illustrated") ? false : group === "trials" ? /^T0[1-3]-/.test(item.id) : /^T0[1-3]-/.test(item.id) ? false : group === "prompt" ? item.input_type === "prompt" : group === "generated" ? item.input_type === "generated" : !["prompt", "generated"].includes(item.input_type));
-          if (!items.length) return null;
-          return <div className="case-group" key={group}><h3>{group === "illustrations" ? "Illustrative splats" : group === "trials" ? "Trials" : group === "prompt" ? "Prompt scenarios" : group === "reference" ? readOnly ? "Original references" : "Reference inputs" : readOnly ? "AI-generated references" : "Generated inputs"}</h3>
-            {items.map(item => <button key={item.id} className={`case-item ${caseId === item.id ? "active" : ""}`} onClick={() => switchCase(item.id)} disabled={busy} aria-current={caseId === item.id ? "page" : undefined}>
-              <span className="case-id">{item.id}</span><span className="case-name">{item.title}<small>{item.id.endsWith("-illustrated") ? "Generated illustration" : readOnly && item.source_url ? pilotStatuses.find(p => p.case_id === item.id)?.status || trialStatuses.find(t => `${t.trial_id}-${t.variant}` === item.id)?.status || "Reference only" : item.status === "awaiting_input" ? "Awaiting input" : item.input_type}</small></span><span className={`status-dot ${item.status}`} aria-hidden="true" />
-            </button>)}
-          </div>;
-        })}
+        <CaseLibrary cases={cases} caseId={caseId} busy={busy} onSelect={switchCase} statusForCase={item => item.id.endsWith("-illustrated") ? "Generated illustration" : readOnly && item.source_url ? pilotStatuses.find(p => p.case_id === item.id)?.status || trialStatuses.find(t => `${t.trial_id}-${t.variant}` === item.id)?.status || "Reference only" : item.status === "awaiting_input" ? "Awaiting input" : item.input_type} />
       </aside>
       <main className="main-work">
         <div className="scene-title"><div><div className="breadcrumb">Cases <span>/</span> {currentCase?.id || "—"} <span>/</span> Scene</div><h1>{currentCase?.title || "Select a case"}</h1><p>{currentCase?.summary || "Choose a case to inspect its scene and source."}</p></div>
@@ -229,8 +223,9 @@ export default function App() {
         <section className="viewport-panel" aria-label={publicReference ? "Reference preview" : "3D scene"}>
           {(!publicReference || scene) && <div className="viewport-toolbar"><div className="segmented" aria-label="Display mode"><button aria-pressed={mode === "geometry"} onClick={() => setMode("geometry")} disabled={hasPublishedSplats}>Geometry</button><button aria-pressed={mode === "splat"} onClick={() => setMode("splat")} disabled={readOnly && !hasPublishedSplats} title={readOnly && !hasPublishedSplats ? "No GPU-generated splats are published for this case." : undefined}>Splat</button></div>
             <div className="toolbar-spacer" /><button onClick={() => setView("orbit")} disabled={!scene}>Orbit</button><button onClick={() => setView("top")} disabled={!scene}>Top</button><button onClick={() => setView("reset")} disabled={!scene}>Reset view</button><span className="divider" /><label className="check"><input type="checkbox" checked={labels} onChange={event => setLabels(event.target.checked)} /> Labels</label>
+            {scene?.assets.some(asset => asset.kind === "ply") && <label className="check" title="Review only: quality decisions stay unchanged. Invalid bounds and failed loads remain hidden."><input type="checkbox" checked={showScreenedOut} onChange={event => setShowScreenedOut(event.target.checked)} /> Show screened-out objects</label>}
           </div>}
-          {scene ? <Suspense fallback={<div className="empty-viewport">Loading 3D viewport…</div>}><Viewport scene={scene} selected={selected} onSelect={select} mode={mode} isolated={isolated} labels={labels} playing={playing} speed={speed} cameraView={cameraView} strictAssets={hasPublishedSplats} /></Suspense> :
+          {scene ? <Suspense fallback={<div className="empty-viewport">Loading 3D viewport…</div>}><Viewport scene={scene} selected={selected} onSelect={select} mode={mode} isolated={isolated} labels={labels} playing={playing} speed={speed} cameraView={cameraView} strictAssets={hasPublishedSplats} showScreenedOut={showScreenedOut} /></Suspense> :
             publicReference && currentCase ? <div className="reference-viewport">
               <div className="reference-heading"><h2>{referenceProvenance}</h2><p>{pilot?.scene ? sceneError || "Loading published pilot view…" : "No reconstructed 3D scene is published for this reference."}</p></div>
               {sourceError ? <div className="source-placeholder" role="alert">Reference preview could not be loaded. Use Reload reference to try again.</div> :

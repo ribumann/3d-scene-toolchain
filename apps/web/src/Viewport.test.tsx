@@ -61,6 +61,31 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("shared splat placements", () => {
+  it("loads rejected appearances only for explicit review and removes them when screening is restored", async () => {
+    const rejected = { ...asset, provenance: {
+      ...asset.provenance, geometry_quality: { status: "excluded", reasons: ["visual_review"], render_bounds: asset.provenance.bounds },
+    } };
+    const onLoaded = vi.fn(), onError = vi.fn();
+    Spark({ assets: [rejected], nodes: [first, second], onLoaded, onError });
+    expect(state.meshes).toHaveLength(0);
+    cleanup();
+    Spark({ assets: [rejected], nodes: [first, second], onLoaded, onError, showScreenedOut: true });
+    resolve();
+    await vi.waitFor(() => expect(onLoaded).toHaveBeenLastCalledWith(asset.id, true));
+    expect(state.scene?.children.map(child => child.name)).toEqual(["SparkRenderer", "tree/first", "tree/second"]);
+    expect(state.meshes[0].scale.toArray()).toEqual([1, 1, 1]);
+    cleanup();
+    Spark({ assets: [rejected], nodes: [first, second], onLoaded, onError, showScreenedOut: false });
+    expect(state.scene?.children.map(child => child.name)).toEqual(["SparkRenderer"]);
+    expect(onLoaded).toHaveBeenLastCalledWith(asset.id, false);
+    expect(rejected.provenance.geometry_quality.status).toBe("excluded");
+    expect(onError).not.toHaveBeenCalled();
+  });
+  it("does not construct a rejected splat with invalid support even when review is enabled", () => {
+    const rejected = { ...asset, provenance: { ...asset.provenance, geometry_quality: { status: "excluded", render_bounds: null } } };
+    Spark({ assets: [rejected], nodes: [first], onLoaded: vi.fn(), onError: vi.fn(), showScreenedOut: true });
+    expect(state.meshes).toHaveLength(0);
+  });
   it("loads once, places every instance, and disposes the shared source only through its owner", async () => {
     const onLoaded = vi.fn(), onError = vi.fn();
     Spark({ assets: [asset], nodes: [first, second], onLoaded, onError });

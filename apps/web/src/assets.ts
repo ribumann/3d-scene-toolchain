@@ -2,8 +2,8 @@ import * as THREE from "three";
 import type { SceneAsset, SceneNode } from "../../../packages/scene/types";
 import { splatFit } from "./model";
 
-export function fitSplatToNode(object: THREE.Object3D, asset: SceneAsset, node: SceneNode): void {
-  const fit = splatFit(asset, node);
+export function fitSplatToNode(object: THREE.Object3D, asset: SceneAsset, node: SceneNode, showScreenedOut = false): void {
+  const fit = splatFit(asset, node, showScreenedOut);
   if (!fit) throw new Error("Splat has missing or invalid bounds");
   object.rotation.set(...node.rotation);
   if (asset.provenance.model === "speridlabs/idol" &&

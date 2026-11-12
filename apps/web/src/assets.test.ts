@@ -54,6 +54,15 @@ describe("splat source-coordinate normalization", () => {
       .applyEuler(new THREE.Euler(...tilted.rotation)).add(new THREE.Vector3(...tilted.position));
     expect(bottom.distanceTo(expected)).toBeLessThan(1e-10);
   });
+  it("keeps the same upright uniform transform for an explicitly revealed rejected appearance", () => {
+    const rejected = { ...asset, provenance: { ...asset.provenance, geometry_quality: { status: "excluded", render_bounds: asset.provenance.bounds } } };
+    const object = new THREE.Object3D();
+    expect(() => fitSplatToNode(object, rejected, node)).toThrow("bounds");
+    fitSplatToNode(object, rejected, node, true);
+    object.updateMatrixWorld(true);
+    expect(object.matrixWorld.elements).toEqual(transform().matrixWorld.elements);
+    expect(rejected.provenance.geometry_quality.status).toBe("excluded");
+  });
 });
 
 describe("GLB semantic normalization", () => {

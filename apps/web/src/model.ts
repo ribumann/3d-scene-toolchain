@@ -49,16 +49,16 @@ export function pointOnRoute(points: Vec3[], fraction: number): Vec3 {
   return points[points.length - 1];
 }
 
-function splatBounds(asset: SceneAsset): { min: Vec3; max: Vec3 } | null {
+function splatBounds(asset: SceneAsset, showScreenedOut = false): { min: Vec3; max: Vec3 } | null {
   const quality = asset.provenance.geometry_quality;
   if (quality !== undefined && (!quality || typeof quality !== "object" ||
-      !("status" in quality) || quality.status !== "accepted" || !("render_bounds" in quality))) return null;
+      !("status" in quality) || !(quality.status === "accepted" || (showScreenedOut && quality.status === "excluded")) || !("render_bounds" in quality))) return null;
   const bounds = quality && typeof quality === "object" && "render_bounds" in quality ? quality.render_bounds : asset.provenance.bounds;
   if (!bounds || typeof bounds !== "object" || !("min" in bounds) || !("max" in bounds)) return null;
   const { min, max } = bounds as { min: unknown; max: unknown };
   if (!Array.isArray(min) || !Array.isArray(max) || min.length !== 3 || max.length !== 3 ||
       !min.every(Number.isFinite) || !max.every(Number.isFinite) ||
-      min.some((value, i) => max[i] <= value)) return null;
+      min.some((value, i) => max[i] <= value || !Number.isFinite(max[i] - value))) return null;
   return { min: min as Vec3, max: max as Vec3 };
 }
 
@@ -75,15 +75,24 @@ export function splatIssue(asset: SceneAsset, node: SceneNode): string | null {
   return null;
 }
 
-export function splatFit(asset: SceneAsset, node: SceneNode): { center: Vec3; scale: Vec3; offsetY: number } | null {
-  if (splatIssue(asset, node)) return null;
-  const bounds = splatBounds(asset);
-  if (!bounds) return null;
+export function splatFit(asset: SceneAsset, node: SceneNode, showScreenedOut = false): { center: Vec3; scale: Vec3; offsetY: number } | null {
+  // Review mode bypasses screening decisions, never bounds or size validity.
+  if (!showScreenedOut && splatIssue(asset, node)) return null;
+  const bounds = splatBounds(asset, showScreenedOut);
+  if (!bounds || !node.size.every(value => Number.isFinite(value) && value > 0)) return null;
   const { min, max } = bounds;
   const scale = Math.min(...min.map((value, i) => node.size[i] / (max[i] - value)));
+  if (!Number.isFinite(scale) || scale <= 0) return null;
   return {
     center: min.map((value, i) => (value + max[i]) / 2) as Vec3,
     scale: [scale, scale, scale],
     offsetY: ((max[1] - min[1]) * scale - node.size[1]) / 2,
   };
+}
+
+export function renderableNodes(scene: Scene, isolated: string | null, showScreenedOut = false): SceneNode[] {
+  return visibleNodes(scene, isolated).filter(node => {
+    const assets = scene.assets.filter(asset => asset.kind === "ply" && assetNodes(asset, [node]).length);
+    return !assets.length || assets.some(asset => splatFit(asset, node, showScreenedOut));
+  });
 }

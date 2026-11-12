@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assetNodes, caseFromQuery, pointOnRoute, routePoints, splatFit, splatIssue, updateNode, visibleNodes } from "./model";
+import { assetNodes, caseFromQuery, pointOnRoute, renderableNodes, routePoints, splatFit, splatIssue, updateNode, visibleNodes } from "./model";
 import type { Scene } from "../../../packages/scene/types";
 
 const scene: Scene = {
@@ -84,5 +84,50 @@ describe("scene view model", () => {
     expect(splatFit(rejected, scene.nodes[0])).toBeNull();
     expect(splatIssue(rejected, scene.nodes[0])).toContain("extreme_center_outliers");
     expect(splatFit({ ...asset, provenance: { ...asset.provenance, geometry_quality: {} } }, scene.nodes[0])).toBeNull();
+  });
+  it("reveals rejected support and extreme aspect fits only on explicit request, without accepting or stretching them", () => {
+    const asset = {
+      id: "p", kind: "ply" as const, uri: "/object.ply", sha256: "", provenance: {
+        bounds: { min: [-1, -1, -1], max: [1, 1, 1] },
+        geometry_quality: { status: "excluded", reasons: ["visual_review"], render_bounds: { min: [-2, -1, -1], max: [2, 1, 1] } },
+      },
+    };
+    const before = structuredClone(asset);
+    const node = { ...scene.nodes[0], size: [1, 80, 1] as [number, number, number] };
+    expect(splatFit(asset, node)).toBeNull();
+    expect(splatFit(asset, node, true)?.scale).toEqual([.25, .25, .25]);
+    expect(splatIssue(asset, node)).toContain("visual_review");
+    expect(asset).toEqual(before);
+    const accepted = { ...asset, provenance: { ...asset.provenance, geometry_quality: { ...asset.provenance.geometry_quality, status: "accepted" } } };
+    expect(splatIssue(accepted, node)).toContain("aspect distortion");
+    expect(splatFit(accepted, node, true)?.scale).toEqual([.25, .25, .25]);
+    expect(splatFit(accepted, node)).toBeNull();
+  });
+  it("never bypasses invalid support, unknown assessments or invalid node sizes in review mode", () => {
+    const asset = { id: "p", kind: "ply" as const, uri: "/object.ply", sha256: "", provenance: {} };
+    const valid = { min: [-1, -1, -1], max: [1, 1, 1] };
+    for (const bounds of [null, { min: [0, 0, 0], max: [0, 1, 1] }, { min: [0, 0, 0], max: [Infinity, 1, 1] }]) {
+      expect(splatFit({ ...asset, provenance: { bounds: valid, geometry_quality: { status: "excluded", render_bounds: bounds } } }, scene.nodes[0], true)).toBeNull();
+    }
+    expect(splatFit({ ...asset, provenance: { geometry_quality: { status: "unknown", render_bounds: valid } } }, scene.nodes[0], true)).toBeNull();
+    expect(splatFit({ ...asset, provenance: { bounds: valid } }, { ...scene.nodes[0], size: [1, 0, 1] }, true)).toBeNull();
+  });
+  it("hides rejected appearance labels and selection geometry, while preserving authored visibility and graph data", () => {
+    const node = { ...scene.nodes[0], asset_id: "p" };
+    const input: Scene = { ...scene, nodes: [node, { ...scene.nodes[0], id: "ground" }], edges: [{
+      id: "route", source: "a", target: "ground", kind: "process", points: [], label: "Authored connection",
+    }], assets: [{
+      id: "p", kind: "ply", uri: "/object.ply", sha256: "", provenance: {
+        geometry_quality: { status: "excluded", render_bounds: { min: [-1, -1, -1], max: [1, 1, 1] } },
+      },
+    }] };
+    expect(renderableNodes(input, null).map(node => node.id)).toEqual(["ground"]);
+    expect(renderableNodes(input, null, true).map(node => node.id)).toEqual(["a", "ground"]);
+    expect(renderableNodes(input, "a")).toEqual([]);
+    expect(renderableNodes(input, "a", true)).toEqual([node]);
+    expect(renderableNodes(updateNode(input, "a", { visible: false }), "a", true)).toEqual([]);
+    expect(input.nodes[0].visible).toBe(true);
+    expect(input.edges).toHaveLength(1);
+    expect(splatIssue(input.assets[0], node)).toContain("Excluded");
   });
 });
