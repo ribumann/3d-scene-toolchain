@@ -16,6 +16,24 @@ describe("API contract", () => {
   });
 
   describe("public static demo", () => {
+    it("loads only D01-authored GLB paths bound to the plant file receipts", async () => {
+      let uri = "/api/assets/plant/modules/crusher.glb";
+      let hash = sha256;
+      vi.stubGlobal("fetch", vi.fn().mockImplementation((path: string) => Promise.resolve(new Response(JSON.stringify(
+        path.endsWith("cases.json") ? [{ id: "D01", status: "ready" }] :
+          path.endsWith("files.json") ? { "modules/crusher.glb": sha256 } :
+            { case_id: "D01", assets: [{ uri, kind: "glb", sha256: hash, provenance: { method: "authored-parametric-module" } }] },
+      )))));
+      const demo = createApi(true);
+      await demo.cases();
+      await expect(demo.scene("D01")).resolves.toMatchObject({ assets: [{ uri: "/plant/modules/crusher.glb" }] });
+      hash = "1".repeat(64);
+      await expect(demo.scene("D01")).rejects.toMatchObject({ status: 422 });
+      hash = sha256;
+      uri = "/api/assets/plant/modules/../private.glb";
+      await expect(demo.scene("D01")).rejects.toMatchObject({ status: 422 });
+      expect(vi.mocked(fetch).mock.calls.every(([path]) => !String(path).startsWith("/api/"))).toBe(true);
+    });
     it("loads the public case catalog and real procedural scene JSON, without using /api", async () => {
       const fetchMock = vi.fn().mockImplementation((path: string) => Promise.resolve(new Response(
         path.endsWith("cases.json") ? "[]" : JSON.stringify({ case_id: path.match(/(P0[1-3])\.json/)?.[1], assets: [] }),

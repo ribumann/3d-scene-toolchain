@@ -11,7 +11,7 @@ from pydantic import Field, model_validator
 from scene_pipeline.models import Identifier, StrictModel, Vec3
 
 GENERATED_TRIAL_IDS = ("T01", "T02", "T03")
-TRIAL_IDS = (*GENERATED_TRIAL_IDS, "R01", "R02", "R03")
+TRIAL_IDS = (*GENERATED_TRIAL_IDS, "R01", "R02", "R03", "D01")
 VARIANTS = ("baseline", "optimized")
 CATEGORIES = Literal["pump", "motor", "tank", "control cabinet", "conveyor", "industrial machine"]
 
@@ -119,9 +119,19 @@ class Trial(StrictModel):
         return self
 
 
+class PlantSource(TrialSource):
+    filename: Literal["D01.png"]
+
+
+class PlantTrial(Trial):
+    id: Literal["D01"]
+    source: PlantSource
+    instances: list[TrialInstance] = Field(default_factory=list, max_length=24)
+
+
 class TrialManifest(StrictModel):
     schema_version: Literal[1]
-    trials: list[Trial] = Field(min_length=1, max_length=6)
+    trials: list[Annotated[Trial | PlantTrial, Field(discriminator="id")]] = Field(min_length=1, max_length=7)
 
     @model_validator(mode="after")
     def unique_trials(self):

@@ -25,6 +25,11 @@ on:
         required: false
         default: ""
         type: string
+      include_plant:
+        description: "Add the authored D01 diamond plant and simulator metadata; requires all retained packages"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -82,6 +87,7 @@ jobs:
           PILOT_RUN_ID: ${{ inputs.pilot_run_id }}
           TRIAL_RUN_ID: ${{ inputs.trial_run_id }}
           ILLUSTRATION_RUN_ID: ${{ inputs.illustration_run_id }}
+          INCLUDE_PLANT: ${{ inputs.include_plant }}
         run: |
           python - <<'PY'
           import json, os, re, subprocess
@@ -89,6 +95,10 @@ jobs:
           from scripts.package_pilots import validate_package
           from scripts.package_trials import validate_trial_package
           from scripts.package_illustrations import validate_illustration_package
+          if os.environ["INCLUDE_PLANT"] == "true" and (
+              os.environ["PILOT_RUN_ID"], os.environ["TRIAL_RUN_ID"], os.environ["ILLUSTRATION_RUN_ID"]
+          ) != ("43079293375", "43185525449", "43237905142"):
+              raise SystemExit("D01 must retain the three reviewed original/interim/illustration packages.")
           if os.environ["TRIAL_RUN_ID"] and os.environ["PILOT_RUN_ID"] != "43079293375":
               raise SystemExit("Trial publication must retain approved final pilot_run_id=43079293375.")
           if os.environ["ILLUSTRATION_RUN_ID"] and (os.environ["PILOT_RUN_ID"] != "43079293375" or os.environ["TRIAL_RUN_ID"] != "43185525449"):
@@ -121,6 +131,8 @@ jobs:
                   stream.write(output + "=" + str(destination) + "\n")
           PY
       - run: npm run build:demo
+        env:
+          SCENE_INCLUDE_DIAMOND_PLANT: ${{ inputs.include_plant && '1' || '0' }}
       - name: Publish public read-only demo build
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:

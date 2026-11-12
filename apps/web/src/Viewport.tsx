@@ -213,7 +213,7 @@ function SceneContent(props: Props & { onError: (message: string) => void; onAss
     {models.map(asset => <ModelAsset key={asset.id} asset={asset} node={assetNode(asset, nodes)} onError={props.onError} onLoaded={onLoaded} />)}
     {props.labels && <LabelProjection nodes={displayedNodes} elements={props.labelElements} />}
     {displayedNodes.map(node => <NodeMesh key={node.id} node={node} selected={props.selected === node.id} onSelect={() => props.onSelect(node.id)}
-      proxy={((props.strictAssets || props.mode === "splat") && splats.some(a => assetNodes(a, [node]).length > 0)) || models.some(a => assetNode(a, nodes)?.id === node.id && loaded[a.id]) ||
+      proxy={((props.strictAssets || props.mode === "splat") && splats.some(a => assetNodes(a, [node]).length > 0)) || models.some(a => assetNode(a, nodes)?.id === node.id && (loaded[a.id] || props.scene.case_id === "D01")) ||
         (props.mode === "splat" && splats.some(a => assetNodes(a, [node]).length > 0 && loaded[a.id] && splatFit(a, node, props.showScreenedOut)))} />)}
     {props.scene.edges.filter(edge => ids.has(edge.source) && ids.has(edge.target)).map(edge => <Route key={edge.id} points={routePoints(edge, props.scene)} playing={props.playing} speed={props.speed} />)}
   </>;
@@ -246,7 +246,7 @@ export default function Viewport(props: Props) {
     {props.mode === "splat" && !props.scene.assets.some(a => a.kind === "ply") && <div className="viewport-note">No splat asset for this scene. Showing editable geometry.</div>}
     {issues.length === 1 && <div className="viewport-error" role="alert">{issues[0]}</div>}
     {issues.length > 1 && <details className="viewport-error"><summary>{issues.length} appearance issues (screened out or unavailable)</summary>{issues.map(error => <div key={error}>{error}</div>)}</details>}
-    {props.strictAssets && <div className="viewport-note" role="status">Loaded {props.scene.assets.filter(asset => loadedAssets[asset.id]).length}/{props.scene.assets.length} object appearances{placements.length > props.scene.assets.length && ` · ${placements.length} authored placements`}{excluded > 0 && ` · ${excluded} excluded by quality screening`}{props.showScreenedOut && ` · Review only: ${reviewable} screened-out placements enabled`} · Inferred layout · No geometry substitute on load failure</div>}
+    {props.strictAssets && <div className="viewport-note" role="status">Loaded {props.scene.assets.filter(asset => loadedAssets[asset.id]).length}/{props.scene.assets.length} {props.scene.case_id === "D01" ? "authored module models" : "object appearances"}{placements.length > props.scene.assets.length && ` · ${placements.length} authored placements`}{excluded > 0 && ` · ${excluded} excluded by quality screening`}{props.showScreenedOut && ` · Review only: ${reviewable} screened-out placements enabled`} · {props.scene.case_id === "D01" ? "Assumed metric layout" : "Inferred layout"} · No geometry substitute on load failure</div>}
     <div className="viewport-hint">Drag to orbit · Scroll to zoom</div>
   </div>;
 }

@@ -28,10 +28,12 @@ def apply_visual_exclusions(quality, reviews):
             }
 
 
-def build_demo(public: Path, pilot_package: Path | None = None, trial_package: Path | None = None, illustration_package: Path | None = None):
+def build_demo(public: Path, pilot_package: Path | None = None, trial_package: Path | None = None, illustration_package: Path | None = None, include_plant=False):
     from scripts.package_pilots import validate_package
     from scene_pipeline.gaussians import assess_ply
 
+    if include_plant and not all((pilot_package, trial_package, illustration_package)):
+        raise ValueError("Plant publication must retain all three approved source packages")
     pilots = validate_package(pilot_package) if pilot_package is not None else None
     trials = None
     if trial_package is not None:
@@ -51,8 +53,8 @@ def build_demo(public: Path, pilot_package: Path | None = None, trial_package: P
     entries = {item["case_id"]: item for item in pilots["cases"]} if pilots else {}
     destination, references = public / "demo", public / "references"
     for directory, allowed in (
-        (public, {"demo", "references"} | ({"pilot-assets"} if pilots else set()) | ({"trial-assets", "trial-references"} if trials else set()) | ({"illustration-assets"} if illustrations else set())),
-        (destination, {"cases.json", "P01.json", "P02.json", "P03.json", "pilots.json", "trials.json", "quality.json"} | {f"{case}.json" for case in trial_ids | illustration_ids} | ({*(f"{case}.json" for case, item in entries.items() if item["scene"])} if pilots else set())),
+        (public, {"demo", "references"} | ({"pilot-assets"} if pilots else set()) | ({"trial-assets", "trial-references"} if trials else set()) | ({"illustration-assets"} if illustrations else set()) | ({"plant"} if include_plant else set())),
+        (destination, {"cases.json", "P01.json", "P02.json", "P03.json", "pilots.json", "trials.json", "quality.json"} | {f"{case}.json" for case in trial_ids | illustration_ids} | ({"D01.json"} if include_plant else set()) | ({*(f"{case}.json" for case, item in entries.items() if item["scene"])} if pilots else set())),
         (references, {f"{identifier}.webp" for identifier in REFERENCE_IDS}),
     ):
         if directory.is_symlink() or (directory.exists() and not directory.is_dir()):
@@ -142,6 +144,11 @@ def build_demo(public: Path, pilot_package: Path | None = None, trial_package: P
                 summary=f"Illustrative generated appearances: {len(scene.assets)} shared concepts, {sum(node.asset_id is not None for node in scene.nodes)} authored instances; not recovered source appearance. {scene.description}",
                 prompt=original.prompt, source_filename=original.source_filename, source_url=original.source_url,
             ))
+    if include_plant:
+        from scripts.diamond_plant import publish
+        plant_case, plant_scene = publish(public / "plant")
+        cases.append(plant_case)
+        (destination / "D01.json").write_bytes((plant_scene.model_dump_json(indent=2) + "\n").encode())
     (destination / "cases.json").write_text(
         json.dumps([case.model_dump() for case in cases], indent=2) + "\n"
     )
@@ -189,4 +196,4 @@ if __name__ == "__main__":
     package = os.environ.get("SCENE_PILOT_PUBLIC_PACKAGE")
     trials = os.environ.get("SCENE_TRIAL_PUBLIC_PACKAGE")
     illustrations = os.environ.get("SCENE_ILLUSTRATION_PUBLIC_PACKAGE")
-    build_demo(ROOT / "apps/web/public-demo", Path(package) if package else None, Path(trials) if trials else None, Path(illustrations) if illustrations else None)
+    build_demo(ROOT / "apps/web/public-demo", Path(package) if package else None, Path(trials) if trials else None, Path(illustrations) if illustrations else None, os.environ.get("SCENE_INCLUDE_DIAMOND_PLANT") == "1")

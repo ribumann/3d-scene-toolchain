@@ -62,6 +62,7 @@ export type TrialStatus = {
 export function createApi(staticDemo = false) {
   const publishedScenes = new Set(["P01", "P02", "P03"]);
   let quality: Promise<{ version: number; assets: Record<string, unknown> }> | undefined;
+  let plantFiles: Promise<Record<string, string>> | undefined;
   const call = <T>(path: string, init?: RequestInit): Promise<T> => {
     if (staticDemo && path.startsWith("/api/")) {
       return Promise.reject(new ApiError(403, "The public demo is read-only. Run the local workbench for edits, uploads and pipeline jobs."));
@@ -72,7 +73,7 @@ export function createApi(staticDemo = false) {
     cases: async () => {
       const cases = await call<Case[]>(staticDemo ? "/demo/cases.json" : "/api/cases");
       if (staticDemo) for (const item of cases) {
-        if (/^(I0[1-5]|G0[1-3]|[TR]0[1-3]-(baseline|optimized)|(?:P0[1-3]|I01|I04|I05)-illustrated)$/.test(item.id) && item.status === "ready") publishedScenes.add(item.id);
+        if (/^(D01|I0[1-5]|G0[1-3]|[TR]0[1-3]-(baseline|optimized)|(?:P0[1-3]|I01|I04|I05)-illustrated)$/.test(item.id) && item.status === "ready") publishedScenes.add(item.id);
       }
       return cases;
     },
@@ -85,6 +86,17 @@ export function createApi(staticDemo = false) {
       const scene = await call<Scene>(staticDemo ? `/demo/${id}.json` : `${casePath(id)}/scene`);
       if (staticDemo) {
         if (scene.case_id !== id) throw new ApiError(422, "Published scene identity does not match the selected case.");
+        if (id === "D01") {
+          const files = await (plantFiles ??= call<Record<string, string>>("/plant/files.json"));
+          return { ...scene, assets: scene.assets.map(asset => {
+            const match = /^\/api\/assets\/plant\/(modules\/(?:crusher|scrubber|screen|dms|medium|sorter|hopper|thickener|water|lab|control|tailings)\.glb)$/.exec(asset.uri);
+            if (!match || asset.kind !== "glb" || asset.provenance.method !== "authored-parametric-module" ||
+                !/^[a-f0-9]{64}$/.test(asset.sha256) || files[match[1]] !== asset.sha256) {
+              throw new ApiError(422, "Plant model path or authored geometry hash is invalid.");
+            }
+            return { ...asset, uri: "/plant/" + match[1] };
+          }) };
+        }
         const assessments = scene.assets.length ? await (quality ??= call<{ version: number; assets: Record<string, unknown> }>("/demo/quality.json")) : null;
         if (assessments && (assessments.version !== 1 || !assessments.assets || typeof assessments.assets !== "object")) {
           throw new ApiError(422, "Published geometry quality report is invalid.");

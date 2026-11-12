@@ -1,0 +1,702 @@
+{
+  "schema_version": 1,
+  "trials": [
+    {
+      "id": "D01",
+      "title": "Diamond recovery / three-line plant",
+      "source": {
+        "filename": "D01.png",
+        "sha256": "968f33dbfb0b1f8fd2e90fad0676b1a81caf03f25ebb11dc596b3b9405a61628",
+        "url": "https://raw.githubusercontent.com/ribumann/3d-scene-toolchain/25070e70285e9228ab4453dbd0cf70a844a11922/inputs/diamond-plant/D01.png",
+        "publication_approved": true,
+        "kind": "generated-photographic-scene",
+        "generator": "Copilot image_generation tool; underlying image model/version not exposed",
+        "prompt": "Create one high-resolution, photorealistic industrial drone photograph of a fictional modular diamond ore processing and recovery plant, specifically composed for extracting individual equipment and reconstructing a digital-twin DEMO. This is a plausible working industrial installation, NOT a CAD render, toy model, infographic, schematic, showroom, or isolated-object collage. No text, labels, numbers, logos or watermarks. No people. No diamonds drawn on machinery. Clear, soft late-morning daylight and short soft shadows; sharp deep focus across the entire site, natural steel/concrete textures, subtle realistic wear, limited dust and no haze. Neutral pale concrete paving and gravel, almost no vegetation, no foreground obstructions. All machinery and all corners of the site remain fully inside the picture with generous outer margin. Camera: high oblique bird's-eye drone view looking down about 65 degrees, from the south toward the north with east on image-right; restrained perspective, no fisheye, horizon not visible. The nearly rectangular plant is roughly 100 metres east-west by 75 metres north-south. The visual priority is a legible realistic MULTI-LINE PROCESS LAYOUT with separate machines, connected conveyors and a coherent pipe rack, enough empty paved space between machines for image segmentation. Do not pack tiny equipment into a dense tangle. Three clearly separated parallel processing rows run WEST/LEFT to EAST/RIGHT, the northern row in the upper part of the image, the middle row across the center and the southern row across the lower part. Give each row the same five distinguishable large modular stations in this left-to-right order: (1) a receiving/feed bin and compact covered jaw/cone crusher assembly on a rectangular steel platform; (2) a clearly visible horizontal cylindrical rotary scrubber/trommel on a low cradle, its long axis east-west; (3) a tilted vibrating wet-screen deck on a low steel support with water sprays and catch sump; (4) a dense-medium separation module with one prominent steel support tower holding conical cyclones above two low slurry tanks and pumps, with accessible yellow-railed stairs; (5) a lower drain-and-rinse screen and medium-recovery skid with tanks and a magnetic drum separator. Stations are connected by realistic narrow inclined belt conveyors; blue process-water pipes run neatly beside the rows. Each row has clear maintenance gaps, walkways and no equipment occluding its neighbor; the three rows must NOT fuse into one building. Shared services: one larger raw-ore receiving hopper and short distribution conveyor at the far west/left serving the three rows, with a small unobtrusive ore stockpile behind it; at the east/right, conveyors from each row lead into three separate compact CLOSED metal X-ray sorting enclosures, clearly visible immediately BEFORE a single low secure recovery/sorting/laboratory building near the east perimeter. Do not expose fictitious X-ray beams or internal sorting details. Keep the laboratory building small enough not to dominate the plant or hide the sorters. Place a single circular water-recovery thickener with a visible radial bridge and one adjacent clean-water tank in a separate service area along the north/rear boundary, connected to the rows by blue pipes. Include a small fenced coarse-tailings collection bay along the east/northeast boundary, clearly separate from the laboratory. Include one modest electrical/control hut along the south/front boundary. Keep most process equipment outdoors or on open steel skids so its shapes are actually visible. Use muted industrial blue and gray equipment with yellow safety rails; no excessive color coding or fictional decoration. The result should look like a carefully staged but credible real aerial site survey photograph: clean separation, readable material paths, consistent machine scale, grounded bases, enough visible structure for supervised crop extraction and no perfect floating 3D objects."
+      },
+      "detector_phrases": [
+        "industrial machine",
+        "tank",
+        "control cabinet"
+      ],
+      "expected_inventory": [
+        {
+          "identity": "crusher",
+          "category": "industrial machine",
+          "count": 3
+        },
+        {
+          "identity": "scrubber",
+          "category": "industrial machine",
+          "count": 3
+        },
+        {
+          "identity": "screen",
+          "category": "industrial machine",
+          "count": 3
+        },
+        {
+          "identity": "dms",
+          "category": "industrial machine",
+          "count": 3
+        },
+        {
+          "identity": "medium",
+          "category": "industrial machine",
+          "count": 3
+        },
+        {
+          "identity": "sorter",
+          "category": "industrial machine",
+          "count": 3
+        },
+        {
+          "identity": "hopper",
+          "category": "industrial machine",
+          "count": 1
+        },
+        {
+          "identity": "thickener",
+          "category": "tank",
+          "count": 1
+        },
+        {
+          "identity": "water",
+          "category": "tank",
+          "count": 1
+        },
+        {
+          "identity": "lab",
+          "category": "industrial machine",
+          "count": 1
+        },
+        {
+          "identity": "control",
+          "category": "control cabinet",
+          "count": 1
+        },
+        {
+          "identity": "tailings",
+          "category": "industrial machine",
+          "count": 1
+        }
+      ],
+      "reviewed_objects": [
+        {
+          "id": "crusher",
+          "identity": "crusher",
+          "category": "industrial machine",
+          "box": [
+            0.19,
+            0.62,
+            0.108,
+            0.173
+          ],
+          "reviewed": true,
+          "reusable_asset_id": "D01-concept-crusher"
+        },
+        {
+          "id": "scrubber",
+          "identity": "scrubber",
+          "category": "industrial machine",
+          "box": [
+            0.295,
+            0.648,
+            0.128,
+            0.126
+          ],
+          "reviewed": true,
+          "reusable_asset_id": "D01-concept-scrubber"
+        },
+        {
+          "id": "screen",
+          "identity": "screen",
+          "category": "industrial machine",
+          "box": [
+            0.433,
+            0.675,
+            0.106,
+            0.124
+          ],
+          "reviewed": true,
+          "reusable_asset_id": "D01-concept-screen"
+        },
+        {
+          "id": "dms",
+          "identity": "dms",
+          "category": "industrial machine",
+          "box": [
+            0.536,
+            0.599,
+            0.08,
+            0.217
+          ],
+          "reviewed": true,
+          "reusable_asset_id": "D01-concept-dms"
+        },
+        {
+          "id": "medium",
+          "identity": "medium",
+          "category": "industrial machine",
+          "box": [
+            0.623,
+            0.631,
+            0.146,
+            0.174
+          ],
+          "reviewed": true,
+          "reusable_asset_id": "D01-concept-medium"
+        },
+        {
+          "id": "sorter",
+          "identity": "sorter",
+          "category": "industrial machine",
+          "box": [
+            0.82,
+            0.685,
+            0.072,
+            0.107
+          ],
+          "reviewed": true,
+          "reusable_asset_id": "D01-concept-sorter"
+        },
+        {
+          "id": "hopper",
+          "identity": "hopper",
+          "category": "industrial machine",
+          "box": [
+            0.015,
+            0.382,
+            0.11,
+            0.205
+          ],
+          "reviewed": true,
+          "reusable_asset_id": "D01-concept-hopper"
+        },
+        {
+          "id": "thickener",
+          "identity": "thickener",
+          "category": "tank",
+          "box": [
+            0.339,
+            0.027,
+            0.181,
+            0.154
+          ],
+          "reviewed": true,
+          "reusable_asset_id": "D01-concept-thickener"
+        },
+        {
+          "id": "water",
+          "identity": "water",
+          "category": "tank",
+          "box": [
+            0.533,
+            0.036,
+            0.069,
+            0.131
+          ],
+          "reviewed": true,
+          "reusable_asset_id": "D01-concept-water"
+        },
+        {
+          "id": "lab",
+          "identity": "lab",
+          "category": "industrial machine",
+          "box": [
+            0.897,
+            0.349,
+            0.096,
+            0.178
+          ],
+          "reviewed": true,
+          "reusable_asset_id": "D01-concept-lab"
+        },
+        {
+          "id": "control",
+          "identity": "control",
+          "category": "control cabinet",
+          "box": [
+            0.357,
+            0.825,
+            0.082,
+            0.08
+          ],
+          "reviewed": true,
+          "reusable_asset_id": "D01-concept-control"
+        },
+        {
+          "id": "tailings",
+          "identity": "tailings",
+          "category": "industrial machine",
+          "box": [
+            0.797,
+            0.08,
+            0.137,
+            0.18
+          ],
+          "reviewed": true,
+          "reusable_asset_id": "D01-concept-tailings"
+        }
+      ],
+      "instances": [
+        {
+          "id": "D01.A.crusher",
+          "object_id": "crusher",
+          "position": [
+            -27.0,
+            3.5,
+            -16.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            8.0,
+            7.0,
+            7.0
+          ]
+        },
+        {
+          "id": "D01.A.scrubber",
+          "object_id": "scrubber",
+          "position": [
+            -13.0,
+            2.5,
+            -16.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            12.0,
+            5.0,
+            7.0
+          ]
+        },
+        {
+          "id": "D01.A.screen",
+          "object_id": "screen",
+          "position": [
+            0.0,
+            2.5,
+            -16.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            10.0,
+            5.0,
+            7.0
+          ]
+        },
+        {
+          "id": "D01.A.dms",
+          "object_id": "dms",
+          "position": [
+            12.0,
+            6.0,
+            -16.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            8.0,
+            12.0,
+            8.0
+          ]
+        },
+        {
+          "id": "D01.A.medium",
+          "object_id": "medium",
+          "position": [
+            25.0,
+            3.0,
+            -16.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            12.0,
+            6.0,
+            8.0
+          ]
+        },
+        {
+          "id": "D01.A.sorter",
+          "object_id": "sorter",
+          "position": [
+            37.0,
+            2.0,
+            -16.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            6.0,
+            4.0,
+            5.0
+          ]
+        },
+        {
+          "id": "D01.B.crusher",
+          "object_id": "crusher",
+          "position": [
+            -27.0,
+            3.5,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            8.0,
+            7.0,
+            7.0
+          ]
+        },
+        {
+          "id": "D01.B.scrubber",
+          "object_id": "scrubber",
+          "position": [
+            -13.0,
+            2.5,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            12.0,
+            5.0,
+            7.0
+          ]
+        },
+        {
+          "id": "D01.B.screen",
+          "object_id": "screen",
+          "position": [
+            0.0,
+            2.5,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            10.0,
+            5.0,
+            7.0
+          ]
+        },
+        {
+          "id": "D01.B.dms",
+          "object_id": "dms",
+          "position": [
+            12.0,
+            6.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            8.0,
+            12.0,
+            8.0
+          ]
+        },
+        {
+          "id": "D01.B.medium",
+          "object_id": "medium",
+          "position": [
+            25.0,
+            3.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            12.0,
+            6.0,
+            8.0
+          ]
+        },
+        {
+          "id": "D01.B.sorter",
+          "object_id": "sorter",
+          "position": [
+            37.0,
+            2.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            6.0,
+            4.0,
+            5.0
+          ]
+        },
+        {
+          "id": "D01.C.crusher",
+          "object_id": "crusher",
+          "position": [
+            -27.0,
+            3.5,
+            16.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            8.0,
+            7.0,
+            7.0
+          ]
+        },
+        {
+          "id": "D01.C.scrubber",
+          "object_id": "scrubber",
+          "position": [
+            -13.0,
+            2.5,
+            16.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            12.0,
+            5.0,
+            7.0
+          ]
+        },
+        {
+          "id": "D01.C.screen",
+          "object_id": "screen",
+          "position": [
+            0.0,
+            2.5,
+            16.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            10.0,
+            5.0,
+            7.0
+          ]
+        },
+        {
+          "id": "D01.C.dms",
+          "object_id": "dms",
+          "position": [
+            12.0,
+            6.0,
+            16.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            8.0,
+            12.0,
+            8.0
+          ]
+        },
+        {
+          "id": "D01.C.medium",
+          "object_id": "medium",
+          "position": [
+            25.0,
+            3.0,
+            16.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            12.0,
+            6.0,
+            8.0
+          ]
+        },
+        {
+          "id": "D01.C.sorter",
+          "object_id": "sorter",
+          "position": [
+            37.0,
+            2.0,
+            16.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            6.0,
+            4.0,
+            5.0
+          ]
+        },
+        {
+          "id": "D01.shared.hopper",
+          "object_id": "hopper",
+          "position": [
+            -44.0,
+            3.8,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            8.0,
+            7.6,
+            8.0
+          ]
+        },
+        {
+          "id": "D01.shared.thickener",
+          "object_id": "thickener",
+          "position": [
+            -7.0,
+            3.0,
+            -29.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            16.0,
+            6.0,
+            16.0
+          ]
+        },
+        {
+          "id": "D01.shared.water",
+          "object_id": "water",
+          "position": [
+            8.0,
+            3.5,
+            -28.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            6.0,
+            7.0,
+            6.0
+          ]
+        },
+        {
+          "id": "D01.shared.lab",
+          "object_id": "lab",
+          "position": [
+            47.0,
+            3.0,
+            0.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            6.0,
+            6.0,
+            11.0
+          ]
+        },
+        {
+          "id": "D01.shared.control",
+          "object_id": "control",
+          "position": [
+            -5.0,
+            2.2,
+            31.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            8.0,
+            4.4,
+            5.0
+          ]
+        },
+        {
+          "id": "D01.shared.tailings",
+          "object_id": "tailings",
+          "position": [
+            39.0,
+            2.0,
+            -29.0
+          ],
+          "rotation": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "size": [
+            14.0,
+            4.0,
+            12.0
+          ]
+        }
+      ],
+      "layout_kind": "manual-relative-not-metric"
+    }
+  ]
+}

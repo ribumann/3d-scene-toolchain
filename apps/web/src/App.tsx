@@ -1,9 +1,10 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Case, Job, Scene, SceneNode, Vec3 } from "../../../packages/scene/types";
 import { api, ApiError, readOnly, type PilotStatus, type TrialStatus } from "./api";
 import TrialPanel from "./TrialPanel";
 import PipelineGuide from "./PipelineGuide";
 import CaseLibrary from "./CaseLibrary";
+import PlantPanel, { type PlantLayers } from "./PlantPanel";
 import { caseFromQuery, updateNode } from "./model";
 import { parseSceneImport } from "./interchange";
 const Viewport = lazy(() => import("./Viewport"));
@@ -30,6 +31,8 @@ export default function App() {
   const [isolated, setIsolated] = useState<string | null>(null);
   const [labels, setLabels] = useState(true);
   const [showScreenedOut, setShowScreenedOut] = useState(false);
+  const [plantLayers, setPlantLayers] = useState<PlantLayers>({ A: true, B: true, C: true, shared: true });
+  const [plantUtilities, setPlantUtilities] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(() => window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   const [playing, setPlaying] = useState(() => !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   const [speed, setSpeed] = useState(1);
@@ -45,6 +48,16 @@ export default function App() {
   const publicReference = readOnly && currentCase?.input_type !== "prompt" && !!currentCase?.source_url;
   const trial = trialStatuses.find(item => `${item.trial_id}-${item.variant}` === caseId);
   const illustrated = caseId.endsWith("-illustrated");
+  const plant = caseId === "D01";
+  const viewportScene = useMemo(() => !plant || !scene ? scene : {
+    ...scene,
+    nodes: scene.nodes.map(node => {
+      const line = node.id.split(".")[1];
+      const visible = node.visible && (line === "A" || line === "B" || line === "C" || line === "shared") && plantLayers[line];
+      return visible === node.visible ? node : { ...node, visible };
+    }),
+    edges: plantUtilities ? scene.edges : scene.edges.filter(edge => !edge.id.startsWith("utility-")),
+  }, [scene, plant, plantLayers, plantUtilities]);
   const referenceProvenance = trial ? trial.definition.source.kind === "licensed-real-photograph" ? "Licensed real photograph" : "Synthetic photographic input" : currentCase?.input_type === "generated" ? "AI-generated reference" : "Original reference";
   const pilot = pilotStatuses.find(item => item.case_id === caseId);
   const hasPublishedSplats = readOnly && !!scene?.assets.some(asset => asset.kind === "ply");
@@ -206,7 +219,7 @@ export default function App() {
       <aside className="library" aria-label="Case navigation">
         <div className="panel-heading"><div><h2>Cases</h2><p>Scene library</p></div><span className="count">{cases.length}</span></div>
         {!cases.length && <p className="muted inset">{error ? "Case library unavailable." : "Loading cases…"}</p>}
-        <CaseLibrary cases={cases} caseId={caseId} busy={busy} onSelect={switchCase} statusForCase={item => item.id.endsWith("-illustrated") ? "Generated illustration" : readOnly && item.source_url ? pilotStatuses.find(p => p.case_id === item.id)?.status || trialStatuses.find(t => `${t.trial_id}-${t.variant}` === item.id)?.status || "Reference only" : item.status === "awaiting_input" ? "Awaiting input" : item.input_type} />
+        <CaseLibrary cases={cases} caseId={caseId} busy={busy} onSelect={switchCase} statusForCase={item => item.id === "D01" ? "Authored module reconstruction" : item.id.endsWith("-illustrated") ? "Generated illustration" : readOnly && item.source_url ? pilotStatuses.find(p => p.case_id === item.id)?.status || trialStatuses.find(t => `${t.trial_id}-${t.variant}` === item.id)?.status || "Reference only" : item.status === "awaiting_input" ? "Awaiting input" : item.input_type} />
       </aside>
       <main className="main-work">
         <div className="scene-title"><div><div className="breadcrumb">Cases <span>/</span> {currentCase?.id || "—"} <span>/</span> Scene</div><h1>{currentCase?.title || "Select a case"}</h1><p>{currentCase?.summary || "Choose a case to inspect its scene and source."}</p></div>
@@ -216,6 +229,7 @@ export default function App() {
             <button onClick={reload} disabled={!caseId || loading || busy}>{publicReference ? "Reload reference" : "Reload scene"}</button></div>
         </div>
         {readOnly && <PipelineGuide />}
+        {plant && <PlantPanel layers={plantLayers} onLayers={setPlantLayers} utilities={plantUtilities} onUtilities={setPlantUtilities} />}
         {illustrated && <div className="pilot-status" role="status"><strong>Invented appearance, source-supported relationships</strong><p>Generated photographic references were segmented and reconstructed with Idol. These are illustrative objects, not recovered photographs of the original equipment. Repeated concepts are authored instances. Routes retain scenario intent or reviewed diagram direction; plan proximity does not imply a connection. Original cases remain available separately.</p></div>}
         {trial && <TrialPanel trial={trial} onVariant={switchCase} />}
         {pilot && <div className="pilot-status" role="status"><strong>{pilot.status === "proposals" ? "Unreviewed diagram/plan proposals" : pilot.status === "partial" ? "Partial object reconstruction" : pilot.status === "succeeded" ? "Published object appearances" : pilot.status === "processing" ? "Processing at publication snapshot" : pilot.status === "failed" ? "Pilot processing failed" : "Pilot not run"}</strong>
@@ -225,7 +239,7 @@ export default function App() {
             <div className="toolbar-spacer" /><button onClick={() => setView("orbit")} disabled={!scene}>Orbit</button><button onClick={() => setView("top")} disabled={!scene}>Top</button><button onClick={() => setView("reset")} disabled={!scene}>Reset view</button><span className="divider" /><label className="check"><input type="checkbox" checked={labels} onChange={event => setLabels(event.target.checked)} /> Labels</label>
             {scene?.assets.some(asset => asset.kind === "ply") && <label className="check" title="Review only: quality decisions stay unchanged. Invalid bounds and failed loads remain hidden."><input type="checkbox" checked={showScreenedOut} onChange={event => setShowScreenedOut(event.target.checked)} /> Show screened-out objects</label>}
           </div>}
-          {scene ? <Suspense fallback={<div className="empty-viewport">Loading 3D viewport…</div>}><Viewport scene={scene} selected={selected} onSelect={select} mode={mode} isolated={isolated} labels={labels} playing={playing} speed={speed} cameraView={cameraView} strictAssets={hasPublishedSplats} showScreenedOut={showScreenedOut} /></Suspense> :
+          {viewportScene ? <Suspense fallback={<div className="empty-viewport">Loading 3D viewport…</div>}><Viewport scene={viewportScene} selected={selected} onSelect={select} mode={mode} isolated={isolated} labels={labels} playing={playing} speed={speed} cameraView={cameraView} strictAssets={hasPublishedSplats || plant} showScreenedOut={showScreenedOut} /></Suspense> :
             publicReference && currentCase ? <div className="reference-viewport">
               <div className="reference-heading"><h2>{referenceProvenance}</h2><p>{pilot?.scene ? sceneError || "Loading published pilot view…" : "No reconstructed 3D scene is published for this reference."}</p></div>
               {sourceError ? <div className="source-placeholder" role="alert">Reference preview could not be loaded. Use Reload reference to try again.</div> :
@@ -234,7 +248,7 @@ export default function App() {
                 </figure>}
             </div> :
             <div className="empty-viewport"><div className="empty-symbol" aria-hidden="true">◇</div><h2>{loading ? "Loading scene…" : "Scene not available"}</h2><p>{loading ? "Fetching the current case." : sceneError || "Select a case to begin."}</p>{!loading && canUpload && currentCase?.status === "awaiting_input" && <button onClick={() => fileInput.current?.click()} disabled={busy}>Choose source image</button>}</div>}
-          <div className="viewport-footer"><span><span className="footer-dot" /> {scene ? `${scene.nodes.length} ${pilot?.status === "proposals" ? "region proposals" : "objects"} · ${scene.edges.length} routes` : publicReference ? "Reference only" : "No scene"}</span><span>{scene ? `${publicReference ? "Assumed units" : scene.units} · Y up` : publicReference ? "No published 3D reconstruction" : "Waiting for scene data"}</span></div>
+          <div className="viewport-footer"><span><span className="footer-dot" /> {scene ? `${scene.nodes.length} ${pilot?.status === "proposals" ? "region proposals" : "objects"} · ${scene.edges.length} routes` : publicReference ? "Reference only" : "No scene"}</span><span>{scene ? `${plant ? "Assumed metres" : publicReference ? "Assumed units" : scene.units} · Y up` : publicReference ? "No published 3D reconstruction" : "Waiting for scene data"}</span></div>
         </section>
         <section className="flow-bar" aria-label="Illustrative flow controls"><div><h2>Illustrative flow</h2><p>Routes indicate relationships, not simulated activity.</p></div><div className="flow-controls"><button onClick={() => setPlaying(value => !value)} disabled={!scene || !scene.edges.length}>{playing ? "Pause" : "Play"}</button><label>Speed <select value={speed} onChange={event => setSpeed(Number(event.target.value))} disabled={!scene}><option value={0.5}>0.5×</option><option value={1}>1×</option><option value={2}>2×</option></select></label>{reducedMotion && <span className="muted">Reduced motion preferred</span>}</div></section>
       </main>
@@ -242,7 +256,7 @@ export default function App() {
         <section className="inspector-section"><div className="section-heading"><h2>Source</h2><span className="tag">{currentCase?.input_type || "—"}</span></div>
           {currentCase?.source_url && !sourceError ? <img className="source-image" src={`${currentCase.source_url}${currentCase.source_url.includes("?") ? "&" : "?"}v=${refresh}`} alt={`Source for ${currentCase.title}`} onError={() => setSourceError(true)} /> :
             <div className="source-placeholder">{currentCase?.input_type === "prompt" ? "Prompt-based scenario" : sourceError ? "Source image could not be loaded." : "Source image not supplied"}</div>}
-          <p className="source-copy">{trial ? trial.definition.source.kind === "licensed-real-photograph" ? `Real photograph by ${trial.definition.source.creator}. Photograph and generated source-derived adaptations: ${trial.definition.source.license}. Layout, depth and scale are inferred, not measured.` : `${trial.definition.source.generator}. Synthetic photographic input, not an actual site photograph. Source and manual layout are separate from generated appearance.` : publicReference ? `${referenceProvenance} supplied by the user. Public WebP preview, not original bytes or an inferred 3D result.` : currentCase?.prompt || currentCase?.source_filename || (currentCase?.input_type === "prompt" ? currentCase.summary : readOnly ? "No public reference preview is available for this case." : "Upload the original image to connect source evidence.")}</p>
+          <p className="source-copy">{plant ? "Original 1536 × 1024 synthetic photograph generated for this demo. Module shapes, positions, sizes and connections are manually authored; no real facility or surveyed dimensions are represented." : trial ? trial.definition.source.kind === "licensed-real-photograph" ? `Real photograph by ${trial.definition.source.creator}. Photograph and generated source-derived adaptations: ${trial.definition.source.license}. Layout, depth and scale are inferred, not measured.` : `${trial.definition.source.generator}. Synthetic photographic input, not an actual site photograph. Source and manual layout are separate from generated appearance.` : publicReference ? `${referenceProvenance} supplied by the user. Public WebP preview, not original bytes or an inferred 3D result.` : currentCase?.prompt || currentCase?.source_filename || (currentCase?.input_type === "prompt" ? currentCase.summary : readOnly ? "No public reference preview is available for this case." : "Upload the original image to connect source evidence.")}</p>
           {publicReference && currentCase?.source_url && <a className="reference-link" href={currentCase.source_url} target="_blank" rel="noreferrer">Open reference comparison (new tab)</a>}
           {sourceMetadata && <details className="source-copy"><summary>Source metadata for JSON import</summary><p>{sourceMetadata.filename}</p><p>SHA-256: {sourceMetadata.sha256}</p><p>Include this exact hash in scene.sources. Import saves immediately; export first to keep a local copy. Nodes and routes can be corrected in JSON while preserving semantic IDs.</p></details>}
           {metadataError && <p className="inline-error">{metadataError}</p>}
@@ -262,7 +276,7 @@ export default function App() {
             <label className="check review-check"><input type="checkbox" checked={currentNode.evidence.reviewed} disabled={readOnly || busy} onChange={event => edit({ evidence: { ...currentNode.evidence, reviewed: event.target.checked } })} /> {readOnly ? "Evidence reviewed" : "Evidence reviewed by me"}</label>
           </> : <p className="muted">Select an object in the list or viewport to inspect its evidence and position.</p>}
         </section>
-        <section className="inspector-section"><div className="section-heading"><h2>Pipeline jobs</h2></div>{readOnly ? <p className="muted">{pilot ? "Published pilot snapshots only. Failed objects are not replaced with synthetic appearances; diagram boxes are unreviewed proposals, not reconstructed equipment. No jobs can run from this public viewer." : "Unavailable in the public demo. Procedural scenes use deterministic template geometry, not image reconstruction, Blender exports or Idol results. Run the local workbench to author scenes and execute pipeline stages."}</p> : <><p className="muted">Run a stage on this case. Tool and model access may be required.</p><div className="job-actions"><button onClick={() => void start("extract")} disabled={!caseId || busy}>Extract</button><button onClick={() => void start("blender")} disabled={!caseId || busy}>Blender</button><button onClick={() => void start("idol")} disabled={!caseId || busy}>Idol</button></div></>}
+        <section className="inspector-section"><div className="section-heading"><h2>Pipeline jobs</h2></div>{readOnly ? <p className="muted">{plant ? "The reviewed D01 extraction manifest is prepared. SAM2 / Idol execution is blocked by Spot GPU capacity; no Gaussian output is published. This viewer shows only the separately authored module model." : pilot ? "Published pilot snapshots only. Failed objects are not replaced with synthetic appearances; diagram boxes are unreviewed proposals, not reconstructed equipment. No jobs can run from this public viewer." : "Unavailable in the public demo. Procedural scenes use deterministic template geometry, not image reconstruction, Blender exports or Idol results. Run the local workbench to author scenes and execute pipeline stages."}</p> : <><p className="muted">Run a stage on this case. Tool and model access may be required.</p><div className="job-actions"><button onClick={() => void start("extract")} disabled={!caseId || busy}>Extract</button><button onClick={() => void start("blender")} disabled={!caseId || busy}>Blender</button><button onClick={() => void start("idol")} disabled={!caseId || busy}>Idol</button></div></>}
           {jobsError && <p className="inline-error" role="status">{jobsError}</p>}
           {!currentJobs.length && <p className="muted">No jobs for this case.</p>}
           {currentJobs.map(job => <div className="job" key={job.id}><div><strong>{job.stages.join(" → ")}</strong><span className={`job-status ${job.status}`}>{job.status}</span></div><small>{job.id}</small>{job.error && <p className="inline-error">{job.error}</p>}{activeJob(job) && <button onClick={() => void cancel(job.id)} disabled={busy}>Cancel</button>}</div>)}

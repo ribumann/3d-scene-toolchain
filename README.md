@@ -17,6 +17,13 @@ Descriptive case groups now collapse independently, and an off-by-default
 [screened-object review toggle](docs/trials.md#library-navigation-and-screened-object-review)
 reveals rejected appearances without accepting them.
 
+**Diamond recovery plant:** [D01](docs/diamond-plant.md) adds an original
+1536 × 1024 synthetic photograph, 24 manually reconstructed process modules
+across three lines, portable GLB / scaled site plan, and sizing, position, port,
+stream and telemetry-tag metadata. Dimensions and geometry are authored
+simulation assumptions. Actual D01 SAM2/Idol reconstruction is blocked by
+unavailable Italy North Spot T4 capacity; no Gaussian result is claimed.
+
 **Initial baseline:** the three procedural scenarios run through real Blender
 exports. Eleven case slots are implemented. All eight image references
 (I01-I05 originals and G01-G03 AI-generated images) were supplied by the user and

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Case } from "../../../packages/scene/types";
 
 const groups = [
+  { id: "plant", title: "Diamond recovery digital twin" },
   { id: "illustrations", title: "Illustrated object scenes" },
   { id: "prompt", title: "Procedural layouts" },
   { id: "reference", title: "Original photos & diagrams" },
@@ -11,6 +12,7 @@ const groups = [
 ] as const;
 
 function groupFor(item: Case): typeof groups[number]["id"] {
+  if (item.id === "D01") return "plant";
   if (item.id.endsWith("-illustrated")) return "illustrations";
   if (/^T\d+-/.test(item.id)) return "synthetic";
   if (/^R\d+-/.test(item.id)) return "real";

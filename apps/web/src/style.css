@@ -38,6 +38,11 @@ p { line-height: 1.5; }
 .panel-heading p { color: #748a99; font-size: 11px; margin-top: 3px; }
 .count, .tag { color: #526d80; background: #edf3f6; border-radius: 3px; font-size: 11px; padding: 3px 6px; font-weight: 600; }
 .case-group { margin: 0 0 8px; padding-bottom: 8px; border-bottom: 1px solid #dbe5eb; }
+.plant-downloads, .plant-layers { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.plant-downloads a { display: inline-flex; align-items: center; min-height: 44px; color: #165f9e; }
+.plant-layers { margin: 8px 0 0; padding: 8px 12px; border: 1px solid #c7d7e1; }
+.plant-layers legend { padding: 0 4px; font-size: 12px; }
+.plant-layers .check { min-height: 44px; }
 .case-group > summary { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px; color: #526d80; font-size: 11px; font-weight: 600; cursor: pointer; list-style: none; }
 .case-group > summary::-webkit-details-marker { display: none; }
 .case-group > summary::before { content: ""; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); flex: none; }
