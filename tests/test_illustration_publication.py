@@ -97,3 +97,22 @@ class IllustrationPublicationTests(unittest.TestCase):
                 write_json(publication / "publication.json", manifest)
                 with self.assertRaisesRegex(ValueError, "reviewed layout"):
                     validate_illustration_package(publication)
+
+    def test_worker_bf16_export_is_preserved_and_unknown_dtype_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            authorization, generated = self.prepare(root)
+            path = generated / "appearances.json"
+            appearances = json.loads(path.read_text())
+            for metadata in appearances.values():
+                metadata["dinov3_dtype"] = "bf16"
+            write_json(path, appearances)
+            with patch("scripts.package_illustrations.ROOT", authorization):
+                publication = root / "publication"
+                package_illustrations(generated, publication)
+                published = json.loads((publication / "appearances.json").read_text())
+                self.assertEqual({value["dinov3_dtype"] for value in published.values()}, {"bf16"})
+                next(iter(appearances.values()))["dinov3_dtype"] = "fp16"
+                write_json(path, appearances)
+                with self.assertRaisesRegex(ValueError, "encoder dtype"):
+                    package_illustrations(generated, root / "invalid")

@@ -48,7 +48,7 @@ def validate_appearances(appearances, root):
         validate_reference_receipt(metadata["reference"], concepts[identifier])
         if metadata["review"] != reviews[identifier].model_dump(mode="json") or metadata["reference"]["sha256"] != reviews[identifier].sha256:
             raise ValueError("Generated input does not match the reviewed reference")
-        if metadata.get("dinov3_dtype") != "fp32" or type(metadata.get("resumed")) is not bool:
+        if metadata.get("dinov3_dtype") not in ("fp32", "bf16") or type(metadata.get("resumed")) is not bool:
             raise ValueError("Unexpected illustrative encoder dtype or resume state")
         if not re.fullmatch(r"[0-9a-f]{64}", metadata.get("crop_sha256", "")) or metadata["crop_sha256"] != metadata.get("input_sha256"):
             raise ValueError("Illustrative segmentation input hash differs")
