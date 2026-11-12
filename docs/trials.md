@@ -260,7 +260,7 @@ failures replaced by geometry. The illustrated P01 default and API absence (404)
 were also confirmed. No page errors were observed in these checks; this does not
 certify device performance, geometric accuracy or all possible camera views.
 
-### Next comparisons and better input capture
+### Library navigation and screened-object review
 
 The case library separates illustrated object scenes, procedural layouts,
 original photos/diagrams, generated scene images, synthetic-photo comparisons
@@ -276,6 +276,21 @@ Invalid or missing bounds, invalid sizes and failed loads are never bypassed.
 The setting lasts while browsing cases in the current page and resets on reload.
 Screened-out labels and selection boxes stay hidden when the checkbox is off;
 the authored semantic graph remains unchanged.
+
+Deployment
+[43248833819](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43248833819),
+source `01ca61d0810d35cda6562aedf9132ea49ccd3b25`, retains the same three approved
+publications. Both CI jobs passed, including all 46 frontend tests; all 121 public
+file hashes match the deployed artifact. Live Edge checks at 1600px and 390px
+confirmed independent keyboard-operable groups, readable disclosure layout,
+rapid review toggles, case switching and reload defaults without page errors.
+P03 stays at 3/4 appearances by default and reaches 4/4 with its 12 rejected tree
+placements enabled for review; P01 changes from 2/3 to 3/3 when its rejected
+shelves are revealed. Rejection warnings remain present. R03 still loads 2/2,
+with no stale warnings from the previous case, and `/api/cases` remains 404.
+These are UI and publication checks, not improved reconstruction-quality claims.
+
+### Next comparisons and better input capture
 
 The highest-value improvement is better observation, not a larger generation
 step count. Use complete objects including feet/baseplates, sharp textures,

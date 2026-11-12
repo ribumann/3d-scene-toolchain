@@ -13,6 +13,9 @@ instances are not independent generations. Connections retain source evidence or
 explicit prompt intent. Generated appearances and provisional scale are
 illustrative, not recovered engineering detail. See the [actual results, capture
 recommendations and reconstruction alternatives](docs/trials.md#actual-illustrated-object-results).
+Descriptive case groups now collapse independently, and an off-by-default
+[screened-object review toggle](docs/trials.md#library-navigation-and-screened-object-review)
+reveals rejected appearances without accepting them.
 
 **Initial baseline:** the three procedural scenarios run through real Blender
 exports. Eleven case slots are implemented. All eight image references
@@ -70,12 +73,14 @@ separately verified all eight public preview URLs and image decoding, G03's
 reference-only state, P01's 28 rendered objects and the absent API (404).
 
 The latest retained-package deployment is
-[43242769693](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43242769693),
-source `2efa3bb57af111cea343efb03319c5ac45c9b603`. All 121 packaged public-file
+[43248833819](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43248833819),
+source `01ca61d0810d35cda6562aedf9132ea49ccd3b25`. All 121 packaged public-file
 hashes, including the four application files, match its artifact. Its 29 catalog entries
 include three explicitly not-run real-photo baselines, not 29 successful
 reconstructions. Six additional illustrated scenes preserve the original cases;
-quality exclusions are visible and never replaced with representative geometry.
+quality exclusions remain flagged and are never replaced with representative
+geometry. Rejected appearances stay hidden unless explicitly enabled for review;
+invalid bounds and failed loads remain blocked.
 Desktop/mobile browser checks and their limits are recorded in
 [the trial report](docs/trials.md#actual-illustrated-object-results).
 

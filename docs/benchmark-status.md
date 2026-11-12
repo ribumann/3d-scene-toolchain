@@ -343,6 +343,17 @@ exclusion counts without page errors. These checks do not replace a geometric
 annotation baseline or certify metric scale, hidden surfaces or engineering
 fidelity. Fable and alternative-model comparisons remain researched, not executed.
 
+The navigation/review follow-up is live in deployment
+[43248833819](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43248833819),
+source `01ca61d0810d35cda6562aedf9132ea49ccd3b25`. Six descriptively named library
+groups collapse independently. The off-by-default **Show screened-out objects**
+control reveals only safely renderable rejected appearances, retaining their
+warnings and quality metadata. All 121 public hashes still match the retained
+packages and application artifact. Desktop/mobile checks confirmed the control,
+case switching and reload defaults; no inference was rerun and no rejected
+appearance was promoted to accepted. See the
+[review-control details](trials.md#library-navigation-and-screened-object-review).
+
 ### Full pipeline
 
 Use the privately ingested eight originals on the authorized operator host;
