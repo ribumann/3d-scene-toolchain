@@ -241,6 +241,25 @@ placements remain eligible after 32 exclusions; exclusion is not a failed-load
 box substitute. These are illustrative, sometimes incomplete appearances, not
 validated engineering models or recovered hidden detail.
 
+Deployment [`43242769693`](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43242769693)
+passed both full CI jobs and published source
+`2efa3bb57af111cea343efb03319c5ac45c9b603`, retaining pilot `43079293375`,
+trial `43185525449` and illustration `43237905142` packages. All 121 public-file
+hashes were checked against the exact deployed artifact, including the four
+application files and all 73 PLYs covered by quality assessments. The 29 catalog entries
+include three explicitly not-run real-photo baselines.
+
+Final local browser confirmation covered all six illustrated layouts and their
+21 eligible unique appearances at desktop width, plus P03/I04 at 390 pixels.
+Public-origin checks confirmed P03 3/4 appearances with 12 excluded placements,
+I01 7/8 with one exclusion, and I04 2/2 shared appearances with 101 placements.
+Public narrow-screen P03 checks confirmed readable, non-overlapping quality
+warnings and complete isolated-object framing. Retained I02, G03 and R03 loaded
+5/9, 5/16 and 2/2 respectively; excluded counts were 4, 11 and 0, not load
+failures replaced by geometry. The illustrated P01 default and API absence (404)
+were also confirmed. No page errors were observed in these checks; this does not
+certify device performance, geometric accuracy or all possible camera views.
+
 ### Next comparisons and better input capture
 
 The highest-value improvement is better observation, not a larger generation

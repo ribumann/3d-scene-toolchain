@@ -5,7 +5,16 @@ Descriptions, photos and schematics feed a shared scene contract; Blender create
 editable geometry, Idol creates selected Gaussian appearance assets, and a React
 Three Fiber/Spark workbench renders and edits the result.
 
-**Current milestone:** the three procedural scenarios run through real Blender
+**Current milestone:** the [public workbench](https://red-wave-0c7bb6c0f.4.azurestaticapps.net/)
+retains the original eleven samples and interim photographic trials, and adds six
+illustrated prompt/schema variants. Twenty-five independent Idol generations
+support 142 eligible authored placements after 32 quality exclusions; shared
+instances are not independent generations. Connections retain source evidence or
+explicit prompt intent. Generated appearances and provisional scale are
+illustrative, not recovered engineering detail. See the [actual results, capture
+recommendations and reconstruction alternatives](docs/trials.md#actual-illustrated-object-results).
+
+**Initial baseline:** the three procedural scenarios run through real Blender
 exports. Eleven case slots are implemented. All eight image references
 (I01-I05 originals and G01-G03 AI-generated images) were supplied by the user and
 ingested privately by the coordinating operator. The user authorized eight
@@ -54,11 +63,21 @@ cross-origin mutation permission is granted.
 ## Public read-only demo build
 
 [Open the public read-only demo](https://red-wave-0c7bb6c0f.4.azurestaticapps.net/).
-The operator verified all three WebGL2 scenes on the real HTTPS origin. It has
+The initial reference-only deployment verified all three WebGL2 scenes on the real HTTPS origin. It has
 no API backend. The eight authorized previews
 are deployed with explicit original-vs-AI-generated provenance. The operator
 separately verified all eight public preview URLs and image decoding, G03's
 reference-only state, P01's 28 rendered objects and the absent API (404).
+
+The latest retained-package deployment is
+[43242769693](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43242769693),
+source `2efa3bb57af111cea343efb03319c5ac45c9b603`. All 121 packaged public-file
+hashes, including the four application files, match its artifact. Its 29 catalog entries
+include three explicitly not-run real-photo baselines, not 29 successful
+reconstructions. Six additional illustrated scenes preserve the original cases;
+quality exclusions are visible and never replaced with representative geometry.
+Desktop/mobile browser checks and their limits are recorded in
+[the trial report](docs/trials.md#actual-illustrated-object-results).
 
 The separate static build needs no backend, Blender or inference GPU:
 

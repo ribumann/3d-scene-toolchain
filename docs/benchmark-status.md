@@ -322,6 +322,27 @@ existing procedural viewer, not image reconstruction or Idol inference.
 See [`infra/azure/static-demo.md`](../infra/azure/static-demo.md) for the artifact
 boundary, exact target and opt-in deployment controls.
 
+### Illustrated-object and photographic follow-up
+
+The [trial report](trials.md#actual-illustrated-object-results) records the
+subsequent licensed-photo execution, crop-first preparation measurement,
+generated-reference review, 25 independent Idol generations and validated
+checkpoint recovery. Deployment
+[43242769693](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43242769693)
+retains the approved original and interim packages and adds six illustrated
+prompt/schema cases. Its 29 catalog entries and 121 public-file hashes were
+verified against the actual artifact; three real-photo baselines remain
+explicitly not run.
+
+The illustrated scenes contain 174 authored placements, of which 142 remain
+eligible after 32 numeric or exact-hash visual exclusions. Repeated placements
+share appearances; they are not 174 independent generations or recovered
+identities. Source-supported connections are distinct from generated imagery.
+Public desktop/mobile checks confirmed the documented representative load and
+exclusion counts without page errors. These checks do not replace a geometric
+annotation baseline or certify metric scale, hidden surfaces or engineering
+fidelity. Fable and alternative-model comparisons remain researched, not executed.
+
 ### Full pipeline
 
 Use the privately ingested eight originals on the authorized operator host;
