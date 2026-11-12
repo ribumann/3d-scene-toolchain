@@ -203,6 +203,44 @@ G03 outputs (pond 2 and enclosure 3) whose disconnected fragments passed numeric
 screening. Overrides bind exact public PLY SHA256 values, never categories or
 mutable asset IDs; the frozen input packages and PLY bytes remain unchanged.
 
+### Actual illustrated-object results
+
+GPU run [`43221874007`](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43221874007)
+completed 25 independent Idol generations from reviewed generated photographs.
+Its publication failed on an overly restrictive dtype check, not reconstruction.
+The worker actually exported `bf16`; publication now preserves that value and
+accepts only the worker's supported `bf16`/`fp32` exports. Successful recovery
+[`43237905142`](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43237905142)
+validated and resumed all 25 checkpoints without another generation.
+All outputs use the frozen model/SDK revisions, 32,768 Gaussians, 50 steps and seed 42.
+
+Six additive `-illustrated` cases preserve the original eleven cases and interim
+trials. They contain 174 authored placements, not 174 independent generations or
+recovered equipment identities. The same decoded appearance is explicitly shared
+across instances, including I04's 93 assembly stations and eight buffers.
+Connections retain reviewed diagram evidence or explicit prompt intent; I05
+building proximity does not invent process links. Two unconvincing thickener
+references were rejected before reconstruction.
+
+Actual browser inspection covered all six layouts and 24 isolated captures
+(23 unique numerically eligible appearances, with the shared buffer shown twice).
+It also revealed viewport growth driven by the expanded case library and narrow
+camera framing: the viewport is now bounded to screen height, isolation reframes
+the selected object, and camera distance accounts for portrait aspect ratios.
+Uniformly fitted appearances are seated on their provisional semantic-node base
+instead of floating at the center of an oversized box. This is authored placement,
+not measured physical pose or metric scale.
+
+Keep the quality gates, rather than stretching failures into plausibility:
+all 18 P01 shelving placements fail the aspect gate, and P02's wafer-loader fails
+the Gaussian-support extent gate. Individually reviewed generated tree and
+conveyor PLY hashes are additionally excluded: the tree lacks the requested
+complete trunk, while the conveyor consists of disconnected sections. Those
+two appearances account for 13 placements. Thus 142 of the 174 authored
+placements remain eligible after 32 exclusions; exclusion is not a failed-load
+box substitute. These are illustrative, sometimes incomplete appearances, not
+validated engineering models or recovered hidden detail.
+
 ### Next comparisons and better input capture
 
 The highest-value improvement is better observation, not a larger generation

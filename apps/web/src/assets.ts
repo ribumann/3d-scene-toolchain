@@ -14,6 +14,7 @@ export function fitSplatToNode(object: THREE.Object3D, asset: SceneAsset, node: 
   object.scale.set(...fit.scale);
   const offset = new THREE.Vector3(...fit.center).multiply(object.scale).applyQuaternion(object.quaternion);
   object.position.set(...node.position).sub(offset);
+  object.position.add(new THREE.Vector3(0, fit.offsetY, 0).applyEuler(new THREE.Euler(...node.rotation)));
 }
 
 /** Preserve authored geometry transforms inside a normalized semantic-node group. */

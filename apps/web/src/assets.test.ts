@@ -18,13 +18,14 @@ describe("splat source-coordinate normalization", () => {
     object.updateMatrixWorld(true);
     return object;
   };
-  it("makes the pinned Idol export upright around its center before semantic rotation", () => {
+  it("makes the pinned Idol export upright and seats its uniformly fitted support on the node base", () => {
     const object = transform();
     const center = object.localToWorld(new THREE.Vector3(2, 4, 6));
-    expect(center.distanceTo(new THREE.Vector3(...node.position))).toBeLessThan(1e-10);
+    expect(center.distanceTo(new THREE.Vector3(10, 2, -2))).toBeLessThan(1e-10);
+    expect(object.localToWorld(new THREE.Vector3(2, 6, 6)).y).toBeCloseTo(node.position[1] - node.size[1] / 2);
     const point = object.localToWorld(new THREE.Vector3(2.2, 3.6, 6.6));
     expect(point.x).toBeCloseTo(8.8);
-    expect(point.y).toBeCloseTo(4.8);
+    expect(point.y).toBeCloseTo(2.8);
     expect(point.z).toBeCloseTo(-2.4);
     expect(object.matrixWorld.determinant()).toBeGreaterThan(0);
     const up = new THREE.Vector3(0, -1, 0).applyQuaternion(object.quaternion);
@@ -39,9 +40,19 @@ describe("splat source-coordinate normalization", () => {
       const object = transform(provenance);
       const point = object.localToWorld(new THREE.Vector3(2.2, 3.6, 6.6));
       expect(point.x).toBeCloseTo(11.2);
-      expect(point.y).toBeCloseTo(3.2);
+      expect(point.y).toBeCloseTo(1.2);
       expect(point.z).toBeCloseTo(-2.4);
     }
+  });
+  it("seats on the semantic local base even when the node is tilted", () => {
+    const tilted = { ...node, rotation: [Math.PI / 3, 0, Math.PI / 6] } as SceneNode;
+    const object = new THREE.Object3D();
+    fitSplatToNode(object, asset, tilted);
+    object.updateMatrixWorld(true);
+    const bottom = object.localToWorld(new THREE.Vector3(2, 6, 6));
+    const expected = new THREE.Vector3(0, -tilted.size[1] / 2, 0)
+      .applyEuler(new THREE.Euler(...tilted.rotation)).add(new THREE.Vector3(...tilted.position));
+    expect(bottom.distanceTo(expected)).toBeLessThan(1e-10);
   });
 });
 

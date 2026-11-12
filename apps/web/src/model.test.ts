@@ -57,7 +57,7 @@ describe("scene view model", () => {
   });
   it("fits y-up splat bounds to a node without changing axes", () => {
     const asset = { id: "p", kind: "ply" as const, uri: "/api/assets/a.ply", sha256: "", provenance: { bounds: { min: [0, -1, 0], max: [2, 1, 4] } } };
-    expect(splatFit(asset, { ...scene.nodes[0], size: [4, 6, 8] })).toEqual({ center: [1, 0, 2], scale: [2, 2, 2] });
+    expect(splatFit(asset, { ...scene.nodes[0], size: [4, 6, 8] })).toEqual({ center: [1, 0, 2], scale: [2, 2, 2], offsetY: -1 });
     expect(splatFit({ ...asset, provenance: {} }, scene.nodes[0])).toBeNull();
   });
   it("fits visible covariance support rather than centers and preserves proportions", () => {
@@ -68,7 +68,7 @@ describe("scene view model", () => {
       },
     };
     const fit = splatFit(asset, { ...scene.nodes[0], size: [8, 12, 16] });
-    expect(fit).toEqual({ center: [1, 0, 1], scale: [2, 2, 2] });
+    expect(fit).toEqual({ center: [1, 0, 1], scale: [2, 2, 2], offsetY: -2 });
   });
   it("excludes rejected, malformed and severely disproportionate appearances with a reason", () => {
     const asset = {

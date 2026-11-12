@@ -28,7 +28,7 @@ class CanvasBoundary extends Component<{ children: ReactNode }, { error: string 
 }
 
 function Camera({ scene, isolated, view }: { scene: Scene; isolated: string | null; view: Props["cameraView"] }) {
-  const { camera } = useThree();
+  const { camera, size: viewport } = useThree();
   const controls = useRef<React.ComponentRef<typeof OrbitControls>>(null);
   const framing = useMemo(() => {
     const nodes = visibleNodes(scene, isolated);
@@ -41,8 +41,9 @@ function Camera({ scene, isolated, view }: { scene: Scene; isolated: string | nu
     });
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
-    return { center, distance: Math.max(isolated ? 3 : 12, size.length() * 1.1) };
-  }, [scene.id, isolated]); // Editing a position should not move the camera.
+    const portrait = Math.max(1, viewport.height / Math.max(1, viewport.width));
+    return { center, distance: Math.max(isolated ? 3 : 12, size.length() * 1.1) * portrait };
+  }, [scene.id, isolated, viewport.width, viewport.height]); // Editing a position should not move the camera.
   useEffect(() => {
     const { center, distance } = framing;
     camera.position.copy(center).add(view.kind === "top"

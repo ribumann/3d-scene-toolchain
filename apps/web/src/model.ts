@@ -75,7 +75,7 @@ export function splatIssue(asset: SceneAsset, node: SceneNode): string | null {
   return null;
 }
 
-export function splatFit(asset: SceneAsset, node: SceneNode): { center: Vec3; scale: Vec3 } | null {
+export function splatFit(asset: SceneAsset, node: SceneNode): { center: Vec3; scale: Vec3; offsetY: number } | null {
   if (splatIssue(asset, node)) return null;
   const bounds = splatBounds(asset);
   if (!bounds) return null;
@@ -84,5 +84,6 @@ export function splatFit(asset: SceneAsset, node: SceneNode): { center: Vec3; sc
   return {
     center: min.map((value, i) => (value + max[i]) / 2) as Vec3,
     scale: [scale, scale, scale],
+    offsetY: ((max[1] - min[1]) * scale - node.size[1]) / 2,
   };
 }
