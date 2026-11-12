@@ -1,0 +1,110 @@
+[
+  {
+    "id": "R01",
+    "title": "Installed horizontal centrifugal pump",
+    "original": "centrifugal-pumps-original.jpg",
+    "creator": "Bitjungle",
+    "source_page": "https://commons.wikimedia.org/wiki/File:Centrifugal_pumps.jpg",
+    "download_url": "https://upload.wikimedia.org/wikipedia/commons/0/0f/Centrifugal_pumps.jpg",
+    "boxes": [
+      [
+        0.09,
+        0.22,
+        0.86,
+        0.76
+      ]
+    ],
+    "limitations": "Foreground pump-and-motor assembly only. Rear equipment is not a target; nearby pipework and rear assembly overlap the target region.",
+    "original_sha256": "b227985dc2f5a1f9c69935672dd8ee29bbd2d80308e124f0d2ecd011c2844fec",
+    "original_size": [
+      3264,
+      2448
+    ],
+    "filename": "R01.png",
+    "sha256": "8f1b0eedbd385f99779f028fe6f8a37d6b0c86b586bd64915078871df9831229",
+    "prepared_size": [
+      1800,
+      1350
+    ],
+    "prepared_bytes": 3332150,
+    "license": "CC-BY-SA-4.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "changes": "EXIF orientation normalized, converted to RGB, entire frame downsampled from 3264x2448 to 1800x1350 using Pillow LANCZOS, metadata removed, re-encoded as PNG. No object isolation, inpainting or compositing.",
+    "derivative_license": "CC-BY-SA-4.0",
+    "derivative_changes": "SAM2 segmentation/cropping and Idol-generated object splats with inferred geometry; source-derived outputs distributed under CC BY-SA 4.0, not the repository software MIT license. No author endorsement."
+  },
+  {
+    "id": "R02",
+    "title": "Installed vertical hydronic pump",
+    "original": "centrifugal-original.jpg",
+    "creator": "Saud (Wikimedia Commons: SAF1999)",
+    "source_page": "https://commons.wikimedia.org/wiki/File:Centrifugal_Pump.jpg",
+    "download_url": "https://upload.wikimedia.org/wikipedia/commons/a/ab/Centrifugal_Pump.jpg",
+    "boxes": [
+      [
+        0.275,
+        0.045,
+        0.575,
+        0.95
+      ]
+    ],
+    "limitations": "Foreground blue pump-and-motor assembly only. Bottom of casing meets the image edge; rear pump and pipework are not target equipment. Missing geometry cannot be recovered from this image.",
+    "original_sha256": "842a629f8a2a1a282d1ed099fd0eb1924bc16a44c092c23aeb405b7b28b46ae2",
+    "original_size": [
+      6000,
+      4000
+    ],
+    "filename": "R02.png",
+    "sha256": "a96a982212ea4f3ef796d0ae44e845a6353b8ba820cbeda1d7f580ee8a29559d",
+    "prepared_size": [
+      1800,
+      1200
+    ],
+    "prepared_bytes": 2897118,
+    "license": "CC-BY-SA-4.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "changes": "EXIF orientation normalized, converted to RGB, entire frame downsampled from 6000x4000 to 1800x1200 using Pillow LANCZOS, metadata removed, re-encoded as PNG. No object isolation, inpainting or compositing.",
+    "derivative_license": "CC-BY-SA-4.0",
+    "derivative_changes": "SAM2 segmentation/cropping and Idol-generated object splats with inferred geometry; source-derived outputs distributed under CC BY-SA 4.0, not the repository software MIT license. No author endorsement."
+  },
+  {
+    "id": "R03",
+    "title": "Cooling-water pumps in wider site context",
+    "original": "cooling-original.jpg",
+    "creator": "Harald the Bard",
+    "source_page": "https://commons.wikimedia.org/wiki/File:Closed_cooling_water_system_pumps_and_its_pipe_connections.jpg",
+    "download_url": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Closed_cooling_water_system_pumps_and_its_pipe_connections.jpg",
+    "boxes": [
+      [
+        0.455,
+        0.3,
+        0.23,
+        0.3
+      ],
+      [
+        0.59,
+        0.35,
+        0.245,
+        0.29
+      ]
+    ],
+    "limitations": "Two central blue pump-and-motor assemblies only; other equipment is outside the inventory. Wider-context stress input with perspective, railings, pipes and partial occlusion, not an optimal complete-silhouette capture.",
+    "original_sha256": "148adc3937c76100b78b648956e14f639c28ef1f4f12dff37f82b2aaa44d822e",
+    "original_size": [
+      4160,
+      3120
+    ],
+    "filename": "R03.png",
+    "sha256": "4106070618a6b1f9646a3fd1e2c26f7b7e9a1597fcec0a3c4054becdd7c3b148",
+    "prepared_size": [
+      1800,
+      1350
+    ],
+    "prepared_bytes": 3385803,
+    "license": "CC-BY-SA-4.0",
+    "license_url": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "changes": "EXIF orientation normalized, converted to RGB, entire frame downsampled from 4160x3120 to 1800x1350 using Pillow LANCZOS, metadata removed, re-encoded as PNG. No object isolation, inpainting or compositing.",
+    "derivative_license": "CC-BY-SA-4.0",
+    "derivative_changes": "SAM2 segmentation/cropping and Idol-generated object splats with inferred geometry; source-derived outputs distributed under CC BY-SA 4.0, not the repository software MIT license. No author endorsement."
+  }
+]

@@ -1,0 +1,28 @@
+REAL PHOTOGRAPHIC RECONSTRUCTION INPUTS
+
+These photographic works and adaptations are CC BY-SA 4.0, NOT the software
+repository's MIT license. License:
+https://creativecommons.org/licenses/by-sa/4.0/
+
+R01.png: "Centrifugal pumps", Bitjungle, 19 June 2015.
+https://commons.wikimedia.org/wiki/File:Centrifugal_pumps.jpg
+R02.png: "Centrifugal Pump", Saud (Wikimedia Commons: SAF1999), 25 June 2019.
+https://commons.wikimedia.org/wiki/File:Centrifugal_Pump.jpg
+R03.png: "Closed cooling water system pumps and its pipe connections",
+Harald the Bard, 1 November 2021.
+https://commons.wikimedia.org/wiki/File:Closed_cooling_water_system_pumps_and_its_pipe_connections.jpg
+
+Changes to each photograph: EXIF orientation normalized, converted to RGB,
+entire frame downsampled to a maximum 1800-pixel side with Pillow LANCZOS,
+metadata removed, and re-encoded as PNG. No object isolation, inpainting or
+compositing. Exact dimensions and original/prepared SHA256 hashes are in
+provenance.json. The originals remain available at the linked Commons pages.
+
+The reconstruction experiment adds manually reviewed equipment boxes, SAM2
+segmentation/cropping and Idol-generated object splats with inferred geometry.
+Source-derived adaptations, including those crops and splats when published,
+are distributed under CC BY-SA 4.0 with these credits and modification notices.
+No original author endorses this experiment. Inventory and boxes are operator
+supervision, not ground-truth geometry, dimensions or accuracy certification.
+The images retain real pipework, overlap and background; R02 has an edge-cut
+casing and R03 is a wider-context occlusion stress input, not an ideal capture.
