@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import type { Scene, SceneAsset, SceneNode, Vec3 } from "../../../packages/scene/types";
 import { pointOnRoute, routePoints, splatFit, visibleNodes } from "./model";
-import { fitModelToNode } from "./assets";
+import { fitModelToNode, fitSplatToNode } from "./assets";
 
 type Props = {
   scene: Scene; selected: string | null; onSelect: (id: string) => void;
@@ -104,10 +104,7 @@ function Spark({ assets, nodes, onError, onLoaded }: { assets: SceneAsset[]; nod
         const mesh = new SplatMesh({ url: asset.uri });
         mesh.name = asset.id;
         if (node && fit) {
-          mesh.rotation.set(...node.rotation);
-          mesh.scale.set(...fit.scale);
-          const offset = new THREE.Vector3(...fit.center).multiply(mesh.scale).applyEuler(mesh.rotation);
-          mesh.position.set(...node.position).sub(offset);
+          fitSplatToNode(mesh, asset, node);
         }
         scene.add(mesh); meshes.push(mesh);
         mesh.initialized.then(() => { if (active) onLoaded(asset.id, true); }).catch((error: unknown) => { if (active) onError(`Splat ${asset.id} failed to load: ${String(error)}`); });

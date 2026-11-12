@@ -126,6 +126,19 @@ or fidelity scores. Timings are actual observations only; no unmeasured speedup
 is promised. Layout, scale and depth remain inferred or explicitly authored
 relative assumptions, not recovered metric truth.
 
+### Idol appearance orientation
+
+The pinned Idol SDK `8db700349a5570aac390e4780fa32e3eed6b587a`
+[`Gaussian.save_ply`](https://github.com/speridlabs/idol-sdk/blob/8db700349a5570aac390e4780fa32e3eed6b587a/idol/gaussian.py)
+exports its z-up object as `(x, -z, y)`, putting up along negative Y.
+The workbench applies a proper 180-degree X rotation to appearances identified
+by that model and SDK, before the semantic node rotation, to match the scene's
+positive-Y-up convention. Bounds centering follows the same transform; Spark
+rotates the Gaussian covariances with the object. This display correction applies
+to both pilot and trial appearances without changing their PLY bytes, hashes,
+model settings or checkpoints. Other splats, GLBs and procedural geometry retain
+their existing orientation. It does not recover an object's real-site heading.
+
 ## Derived-only export and additive public build
 
 Publication is a separate explicit opt-in, using the existing isolated CPU
