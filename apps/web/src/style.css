@@ -66,7 +66,7 @@ input[type="checkbox"] { accent-color: #1767a6; }
 .viewport-hint, .viewport-note, .viewport-error { position: absolute; z-index: 1; background: #ffffffeb; border: 1px solid #d0dfe8; border-radius: 3px; padding: 6px 9px; font-size: 11px; color: #526c7c; }
 .viewport-hint { bottom: 12px; right: 12px; pointer-events: none; }
 .viewport-note, .viewport-error { top: 12px; left: 12px; max-width: calc(100% - 24px); }
-.viewport-error { top: 48px; color: #8c342d; background: #fff0ef; border-color: #ecc4c0; }
+.viewport-error { top: auto; bottom: 48px; color: #8c342d; background: #fff0ef; border-color: #ecc4c0; }
 .viewport-message { position: absolute; inset: 0; display: grid; place-items: center; padding: 25px; color: #8c342d; }
 .scene-label { display: block; white-space: nowrap; background: #fff; color: #314b5d; padding: 4px 7px; border: 1px solid #c3d5df; border-radius: 3px; font-size: 11px; box-shadow: 0 2px 6px #274a6020; }
 .scene-label.selected { color: #165f9e; border-color: #528dc0; }
