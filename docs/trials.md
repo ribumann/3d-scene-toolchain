@@ -1,4 +1,22 @@
-# Opt-in photographic industrial trials
+# Reconstruction experiments: results and technical reference
+
+Start with the [repository overview](../README.md#experiments-and-final-results)
+for the experiment progression and
+[recommended pipeline](../README.md#recommended-pipeline). This report keeps
+reproducible commands, comparison evidence and limitations, not live worker status.
+
+| Result to inspect | Evidence |
+|---|---|
+| Synthetic photographic baseline/optimized comparison | [Completed comparison](#completed-photographic-comparison) |
+| Licensed real photographs and byte-identical CPU crop optimization | [Completed real-photo run](#completed-real-photo-run-and-measured-preparation) |
+| Generated references for prompts/schemata, instancing and screening | [Illustrated-object results](#actual-illustrated-object-results) |
+| Original-photo plant reconstruction and final live publication | [D01 results](diamond-plant.md#component-gaussian-reconstruction) |
+| Exact cache/resume behavior and pinned execution | [Optimization and evidence](#optimization-resume-and-evidence) |
+
+The recommended curated-demo route is reviewed-box/SAM2 extraction, sequential
+pinned Idol inference, exact validated reuse, and actual rendered screening.
+It is not a full-scene/metric reconstruction or a measured universal speedup.
+The sections below preserve historical comparisons and their original run IDs.
 
 ## Prompt and schema reference candidates
 

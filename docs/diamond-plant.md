@@ -1,5 +1,17 @@
 # D01: three-line diamond recovery plant
 
+**Current result:** [open the photo-derived twin](https://red-wave-0c7bb6c0f.4.azurestaticapps.net/?case=D01).
+Twelve components were reconstructed from the original generated photograph;
+ten concepts across twenty placements pass rendered review. Clean module and
+whole-plant GLBs remain available for the same 24-module, 50-stream, 56-tag twin.
+Sizing and connectivity are authored, not measured from the photograph.
+
+Use the [two-mode app integration contract](digital-twin-integration.md#d01-two-visual-modes-one-twin)
+to offer Clean / Reconstructed in the consuming app. Jump to
+[actual reconstruction results](#component-gaussian-reconstruction) for the
+approved publication and quality limitations. The initial mesh deployment record
+below is retained as reference, not the latest appearance result.
+
 D01 is a synthetic 1536 by 1024 photographic reference and a manually
 image-guided, module-level digital twin for a future telemetry / Fabric RTI demo.
 It is **not a real plant, a surveyed layout, an engineering design or a
