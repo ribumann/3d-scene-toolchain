@@ -198,3 +198,8 @@ and source hash; `plant/files.json` binds all published PLY bytes. The browser
 also requires matching hash-bound Gaussian quality assessments and the
 original source hash. Numerical validity and conservative extent screening do
 not certify photographic fidelity, hidden geometry or recovered dimensions.
+Metadata also joins each module's `appearance_asset_id` to `appearance_assets`,
+including file hashes and model provenance. A consuming twin can translate
+`/api/assets/plant/` to the static `/plant/` prefix. Apply the documented pinned
+Idol SDK half-turn around X, then uniform aspect-fit and ground each splat
+inside its authored module envelope; do not stretch it independently by axis.

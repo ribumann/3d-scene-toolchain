@@ -382,6 +382,9 @@ def apply_reconstructed_appearances(scene, metadata, files, package):
         replaced.add(node.asset_id)
         node.asset_id = identifier
     scene.assets = [asset for asset in scene.assets if asset.id not in replaced] + list(shared.values())
+    metadata["appearance_assets"] = [asset.model_dump(mode="json") for asset in scene.assets]
+    for module in metadata["modules"]:
+        module["appearance_asset_id"] = nodes[module["id"]].asset_id
     scene.description = (
         "Single-image SAM2/Idol component Gaussian reconstruction from the original synthetic plant photograph. "
         "Repeated modules share reconstructed appearances; metric placement, connectivity and telemetry remain authored assumptions. "
@@ -394,6 +397,12 @@ def apply_reconstructed_appearances(scene, metadata, files, package):
         "authored_mesh_fallbacks": len(scene.nodes) - len(reconstructed.nodes),
         "source_sha256": metadata["source"]["sha256"],
         "layout": "authored-metric-assumptions-not-surveyed",
+        "display": {
+            "fit": "uniform-aspect-fit-visible-four-sigma-bounds-grounded-inside-authored-module-envelope",
+            "idol_sdk_rotation_x_radians": math.pi,
+            "asset_uri_prefix": "/api/assets/plant/",
+            "public_uri_prefix": "/plant/",
+        },
         "report": entry["report"],
     }
     files["reconstruction.json"] = (json.dumps(metadata["reconstruction"], indent=2) + "\n").encode()

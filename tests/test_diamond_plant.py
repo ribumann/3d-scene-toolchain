@@ -70,6 +70,10 @@ class DiamondPlantTests(unittest.TestCase):
         self.assertEqual(len({node.asset_id for node in scene.nodes if node.id.endswith(".crusher")}), 1)
         self.assertEqual(metadata["reconstruction"]["gaussian_module_placements"], 3)
         self.assertEqual(len(metadata["telemetry_tags"]), 56)
+        self.assertEqual(
+            {module["appearance_asset_id"] for module in metadata["modules"]},
+            {asset["id"] for asset in metadata["appearance_assets"]},
+        )
         self.assertIn("splats/object-000.ply", files)
 
     def test_authored_inventory_has_nonoverlapping_grounded_modules_and_joinable_telemetry(self):
