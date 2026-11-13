@@ -1,4 +1,11 @@
-# Benchmark status
+# Benchmark evidence: historical execution reference
+
+For current purpose, experiment results and usage, start with the
+[repository overview](../README.md). For the completed D01 reconstruction, use
+the [plant result](diamond-plant.md#component-gaussian-reconstruction).
+This document preserves original measurements and working-state observations.
+Earlier statements about missing inputs, unavailable GPUs or partial publication
+are historical snapshots, not current resource availability or final status.
 
 This records the development milestone, not full acceptance of the eleven-case
 toolchain. All eight I01-I05/G01-G03 references are privately ingested on the

@@ -87,7 +87,10 @@ def main():
     if os.environ.get("I02_OBJECT_BATCH") == "true":
         cases = os.environ.get("PILOT_CASES", "I02").split()
         trial = os.environ.get("TRIAL_BATCH") == "true"
-        allowed = ("T01", "T02", "T03", "R01", "R02", "R03") if trial else ("I01", "I02", "I03", "I04", "I05", "G01", "G02", "G03")
+        allowed = ("T01", "T02", "T03", "R01", "R02", "R03", "D01") if trial else ("I01", "I02", "I03", "I04", "I05", "G01", "G02", "G03")
+        if "D01" in cases and cases != ["D01"]:
+            print("Run D01 alone with its isolated plant manifest.", file=sys.stderr)
+            return 1
         if trial and os.environ.get("TRIAL_VARIANTS") not in ("both", "baseline", "optimized"):
             print("Select baseline, optimized or both trial variants.", file=sys.stderr)
             return 1

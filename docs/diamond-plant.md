@@ -1,15 +1,28 @@
 # D01: three-line diamond recovery plant
 
+**Current result:** [open the photo-derived twin](https://red-wave-0c7bb6c0f.4.azurestaticapps.net/?case=D01).
+Twelve components were reconstructed from the original generated photograph;
+ten concepts across twenty placements pass rendered review. Clean module and
+whole-plant GLBs remain available for the same 24-module, 50-stream, 56-tag twin.
+Sizing and connectivity are authored, not measured from the photograph.
+
+Use the [two-mode app integration contract](digital-twin-integration.md#d01-two-visual-modes-one-twin)
+to offer Clean / Reconstructed in the consuming app. Jump to
+[actual reconstruction results](#component-gaussian-reconstruction) for the
+approved publication and quality limitations. The initial mesh deployment record
+below is retained as reference, not the latest appearance result.
+
 D01 is a synthetic 1536 by 1024 photographic reference and a manually
 image-guided, module-level digital twin for a future telemetry / Fabric RTI demo.
 It is **not a real plant, a surveyed layout, an engineering design or a
 photogrammetric reconstruction**.
 
-The existing Italy North Spot T4 could not restart: Azure returned
-`SkuNotAvailable`. No D01 SAM2/Idol inference has run and no Gaussian result is
-published. The downloadable geometry is deliberately labeled authored
-parametric mesh geometry. This does not replace or relabel the incumbent
-Gaussian reconstructions.
+The first publication used authored parametric mesh geometry after Azure
+returned `SkuNotAvailable` for the retained Italy North Spot T4. The worker has
+since completed a separate, supervised SAM2/Idol reconstruction run.
+An independently validated Gaussian package overlays component appearances without
+replacing the authored layout or relabeling incumbent reconstructions. The
+portable GLB remains the authored mesh model, not an export of the splats.
 
 ## What is provided
 
@@ -139,12 +152,46 @@ visibility, view controls and downloads worked without page errors or horizontal
 overflow. Hiding Line A reduced visible labels from 24 to 18; restoring it
 returned 24.
 
-These checks establish publication and authored-layout consistency, not
-photographic reconstruction accuracy. Actual D01 SAM2/Idol inference is still
-blocked by unavailable retained-worker GPU capacity. No Fabric infrastructure or
-telemetry simulator has been deployed.
+These checks describe the initial mesh publication, not photographic
+reconstruction accuracy. No Fabric infrastructure or telemetry simulator is
+deployed by this repository's viewer publication.
 
-## Pending Gaussian reconstruction
+## Component Gaussian reconstruction
+
+The real reconstruction run
+[43294502236](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43294502236)
+completed all twelve canonical crops using 32,768 Gaussians each, 50 steps and
+seed 42. Sequential extraction/inference took 2,889 seconds, with a sampled peak
+GPU memory of 9,295 MiB. These were twelve independent generations, not cache
+hits; their appearances are reused across 24 authored module placements.
+The retained GPU was deallocated after the artifact was published.
+
+An actual rendered review retained ten concepts across twenty placements.
+The DMS tower and raw-feed hopper lost their defining vertical volume and are
+hidden by exact-hash entries in `cases/appearance-reviews.json`. They remain
+available through **Show screened-out objects** without changing acceptance.
+The other components retain photographic surface detail, but some include
+small surrounding pads/conveyors and have approximate depth. This is a
+component-assembled single-image reconstruction, not whole-scene photogrammetry.
+All 24 semantic module IDs, 50 streams and 56 telemetry tags remain intact,
+including hidden appearances; the portable authored GLB remains available.
+
+Twin consumers must join each appearance SHA-256 to `/demo/quality.json` and
+hide excluded assets by default, then apply the documented grounded,
+aspect-preserving fit rather than stretching each axis to the module envelope.
+An excluded splat is not silently replaced by a geometric proxy.
+
+The Gaussian publication is live via deployment
+[43381383927](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43381383927)
+at source `891d4f3d877d1d8acc7097c017b4e865b73ec8e2`.
+Live checks matched 152 public-file hashes, including all 29 plant deliverables
+and four application files, while retaining the original 30-entry catalog.
+Desktop and mobile checks loaded ten accepted appearances, loaded all twelve
+when the review flag was enabled, and restored screening when disabled.
+Layer controls, downloads and source-image decoding passed without browser
+errors or horizontal overflow. The complete raw generation evidence is
+available in `/plant/reconstruction.json`; these checks establish publication
+integrity and usable rendering, not reconstructed engineering accuracy.
 
 `cases/diamond-plant-trial.json` isolates D01 from the six frozen photographic
 trials. Twelve manually reviewed canonical crops, including the foreground
@@ -153,9 +200,8 @@ reuse each line-module concept; these are authored instances, not three
 independently recovered appearances. A reviewed box is not a segmentation or
 accuracy ground-truth label.
 
-Once the retained, approved GPU environment is available, with the existing
-protected token and frozen model/SDK pins supplied by the normal job, the
-runner accepts this separate manifest:
+With the existing protected token and frozen model/SDK pins supplied by the
+normal job, the runner accepts this separate manifest:
 
 ```sh
 python -m scripts.private_gpu_trials stage \
@@ -177,3 +223,30 @@ silently resolve new models, overwrite baseline checkpoints or publish unfinishe
 outputs. This prepares a separate validated package, **not** a deployed Gaussian
 plant. Actual extraction outcomes, failed crops, quality screening and appearance
 fidelity must be reviewed before any subsequent additive publication.
+
+The registered workflow accepts `smoke_mode=trials`, `pilot_cases=D01`,
+`trial_variants=optimized`, and `publish_trials=true`. D01 must run alone and
+uses `cases/diamond-plant-trial.json`, not the frozen photographic-trial
+manifest. Its public artifact is `plant-splats-<runID>`. Cache validation and
+resume settings are identical to the existing trial pipeline.
+
+For static publication, set `SCENE_PLANT_SPLAT_PACKAGE` to that validated
+package alongside the three retained packages and
+`SCENE_INCLUDE_DIAMOND_PLANT=1`. CI exposes the equivalent
+`plant_splat_run_id` input. Each successful canonical crop is loaded once and
+shared across its explicit module placements. Stable module IDs, positions,
+sizes, connection routes and all telemetry attachments remain unchanged.
+Unreconstructed modules retain explicitly authored GLBs; screened-out
+reconstructed appearances are hidden rather than silently replaced by boxes.
+The existing review-only visibility flag can show excluded splats.
+
+`plant/reconstruction.json` records actual inference counts, failures, settings
+and source hash; `plant/files.json` binds all published PLY bytes. The browser
+also requires matching hash-bound Gaussian quality assessments and the
+original source hash. Numerical validity and conservative extent screening do
+not certify photographic fidelity, hidden geometry or recovered dimensions.
+Metadata also joins each module's `appearance_asset_id` to `appearance_assets`,
+including file hashes and model provenance. A consuming twin can translate
+`/api/assets/plant/` to the static `/plant/` prefix. Apply the documented pinned
+Idol SDK half-turn around X, then uniform aspect-fit and ground each splat
+inside its authored module envelope; do not stretch it independently by axis.

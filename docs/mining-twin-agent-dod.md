@@ -8,6 +8,8 @@ defines future implementation acceptance; it does not claim that work is done.
 Use the [D01 functional specification](diamond-plant-demo.md) for all 56 sensor
 definitions, generation formulas, scenarios, calculations, thresholds and query
 contracts, and the [plant handoff](diamond-plant.md) for geometry and provenance.
+Use the [two-mode integration contract](digital-twin-integration.md#d01-two-visual-modes-one-twin)
+for clean and photo-reconstructed appearances of the same operational twin.
 Keep that specification as the single detailed domain reference; do not copy it
 into another large design document.
 
@@ -76,9 +78,11 @@ new routes/configuration require a separately scoped overlay, not a reprovision.
   50 directed streams and 56 numeric tags. Preserve stable IDs, units,
   coordinates, sizes, ports and parent relationships; reject dangling references.
   Pin source asset/catalog revisions and hashes, including redistribution terms.
-- [ ] Reuse the authored GLBs/site plan; do not import the reconstruction GPU
-  toolchain into the operational app. Identify them as authored parametric
-  meshes and dimensions as demo assumptions, not recovered engineering truth.
+- [ ] Package both the authored GLBs/site plan and the approved reconstructed
+  Gaussian assets with their exact receipts and quality report. Do not import
+  the reconstruction GPU toolchain or generate assets in the operational app.
+  Identify clean meshes as authored and reconstructed appearance as single-image
+  approximation; dimensions remain demo assumptions in both modes.
 - [ ] Implement and validate the version-2 numeric envelope, state events and
   ingestion mappings. Explicitly migrate/version the strict version-1 contract;
   test old consumers and the Eventstream `entityType` discriminator separately.
@@ -159,7 +163,20 @@ new routes/configuration require a separately scoped overlay, not a reprovision.
   top-three incident rail, equipment drawer and two focused comparison charts.
   Clicking an incident selects the correct module, evidence and time series.
   Include readable list/keyboard/mobile access and non-color status labels.
-- [ ] Load all 24 modules with correct scale, orientation and IDs. Show measured
+- [ ] Offer **Visual model: Clean / Reconstructed**, defaulting to Clean, using
+  one catalog and operational state. Render all 24 clean modules; the current
+  reconstructed publication has ten accepted concepts across twenty placements,
+  with the three DMS placements and hopper hidden by exact-hash screening.
+  Keep all 24 semantic modules and their data selectable. Review-only visibility
+  never accepts exclusions or bypasses invalid bounds; no silent mesh/proxy
+  replacement for excluded or failed splats.
+- [ ] Verify scale/orientation, grounded aspect-preserving Gaussian fit and shared
+  source instancing against the integration contract. Retain module selection,
+  incident focus, camera target, line/utility filters, run and time window when
+  switching mode. Mode changes must not restart simulation, duplicate queries
+  or leak inactive renderer resources. Prove explicit load-error handling and
+  keyboard/mobile/list access in both modes.
+- [ ] Show measured
   status, units, sample time and quality; no fabricated tags or flow animations
   claiming measurements where no meter exists. Missing/bad/stale is never green.
 - [ ] Query real Fabric through the existing authenticated service boundary.

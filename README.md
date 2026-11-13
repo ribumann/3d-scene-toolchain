@@ -1,380 +1,185 @@
 # 3D scene toolchain
 
-An evidence-linked **scene preparation package for digital-twin browser apps**.
-Descriptions, photos and schematics feed a shared scene contract; Blender creates
-editable geometry, Idol creates selected Gaussian appearance assets, and a React
-Three Fiber/Spark workbench renders and edits the result.
+Prepare **evidence-linked 3D scenes for digital-twin apps** from descriptions,
+photographs and schematics. Combine clean, editable mesh geometry with
+photo-derived Gaussian appearances, using one scene contract for equipment IDs,
+placement, connections and provenance.
 
-**Current milestone:** the [public workbench](https://red-wave-0c7bb6c0f.4.azurestaticapps.net/)
-retains the original eleven samples and interim photographic trials, and adds six
-illustrated prompt/schema variants. Twenty-five independent Idol generations
-support 142 eligible authored placements after 32 quality exclusions; shared
-instances are not independent generations. Connections retain source evidence or
-explicit prompt intent. Generated appearances and provisional scale are
-illustrative, not recovered engineering detail. See the [actual results, capture
-recommendations and reconstruction alternatives](docs/trials.md#actual-illustrated-object-results).
-Descriptive case groups now collapse independently, and an off-by-default
-[screened-object review toggle](docs/trials.md#library-navigation-and-screened-object-review)
-reveals rejected appearances without accepting them.
+[Open the workbench](https://red-wave-0c7bb6c0f.4.azurestaticapps.net/) |
+[Diamond recovery plant](https://red-wave-0c7bb6c0f.4.azurestaticapps.net/?case=D01) |
+[Use both twin visual modes](docs/digital-twin-integration.md#d01-two-visual-modes-one-twin)
 
-**Diamond recovery plant:** [D01](docs/diamond-plant.md) adds an original
-1536 × 1024 synthetic photograph, 24 manually reconstructed process modules
-across three lines, portable GLB / scaled site plan, and sizing, position, port,
-stream and telemetry-tag metadata. Dimensions and geometry are authored
-simulation assumptions. Actual D01 SAM2/Idol reconstruction is blocked by
-unavailable Italy North Spot T4 capacity; no Gaussian result is claimed.
-The [telemetry / Fabric demo specification](docs/diamond-plant-demo.md) defines
-the 56 sensors, a 30/60-second generation profile and a focused operational app.
-The [agent Definition of Done](docs/mining-twin-agent-dod.md) defines how to
-implement that twin as an efficient extension of the existing Fabric triathlon app.
+This repository prepares geometry and appearances. The consuming app owns
+telemetry, Fabric queries, alerts and authentication. Single-image reconstruction
+is not photogrammetry, measured plant geometry or engineering certification.
 
-**Initial baseline:** the three procedural scenarios run through real Blender
-exports. Eleven case slots are implemented. All eight image references
-(I01-I05 originals and G01-G03 AI-generated images) were supplied by the user and
-ingested privately by the coordinating operator. The user authorized eight
-metadata-stripped public WebP previews; full originals remain private.
-The approved-WebP eight-case pilot subsequently completed on the Italy North
-Spot T4 in [run 43043580373](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43043580373):
-**31 validated real object appearances** across five photo/generated sources
-and **203 unreviewed region proposals** across three diagrams/plans. The GPU job
-took 1h 51m 20s; appearances used 32,768 Gaussians, 50 steps and seed 42.
-These are output-contract results, not full-facility reconstruction, metric
-accuracy or a calibrated/telemetry-connected digital twin. All eight derived
-views are now public; their 39 derived-file hashes and eight reference hashes
-were verified against the approved package. Per-case visual fidelity remains
-unaccepted.
+## The idea
 
-## Start locally
-
-Requirements: Python 3.11+, Node 22.12+, npm, and Blender 4.x for authoring/export.
-The browser requires WebGL2; no inference GPU needs to be attached to the browser
-host.
-
-```sh
-python3 -m venv .venv
-.venv/bin/pip install -e ".[test]"
-npm ci
-.venv/bin/scene-toolchain serve
+```mermaid
+flowchart LR
+    A[Descriptions and schematics] --> B[Author layout and process topology]
+    C[Photographs] --> D[Review objects and SAM2 masks]
+    E[No object imagery] --> F[Generate and review illustrative references]
+    F --> D
+    D --> G[Pinned Idol inference and exact validated reuse]
+    B --> H[Stable scene and equipment contract]
+    G --> I[Validate and screen Gaussian appearances]
+    I --> H
+    H --> J[Clean GLB / Blender-compatible geometry]
+    H --> K[Photo-derived splat view]
+    J --> L[Digital-twin app with shared telemetry bindings]
+    K --> L
 ```
 
-In another terminal:
+Physical layout and directed connections are authored or reviewed explicitly.
+A flowsheet does not establish physical placement; generated references invent
+appearance, not source truth. Shared appearances reduce generation work without
+merging distinct equipment identities.
 
-```sh
-npm run dev -- --host 127.0.0.1
-```
+## Experiments and final results
 
-Open `http://127.0.0.1:5173`. Select Grocery aisles, Semiconductor assembly or Zoo
-habitats. Select objects, inspect provenance, edit positions/labels/visibility and
-save a new revision. JSON import/export supports explicit scene interchange.
-The UI reports unavailable tools, conflicting revisions and failed jobs.
-
-The API binds to loopback by default. It is an unauthenticated **local workbench**,
-not a production multi-tenant service. Do not expose it publicly without adding
-authentication, tenant isolation, quotas and a hardened asset storage policy.
-`SCENE_WEB_ORIGIN` allows an explicitly configured frontend origin; no wildcard
-cross-origin mutation permission is granted.
-
-## Public read-only demo build
-
-[Open the public read-only demo](https://red-wave-0c7bb6c0f.4.azurestaticapps.net/).
-The initial reference-only deployment verified all three WebGL2 scenes on the real HTTPS origin. It has
-no API backend. The eight authorized previews
-are deployed with explicit original-vs-AI-generated provenance. The operator
-separately verified all eight public preview URLs and image decoding, G03's
-reference-only state, P01's 28 rendered objects and the absent API (404).
-
-The pre-plant retained-package deployment was
-[43248833819](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43248833819),
-source `01ca61d0810d35cda6562aedf9132ea49ccd3b25`. All 121 packaged public-file
-hashes, including the four application files, match its artifact. Its 29 catalog entries
-include three explicitly not-run real-photo baselines, not 29 successful
-reconstructions. Six additional illustrated scenes preserve the original cases;
-quality exclusions remain flagged and are never replaced with representative
-geometry. Rejected appearances stay hidden unless explicitly enabled for review;
-invalid bounds and failed loads remain blocked.
-Desktop/mobile browser checks and their limits are recorded in
-[the trial report](docs/trials.md#actual-illustrated-object-results).
-
-The latest deployment,
-[43257118267](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43257118267),
-adds the [D01 diamond recovery twin](https://red-wave-0c7bb6c0f.4.azurestaticapps.net/?case=D01)
-at source `fbde9b0b02628b3d9de076c5bffde567e629b632`, preserving all three
-retained packages. All 139 public-file hashes match the approved build; its
-30 catalog entries include the three not-run baselines. D01's 24 authored
-module models load on desktop and mobile. Its image, geometry, metadata and
-pending Gaussian reconstruction are documented in the
-[plant handoff](docs/diamond-plant.md#verified-live-delivery).
-
-The separate static build needs no backend, Blender or inference GPU:
-
-```sh
-python3 -m venv .venv
-.venv/bin/pip install -e .
-npm ci
-. .venv/bin/activate
-npm run build:demo
-python3 -m http.server 4173 --bind 127.0.0.1 --directory apps/web/dist-demo
-```
-
-Open `http://127.0.0.1:4173`. This is the existing workbench in explicitly
-read-only demo mode: browse three deterministic procedural scenes, select and
-isolate objects, inspect evidence, change camera/labels, play illustrative routes
-and download JSON. Select I01-I05 to view original-reference previews or G01-G03
-to view AI-generated-reference previews; open a preview in a new tab for detail.
-The default build labels each **reference only**; an explicitly approved derived
-package adds actual available outputs as described below.
-Uploads, imports, scene edits, job execution and all `/api` requests are disabled.
-The default build's geometry is compiled directly from the public templates; it does
-not include private runtime data, Blender exports, image reconstruction, splats
-or actual Idol results. `npm run build` remains the normal editable local build.
-
-An optional, explicitly approved pilot package can add validated object PLYs
-and diagram/plan proposals without exposing a backend. The viewer distinguishes
-successful, partial, failed and not-run cases, keeps reference comparisons, and
-never substitutes geometry for failed appearance loading. The operator verified
-the initial I01-I05 derived deployment, including live I02 loading 9/9 appearances.
-Final all-eight deployment also succeeded, with exact public-package hash and
-case-inventory verification. This does not establish every case's browser
-rendering or visual accuracy.
-See the [approved export/build route](infra/azure/static-demo.md#approved-derived-pilot-packages).
-
-Opt-in [photographic trials](docs/trials.md) compare detector/SAM2 extraction with
-explicitly supervised reviewed-box/SAM2 extraction and exact validated asset reuse.
-Their generated inputs and outputs remain separate from the frozen pilot;
-additive trial publication requires its unchanged approved final package.
-Preparation is not evidence of reconstruction quality or a measured speedup.
-The additional licensed real-photo run produced four validated appearances from
-three Wikimedia Commons photographs, retaining CC BY-SA 4.0 source/adaptation
-credits. Actual-mask checks measured 24-89% lower CPU crop-preparation time with
-identical pixels and PNG bytes; this saves milliseconds, not GPU inference time.
-See the trial report for exact runs, timings, supervision and occlusion limits.
-
-Publish only `apps/web/dist-demo/`, not the repository or `.scene-data/`.
-Azure static website preparation and deployment commands are in
-[`infra/azure/static-demo.md`](infra/azure/static-demo.md).
-
-Runtime metadata and private media live under ignored `.scene-data/`; set
-`SCENE_DATA_DIR` to use another directory. Source files are never committed
-automatically. They may also appear in derived crops/renders: review publication
-rights before sharing assets or Actions artifacts.
-
-## Pipeline
-
-```text
-description -> fixed scenario layout/reference renders --+
-photo -> Grounding DINO + SAM2 object masks/crops --------+
-diagram/plan -> OCR + line-contour region proposals ------+
-                                                         |
-                                      reviewable scene.json
-                                         /             \
-                                Blender meshes      Idol object PLY
-                                         \             /
-                                  browser scene + proxies
-```
-
-`schemas/scene.schema.json` is generated from the Python validation model.
-`packages/scene/types.ts` supplies matching browser types. Scenes use meters,
-right-handed Y-up coordinates, stable semantic IDs, directed routes, provenance,
-sources and versioned assets. Validation rejects duplicate IDs, dangling
-references, invalid dimensions, nonfinite values and external asset URLs.
-
-Blender's headless builder produces `.blend`, `.glb` and isolated object renders.
-The add-on imports/exports scene JSON while preserving IDs and evidence; see
-[`blender/README.md`](blender/README.md). Gaussian assets remain external with
-proxy geometry in Blender. Idol's PLY export is already Y-up; the workbench fits
-each splat to its semantic node dimensions without a second axis flip.
-
-Scene edits use optimistic revision checking. Regeneration refuses to overwrite
-manually edited layouts. Original revisions remain retrievable. Worker stages
-record timings and errors; queued work is persisted, interrupted jobs fail
-explicitly, and cancellation prevents publication of unfinished stages.
-Validated source/reference artifacts can be reused for later steps. Full
-content-addressed stage-result caching and distributed workers are not implemented.
-
-### Procedural batch
-
-```sh
-.venv/bin/scene-toolchain preflight
-.venv/bin/scene-toolchain run --cases P01 P02 P03 \
-  --stages extract blender --report .scene-data/procedural-report.json
-.venv/bin/scene-toolchain export P02 --out .scene-data/P02-scene.json
-```
-
-Set `BLENDER_BIN` if Blender is not on PATH. The CLI writes a nonzero exit status
-if any requested case/stage fails. The three description cases use intentionally
-fixed, deterministic templates, not an unrestricted natural-language CAD parser.
-Their shapes are illustrative primitives and can be improved in Blender or
-replaced with verified assets.
-
-## Image cases and review
-
-| Cases | Inputs | Initial extraction |
+| Experiment | Result | Main lesson |
 |---|---|---|
-| I01, I04 | Mineral flowsheet, assembly diagram | OCR/line-contour region proposals |
-| I05 | Japanese factory plan | Footprint candidates, original Japanese OCR |
-| I02, I03 | Outdoor plant, vessel-room photo | Grounding DINO + SAM2 masks/crops |
-| G01-G03 | Separately generated retail, semiconductor and zoo images | Same object-segmentation path |
+| Three description scenarios | Deterministic layouts and real Blender exports | Clean geometry is the reliable authoring and interaction baseline. |
+| Eight original/generated image references | 31 validated object appearances from five sources; 203 unreviewed diagram/plan proposals from three | Photos can yield appearance; diagrams still require semantic/topology review. |
+| Synthetic photographic comparisons | Baseline detection versus reviewed-box/SAM2 extraction and exact reuse | Review the target and compare receipts; supervision is not an accuracy score. |
+| Three licensed real photographs | Four validated appearances; identical crop bytes with 24-89% lower CPU preparation time | Crop before full-frame RGBA allocation; savings are milliseconds, not faster Idol sampling. |
+| Six illustrated prompt/schema scenes | 25 independent generations, 142 eligible authored placements after 32 exclusions | Reuse complete component concepts; screen malformed results rather than show proxy boxes. |
+| D01 diamond recovery plant | 12 real generations; 10 accepted concepts across 20 visible placements | Photo-derived detail can share the clean twin's semantics; two flattened concepts remain review-only. |
 
-Upload the original JPEG, PNG or WebP to its case (12 MiB, 20 million pixels max).
-On 2026-11-11 the user supplied all eight image references. The coordinating
-operator validated and ingested originals, previews and metadata privately
-through the existing upload API. Full originals are available in that
-operator's private runtime, **not in this repository or public demo**.
-Only the eight separately authorized, metadata-stripped WebP previews live at
-`apps/web/public/references/{I01-I05,G01-G03}.webp`. G01/G02/G03 correspond to
-grocery/semiconductor/zoo. Private intake and public previews are not extraction
-or reconstruction. Frozen starter prompts remain in
-[`cases/manifest.json`](cases/manifest.json), but are not claimed as the exact
-generation prompts for the supplied images. No further image generation is
-needed; this package does not spend image-generation API credits.
+Counts describe outputs and screening, not certified source fidelity. The
+[experiment report](docs/trials.md) retains comparisons, settings and limitations;
+[benchmark evidence](docs/benchmark-status.md) retains original execution records.
 
-CPU diagram extraction:
+### D01: the reusable mining twin
 
-```sh
-sudo apt-get install tesseract-ocr tesseract-ocr-jpn
-.venv/bin/pip install -e ".[ocr]"
+The plant has three processing lines, **24 modules, 64 logical equipment
+children, 50 directed streams and 56 telemetry tags**. Its original synthetic
+photograph is 1536 by 1024. Metre dimensions, positions and routing are explicit
+demo assumptions.
+
+Two asset sets are available for a consuming app:
+
+- **Clean model:** twelve reusable authored module GLBs plus a whole-plant GLB
+  and scaled site plan. The model is Blender-compatible; D01's deterministic
+  exporter is Python, not photo-recovered geometry.
+- **Reconstructed model:** twelve 32,768-Gaussian component assets derived from
+  the original photograph. Ten concepts pass rendered review; the flattened
+  DMS tower and hopper are hidden by default and available for review.
+
+Both must use the same IDs, layout, telemetry and selection state. The workbench
+currently opens D01's reconstructed view; the GLB download remains the clean
+model. A two-mode switch in the Fabric twin app is specified in the
+[agent handoff](docs/digital-twin-integration.md#copyable-assignment-for-the-twin-app-agent),
+not claimed as implemented here.
+
+D01 inference completed in 2,889 seconds with a sampled peak of 9,295 MiB on a
+T4. The [live publication](docs/diamond-plant.md#component-gaussian-reconstruction)
+retains all prior packages and passed desktop/mobile rendering and 152 public
+file-hash checks. The inference GPU was deallocated afterward.
+
+## Recommended pipeline
+
+Use the **supervised optimized object route** for a curated demo. It is the
+best-supported path tested here, not a universal fastest or most accurate method.
+
+1. Choose the abstraction: process modules, not every nut and bolt. Author stable
+   IDs, dimensions and directed routes; distinguish assumptions from observations.
+2. Use licensed/approved, sharp, unobstructed images. Review object boxes and
+   resulting SAM2 masks. Where imagery is absent, generate and review separately
+   labeled illustrative component references.
+3. Run vision extraction and Idol in separate prepared environments. Preserve
+   full model/SDK pins, 32,768 Gaussians, 50 steps, seed 42, SDPA and compile-off
+   settings from the approved route.
+4. Reuse only exact validated crop/settings-addressed results. Resume completed
+   objects, preserve distinct placements and run GPU inference sequentially.
+   Do not use category similarity as an identity/cache shortcut.
+5. Validate PLYs, then inspect actual isolated and assembled renders. Apply
+   covariance-aware bounds, uniform grounded fit, pinned orientation correction
+   and exact-hash visual exclusions. Failed/excluded appearances are not replaced
+   silently with representative boxes.
+6. Package approved outputs separately, retain existing publications, and verify
+   hashes and browser rendering before delivery. Stop/deallocate the inference
+   worker when its dependent work is finished.
+
+The registered D01 workflow is reproducible on an **authorized, prepared GPU
+runner** with protected model access. It does not start a stopped VM or deploy
+the app:
+
+```powershell
+gh workflow run gpu-batch.yml --repo ribumann/3d-scene-toolchain --ref feat/diamond-plant-splats -f smoke_mode=trials -f smoke_source=public-preview -f pilot_cases=D01 -f trial_variants=optimized -f publish_trials=true
 ```
 
-Extraction produces **unreviewed candidates**, not ground truth. The initial OCR
-adapter does not solve arrows, line crossings, recirculation, semantic symbols or
-translation. Review labels/footprints and explicitly author directed edges using
-scene JSON or Blender; do not infer factory placement from a logical flowsheet.
-Photos use approximate image-plane placement, not calibrated depth. The person in
-the vessel-room reference is not an identity-reconstruction target.
+As of this documentation update, that route is on
+[PR #3](https://github.com/ribumann/3d-scene-toolchain/pull/3), not merged main.
+The existing result is run `43294502236`; consume its approved assets instead of
+rerunning inference just to build the twin app. D01 must run alone.
+`publish_trials=true` approves the bounded public package, not private logs,
+credentials or arbitrary source media.
 
-## GPU worker and gated model access
+See [D01 reproduction and publication](docs/diamond-plant.md#component-gaussian-reconstruction),
+[trial execution/cache details](docs/trials.md#protected-sequential-workflow),
+and [GPU prerequisites](infra/azure/README.md). Model and source-image licenses
+are separate from the repository's MIT software license.
 
-Idol reconstructs an **individual object's appearance**, not a whole room or a
-schematic. Its public weights depend on gated image encoders:
+## Use the toolchain
 
-- [DINOv3 ViT-H+](https://huggingface.co/facebook/dinov3-vith16plus-pretrain-lvd1689m)
-- [FLUX.2-dev](https://huggingface.co/black-forest-labs/FLUX.2-dev), VAE only
+### Local authoring
 
-Accept both models' access terms with your Hugging Face account. Configure a
-read-access `HF_TOKEN` on the GPU worker (or as an Actions secret), never in Git,
-chat, the frontend, shell history or deployment templates. Model terms and
-commercial-use rights must be reviewed separately from this repository's MIT
-license and Idol's Apache-2.0 SDK license.
+Requirements: Python 3.11+, a Node version allowed by `package.json`, npm,
+Blender 4.x for Blender export, and WebGL2. No browser-side inference GPU is
+required.
 
-Prepare separate CUDA-capable Python 3.12 environments for `.[vision]` extraction
-and base-project + `requirements-idol.txt` inference. Their current Hugging Face
-hub major requirements conflict; do not combine them or loosen the vision cap.
-The vision extra includes torchvision for SAM2's fast image processor. Use
-CUDA-matched torch/torchvision builds from the same PyTorch wheel index; verify
-a CUDA torchvision operation and SAM2 processor loading, not just imports.
-The dedicated one-object smoke uses the prepared fixed worker environments
-described in [`infra/azure/README.md`](infra/azure/README.md), not this cloud
-development host. `smoke_mode=readiness` checks real gated-config access on CPU
-before `smoke_mode=gpu` can request the private worker.
-
-The opt-in **private eight-case batch** is separate from the single-object smoke:
-
-```sh
-gh workflow run gpu-batch.yml --repo ribumann/3d-scene-toolchain \
-  --ref copilot/hybrid-scene-toolchain -f smoke_mode=batch \
-  -f smoke_source=public-preview \
-  -f 'pilot_cases=I01 I02 I03 I04 I05 G01 G02 G03'
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[test]"
+npm ci
+.\.venv\Scripts\scene-toolchain.exe serve
 ```
 
-It extracts each photo/generated case once without the local adapter's 48-box
-truncation, enumerates every usable approved non-person crop, and reconstructs distinct crops
-sequentially with the successful smoke's immutable model pins and 32,768/50/42
-settings. Exact duplicate crops retain every parent mapping. Completed outputs
-are revalidated before resume; failures are isolated and reported, never filled
-with fake geometry. I01/I04/I05 instead produce unreviewed OCR/contour region
-proposals, without the normal 100-region truncation or invented process topology;
-they are not Idol appearances. Placement/scale/depth are inferred, not metric.
-Select a unique subset with `pilot_cases`; its default remains I02.
-The eight-case run completed successfully; counts and execution evidence are in
-[`docs/benchmark-status.md`](docs/benchmark-status.md), not an accuracy certificate.
-Setup, output/checkpoint paths and retry semantics are in the Azure guide.
-The user approved published previews for faster input intake, retaining originals
-for final comparison. This uses staged, authorized WebPs and records `user-approved-public-webp-preview` provenance,
-actual SHA/dimensions and `not_original_bytes=true` in a separate checkpoint
-tree. It never overwrites original Store records or silently falls back.
-The original-input I02 route remains available as `smoke_source=private-original`.
-Outputs remain private by default. `publish_pilots=true` explicitly approves only
-revalidated derived preview-input scenes/PLY for a separate allowlisted artifact;
-`smoke_mode=package` exports stopped checkpoints without repeating inference.
-Neither option uploads originals, masks/crops or raw logs.
-Package-only mode uses a separate CPU publisher runner; with
-`incremental_pilots=true`, completed sources can be published individually while
-the GPU batch continues. Active cases remain honestly labeled `processing`, with
-no scene or in-progress object publication.
+In another terminal, run `npm run dev -- --host 127.0.0.1` and open
+`http://127.0.0.1:5173`. Select a procedural case, edit labels/transforms,
+inspect evidence, and export scene JSON. Run clean procedural exports with:
 
-Pin full **40-character commit SHAs** in the worker environment:
-
-```text
-SCENE_IDOL_MODEL_REVISION=<speridlabs/idol commit>
-SCENE_DINOV3_REVISION=<DINOv3 commit>
-SCENE_FLUX2_REVISION=<FLUX.2-dev commit>
-SCENE_DETECTOR_REVISION=<IDEA-Research/grounding-dino-tiny commit>
-SCENE_SEGMENTER_REVISION=<facebook/sam2.1-hiera-small commit>
+```powershell
+.\.venv\Scripts\scene-toolchain.exe run --cases P01 P02 P03 --stages extract blender --report .scene-data\procedural-report.json
 ```
 
-The SDK is pinned in `requirements-idol.txt`. The historical combined-environment full-batch command below is not certified
-against that dependency conflict; prefer the documented isolated smoke first:
+The local API is unauthenticated and loopback-only by default; do not expose it
+as a production service. Private inputs and runtime state belong in ignored
+`.scene-data`, never public build output.
 
-```sh
-.venv/bin/scene-toolchain run --cases P02 \
-  --stages extract blender idol --report .scene-data/gpu-smoke.json
-```
+### Static demo and app integration
 
-The initial adapter uses 32,768 Gaussians, 50 steps and seed 42. A T4 gets a
-float32 DINO encoder and SDPA rather than assuming native bf16 support. Compile is
-disabled until measured; `SCENE_IDOL_COMPILE=1` enables the SDK optimization path.
-Only the FLUX VAE is downloaded. PLY output is checked for Gaussian attributes,
-finite values, normalized rotations and nondegenerate bounds before publication.
-Generated hidden surfaces remain guesses. The unchanged normal local API adapter
-attaches an appearance asset to its first suitable visible object; the private
-pilot batch is a separate explicit route. Automatic per-object quality ranking
-and metric calibration remain future improvements.
+Use the hosted workbench to browse results, isolate objects, inspect provenance,
+toggle layers/screened-out review, and download assets. There is no public
+mutation API or inference service.
 
-### Where to run
+`npm run build:demo` uses `python3` and produces a **reference/procedural-only**
+default build on the documented Linux environment. Actual splats and D01 require
+explicitly selected validated packages. Publish only `apps/web/dist-demo`, never
+the repository or private runtime.
 
-- **Regular GitHub Actions:** CPU checks and Blender exports; not GPU inference.
-- **Configured GPU runner:** manual `Trusted GPU benchmark` workflow, protected
-  `scene-gpu` environment, actual label in `SCENE_GPU_RUNNER`. A GitHub-hosted T4
-  larger runner requires eligible organization setup. A self-hosted GPU label
-  can also work with an appropriate trust policy and preinstalled Blender.
-- **Azure Italy North:** OIDC preflight plus a bounded dedicated T4 VM deployment
-  template and operator commands in [`infra/azure/README.md`](infra/azure/README.md).
-  Authorization does not supply an Azure identity: the intended external tenant
-  and subscription must be authenticated/configured first.
+| Need | Start here |
+|---|---|
+| Clean/reconstructed twin modes and exact asset bindings | [Digital-twin integration](docs/digital-twin-integration.md) |
+| Plant sizing, connections, provenance and assets | [D01 plant contract](docs/diamond-plant.md) |
+| Sensor generation and focused Fabric/app insights | [Telemetry and Fabric specification](docs/diamond-plant-demo.md) |
+| Agent acceptance and existing-infrastructure guardrails | [Mining twin Definition of Done](docs/mining-twin-agent-dod.md) |
+| Opt-in package build/deployment | [Static demo guide](infra/azure/static-demo.md) |
+| Scene interchange and Blender authoring | [Blender guide](blender/README.md) |
 
-The coordinating operator deployed an explicitly approved Italy North Spot T4
-without auto-shutdown and verified real `nvidia-smi`, CUDA kernels and one private
-I02 tree-object Idol reconstruction. Full archive intake on that VM remains
-incomplete; I02 was transferred and checksum-verified separately, while all eight
-originals remain valid in the operator's local runtime.
-See the Azure guide for the observed status and source-template
-limitations. Do not queue against a guessed GPU runner or reuse another project's
-cloud identities/resources. GPU artifacts are opt-in: the original procedural
-report and the separately approved derived pilot package have distinct allowlists.
-Uploaded original images, segmentation crops and raw inference logs are excluded.
+## Development checks and reference
 
-## Validation
-
-```sh
-.venv/bin/python -m unittest discover -s tests -v
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
 npm run build
 npm test -- --run
 ```
 
-Tests include actual Blender GLB/reference exports, coordinate/rotation
-round-trips, schema/API revisions, source safety, missing prerequisites,
-cancellation, Gaussian validation, OCR on a **synthetic test diagram**, and Azure
-guard logic. `tests/create_renderer_fixture.py` creates explicitly synthetic
-Gaussians for renderer-only checks; it is not Idol inference evidence.
+Blender/OCR/GPU checks require their documented tools and permissions. Unit tests
+and numerical PLY validation do not establish photographic accuracy.
 
-Actual case status and limits are in [`docs/benchmark-status.md`](docs/benchmark-status.md).
-No fidelity/performance certification is claimed from passing unit tests.
-
-## Digital-twin extension seam
-
-Use semantic node IDs to bind future equipment data, not mesh indices or labels.
-Keep live values, timestamps, quality/staleness and units outside geometry
-revisions. See [`docs/digital-twin-integration.md`](docs/digital-twin-integration.md)
-for a proposed envelope and manufacturing, maintenance, training, inventory and
-visitor-wayfinding uses. Telemetry ingestion and safety/process simulation are
-not implemented in this milestone.
+The [historical README](README-history.md) preserves the working narrative and
+earlier setup/status reports. Use it as reference, not as current availability
+or deployment truth; current outcomes and recommended usage are above.

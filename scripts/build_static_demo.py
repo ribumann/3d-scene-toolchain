@@ -28,12 +28,18 @@ def apply_visual_exclusions(quality, reviews):
             }
 
 
-def build_demo(public: Path, pilot_package: Path | None = None, trial_package: Path | None = None, illustration_package: Path | None = None, include_plant=False):
+def build_demo(public: Path, pilot_package: Path | None = None, trial_package: Path | None = None, illustration_package: Path | None = None, include_plant=False, plant_splat_package: Path | None = None):
     from scripts.package_pilots import validate_package
     from scene_pipeline.gaussians import assess_ply
 
     if include_plant and not all((pilot_package, trial_package, illustration_package)):
         raise ValueError("Plant publication must retain all three approved source packages")
+    if plant_splat_package is not None and not include_plant:
+        raise ValueError("Plant splats require the complete authored plant publication")
+    plant_splats = None
+    if plant_splat_package is not None:
+        from scripts.package_trials import validate_trial_package
+        plant_splats = validate_trial_package(plant_splat_package, ROOT / "cases/diamond-plant-trial.json")[0]
     pilots = validate_package(pilot_package) if pilot_package is not None else None
     trials = None
     if trial_package is not None:
@@ -92,7 +98,7 @@ def build_demo(public: Path, pilot_package: Path | None = None, trial_package: P
     destination.mkdir(parents=True, exist_ok=True)
     references.mkdir(parents=True, exist_ok=True)
     quality = {}
-    for package, manifest in ((pilot_package, pilots), (trial_package, trials[0] if trials else None), (illustration_package, illustrations)):
+    for package, manifest in ((pilot_package, pilots), (trial_package, trials[0] if trials else None), (illustration_package, illustrations), (plant_splat_package, plant_splats)):
         if manifest is not None:
             for name in manifest["files"]:
                 if name.startswith("assets/") and name.endswith(".ply"):
@@ -146,7 +152,7 @@ def build_demo(public: Path, pilot_package: Path | None = None, trial_package: P
             ))
     if include_plant:
         from scripts.diamond_plant import publish
-        plant_case, plant_scene = publish(public / "plant")
+        plant_case, plant_scene = publish(public / "plant", plant_splat_package)
         cases.append(plant_case)
         (destination / "D01.json").write_bytes((plant_scene.model_dump_json(indent=2) + "\n").encode())
     (destination / "cases.json").write_text(
@@ -196,4 +202,5 @@ if __name__ == "__main__":
     package = os.environ.get("SCENE_PILOT_PUBLIC_PACKAGE")
     trials = os.environ.get("SCENE_TRIAL_PUBLIC_PACKAGE")
     illustrations = os.environ.get("SCENE_ILLUSTRATION_PUBLIC_PACKAGE")
-    build_demo(ROOT / "apps/web/public-demo", Path(package) if package else None, Path(trials) if trials else None, Path(illustrations) if illustrations else None, os.environ.get("SCENE_INCLUDE_DIAMOND_PLANT") == "1")
+    plant_splats = os.environ.get("SCENE_PLANT_SPLAT_PACKAGE")
+    build_demo(ROOT / "apps/web/public-demo", Path(package) if package else None, Path(trials) if trials else None, Path(illustrations) if illustrations else None, os.environ.get("SCENE_INCLUDE_DIAMOND_PLANT") == "1", Path(plant_splats) if plant_splats else None)
