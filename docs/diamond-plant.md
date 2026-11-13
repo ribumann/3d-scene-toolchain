@@ -7,7 +7,7 @@ photogrammetric reconstruction**.
 
 The first publication used authored parametric mesh geometry after Azure
 returned `SkuNotAvailable` for the retained Italy North Spot T4. The worker has
-since restarted for a separate, supervised SAM2/Idol reconstruction attempt.
+since completed a separate, supervised SAM2/Idol reconstruction run.
 An independently validated Gaussian package overlays component appearances without
 replacing the authored layout or relabeling incumbent reconstructions. The
 portable GLB remains the authored mesh model, not an export of the splats.
@@ -168,6 +168,18 @@ Twin consumers must join each appearance SHA-256 to `/demo/quality.json` and
 hide excluded assets by default, then apply the documented grounded,
 aspect-preserving fit rather than stretching each axis to the module envelope.
 An excluded splat is not silently replaced by a geometric proxy.
+
+The Gaussian publication is live via deployment
+[43381383927](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43381383927)
+at source `891d4f3d877d1d8acc7097c017b4e865b73ec8e2`.
+Live checks matched 152 public-file hashes, including all 29 plant deliverables
+and four application files, while retaining the original 30-entry catalog.
+Desktop and mobile checks loaded ten accepted appearances, loaded all twelve
+when the review flag was enabled, and restored screening when disabled.
+Layer controls, downloads and source-image decoding passed without browser
+errors or horizontal overflow. The complete raw generation evidence is
+available in `/plant/reconstruction.json`; these checks establish publication
+integrity and usable rendering, not reconstructed engineering accuracy.
 
 `cases/diamond-plant-trial.json` isolates D01 from the six frozen photographic
 trials. Twelve manually reviewed canonical crops, including the foreground
