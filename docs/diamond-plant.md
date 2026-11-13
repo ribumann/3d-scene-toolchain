@@ -8,7 +8,7 @@ photogrammetric reconstruction**.
 The first publication used authored parametric mesh geometry after Azure
 returned `SkuNotAvailable` for the retained Italy North Spot T4. The worker has
 since restarted for a separate, supervised SAM2/Idol reconstruction attempt.
-An optional validated Gaussian package overlays component appearances without
+An independently validated Gaussian package overlays component appearances without
 replacing the authored layout or relabeling incumbent reconstructions. The
 portable GLB remains the authored mesh model, not an export of the splats.
 
@@ -145,6 +145,29 @@ reconstruction accuracy. No Fabric infrastructure or telemetry simulator is
 deployed by this repository's viewer publication.
 
 ## Component Gaussian reconstruction
+
+The real reconstruction run
+[43294502236](https://github.com/ribumann/3d-scene-toolchain/actions/runs/43294502236)
+completed all twelve canonical crops using 32,768 Gaussians each, 50 steps and
+seed 42. Sequential extraction/inference took 2,889 seconds, with a sampled peak
+GPU memory of 9,295 MiB. These were twelve independent generations, not cache
+hits; their appearances are reused across 24 authored module placements.
+The retained GPU was deallocated after the artifact was published.
+
+An actual rendered review retained ten concepts across twenty placements.
+The DMS tower and raw-feed hopper lost their defining vertical volume and are
+hidden by exact-hash entries in `cases/appearance-reviews.json`. They remain
+available through **Show screened-out objects** without changing acceptance.
+The other components retain photographic surface detail, but some include
+small surrounding pads/conveyors and have approximate depth. This is a
+component-assembled single-image reconstruction, not whole-scene photogrammetry.
+All 24 semantic module IDs, 50 streams and 56 telemetry tags remain intact,
+including hidden appearances; the portable authored GLB remains available.
+
+Twin consumers must join each appearance SHA-256 to `/demo/quality.json` and
+hide excluded assets by default, then apply the documented grounded,
+aspect-preserving fit rather than stretching each axis to the module envelope.
+An excluded splat is not silently replaced by a geometric proxy.
 
 `cases/diamond-plant-trial.json` isolates D01 from the six frozen photographic
 trials. Twelve manually reviewed canonical crops, including the foreground

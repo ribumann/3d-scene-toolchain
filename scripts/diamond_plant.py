@@ -402,6 +402,7 @@ def apply_reconstructed_appearances(scene, metadata, files, package):
             "idol_sdk_rotation_x_radians": math.pi,
             "asset_uri_prefix": "/api/assets/plant/",
             "public_uri_prefix": "/plant/",
+            "quality_report_uri": "/demo/quality.json",
         },
         "report": entry["report"],
     }
